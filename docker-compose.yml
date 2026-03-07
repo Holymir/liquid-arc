@@ -1,0 +1,36 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: liquidark-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: liquidark
+      POSTGRES_PASSWORD: liquidark
+      POSTGRES_DB: liquidark
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U liquidark"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Optional: self-hosted production app (comment out for local dev with `npm run dev`)
+  # app:
+  #   build: .
+  #   container_name: liquidark-app
+  #   restart: unless-stopped
+  #   ports:
+  #     - "3000:3000"
+  #   environment:
+  #     - DATABASE_URL=postgresql://liquidark:liquidark@postgres:5432/liquidark
+  #     - NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=${NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID}
+  #     - BASE_RPC_URL=${BASE_RPC_URL}
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+
+volumes:
+  postgres_data:
