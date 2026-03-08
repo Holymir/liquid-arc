@@ -48,14 +48,23 @@ export function PortfolioChart({ address, chainId = "base" }: PortfolioChartProp
   useEffect(() => {
     if (!address) return;
 
+    const controller = new AbortController();
     setIsLoading(true);
-    fetch(`/api/portfolio/${address}/history?period=${period}&chainId=${chainId}`)
+    fetch(`/api/portfolio/${address}/history?period=${period}&chainId=${chainId}`, {
+      signal: controller.signal,
+    })
       .then((r) => r.json())
       .then((json) => {
-        setData(json.snapshots ?? []);
-        setIsLoading(false);
+        if (!controller.signal.aborted) {
+          setData(json.snapshots ?? []);
+          setIsLoading(false);
+        }
       })
-      .catch(() => setIsLoading(false));
+      .catch((err) => {
+        if (!controller.signal.aborted) setIsLoading(false);
+      });
+
+    return () => controller.abort();
   }, [address, period, chainId]);
 
   return (

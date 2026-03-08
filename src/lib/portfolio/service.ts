@@ -13,17 +13,31 @@ export async function getPortfolio(
   const adapter = getChainAdapter(chainId);
   const normalizedAddress = address.toLowerCase();
 
-  // 1. Fetch native balance + ERC20 token balances in parallel with LP positions
+  // 1. Fetch native balance + ERC20 token balances in parallel with LP positions.
+  //    LP position fetch is best-effort: a failure (e.g. RPC timeout) returns []
+  //    so the rest of the portfolio still loads correctly.
   const [nativeBalance, tokenBalances, lpPositions] = await Promise.all([
     adapter.getNativeBalance(address),
     adapter.getTokenBalances(address, DEFAULT_TOKEN_ADDRESSES),
-    chainId === "base" ? aerodromeAdapter.getLPPositions(address) : Promise.resolve([]),
+    chainId === "base"
+      ? aerodromeAdapter.getLPPositions(address).catch((err: unknown) => {
+          console.warn(
+            "[portfolio] LP position fetch failed, returning empty:",
+            err instanceof Error ? err.message : err
+          );
+          return [];
+        })
+      : Promise.resolve([]),
   ]);
+
+  // AERO token on Base — needed to price emissions rewards
+  const AERO_ADDRESS = "0x940181a94A35A4569E4529A3CDfB74e38FD98631";
 
   // 2. Collect all token addresses that need pricing
   const allTokenAddresses = [
     ...tokenBalances.map((t) => t.tokenAddress),
     ...lpPositions.flatMap((p) => [p.token0Address, p.token1Address]),
+    AERO_ADDRESS,
   ];
 
   // 3. Fetch prices
@@ -50,13 +64,22 @@ export async function getPortfolio(
     })),
   ].filter((t) => parseFloat(t.formattedBalance) > 0);
 
-  // 6. Enrich LP positions with USD values
+  // 6. Enrich LP positions with USD values (principal + fees + emissions)
+  const aeroPrice = prices.get(AERO_ADDRESS.toLowerCase()) ?? 0;
+
   const enrichedLPs: LPPositionData[] = lpPositions.map((lp) => {
     const price0 = prices.get(lp.token0Address.toLowerCase()) ?? 0;
     const price1 = prices.get(lp.token1Address.toLowerCase()) ?? 0;
+
     const usdValue =
       (lp.token0Amount ?? 0) * price0 + (lp.token1Amount ?? 0) * price1;
-    return { ...lp, usdValue };
+
+    const feesEarnedUsd =
+      (lp.fees0Amount ?? 0) * price0 + (lp.fees1Amount ?? 0) * price1;
+
+    const emissionsEarnedUsd = (lp.emissionsEarned ?? 0) * aeroPrice;
+
+    return { ...lp, usdValue, feesEarnedUsd, emissionsEarnedUsd };
   });
 
   // 7. Calculate total USD value
@@ -64,45 +87,41 @@ export async function getPortfolio(
   const lpTotal = enrichedLPs.reduce((sum, lp) => sum + (lp.usdValue ?? 0), 0);
   const totalUsdValue = tokenTotal + lpTotal;
 
-  // 8. Upsert wallet in DB
-  const wallet = await prisma.wallet.upsert({
+  // 8. Update token balances if wallet already exists (don't auto-create wallets —
+  //    wallet creation is handled explicitly via the WalletPanel / /api/wallets)
+  const wallet = await prisma.wallet.findUnique({
     where: { address_chainId: { address: normalizedAddress, chainId } },
-    update: { isActive: true },
-    create: {
-      address: normalizedAddress,
-      chainId,
-      chainType: chainId === "solana" ? "svm" : "evm",
-    },
   });
 
-  // 9. Upsert token balances (fire-and-forget, don't block the response)
-  void Promise.all(
-    enrichedTokens.map((t) =>
-      prisma.tokenBalance.upsert({
-        where: {
-          id: `${wallet.id}:${t.tokenAddress}`,
-        },
-        update: {
-          balance: t.balance.toString(),
-          usdValue: t.usdValue,
-          lastUpdated: new Date(),
-        },
-        create: {
-          id: `${wallet.id}:${t.tokenAddress}`,
-          walletId: wallet.id,
-          tokenAddress: t.tokenAddress,
-          symbol: t.symbol,
-          decimals: t.decimals,
-          balance: t.balance.toString(),
-          usdValue: t.usdValue,
-        },
-      }).catch((err: unknown) => {
-        console.warn("[portfolio] tokenBalance upsert failed:", err);
-      })
-    )
-  );
+  if (wallet) {
+    void Promise.all(
+      enrichedTokens.map((t) =>
+        prisma.tokenBalance.upsert({
+          where: {
+            id: `${wallet.id}:${t.tokenAddress}`,
+          },
+          update: {
+            balance: t.balance.toString(),
+            usdValue: t.usdValue,
+            lastUpdated: new Date(),
+          },
+          create: {
+            id: `${wallet.id}:${t.tokenAddress}`,
+            walletId: wallet.id,
+            tokenAddress: t.tokenAddress,
+            symbol: t.symbol,
+            decimals: t.decimals,
+            balance: t.balance.toString(),
+            usdValue: t.usdValue,
+          },
+        }).catch((err: unknown) => {
+          console.warn("[portfolio] tokenBalance upsert failed:", err);
+        })
+      )
+    );
+  }
 
-  // 10. Serialize BigInts to strings for JSON response
+  // 9. Serialize BigInts to strings for JSON response
   return {
     walletAddress: address,
     chainId,

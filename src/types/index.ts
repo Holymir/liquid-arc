@@ -33,7 +33,13 @@ export interface LPPositionData {
   token0Amount?: number;
   token1Amount?: number;
   usdValue?: number;
+  // Unclaimed trading fees (from unstaked_earned0/1 in Sugar)
+  fees0Amount?: number;
+  fees1Amount?: number;
   feesEarnedUsd?: number;
+  // AERO emissions earned (for staked positions, from emissions_earned in Sugar)
+  emissionsEarned?: number;   // AERO token amount
+  emissionsEarnedUsd?: number;
 }
 
 /** Serializable version of LPPositionData */
@@ -50,7 +56,11 @@ export interface LPPositionJSON {
   token0Amount?: number;
   token1Amount?: number;
   usdValue?: number;
+  fees0Amount?: number;
+  fees1Amount?: number;
   feesEarnedUsd?: number;
+  emissionsEarned?: number;
+  emissionsEarnedUsd?: number;
 }
 
 export interface PortfolioResponse {
@@ -60,6 +70,7 @@ export interface PortfolioResponse {
   tokenBalances: TokenBalanceJSON[];
   lpPositions: LPPositionJSON[];
   lastUpdated: string;
+  pnl?: PnLResult | null;
 }
 
 export interface PnLResult {

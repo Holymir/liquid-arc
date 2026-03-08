@@ -1,21 +1,50 @@
-import { getDefaultConfig } from "@rainbow-me/rainbowkit";
-import { base, mainnet, arbitrum } from "wagmi/chains";
+import { connectorsForWallets } from "@rainbow-me/rainbowkit";
+import {
+  metaMaskWallet,
+  coinbaseWallet,
+  walletConnectWallet,
+} from "@rainbow-me/rainbowkit/wallets";
+import { createConfig, http } from "wagmi";
+import { base } from "wagmi/chains";
 
-// Singleton: WalletConnect Core throws if initialized more than once.
-// Using a module-level variable ensures one instance per process.
-let _config: ReturnType<typeof getDefaultConfig> | null = null;
+type WagmiConfig = ReturnType<typeof createConfig>;
 
-export function getWagmiConfig() {
-  if (!_config) {
-    _config = getDefaultConfig({
-      appName: "LiquidArk",
-      projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? "",
-      chains: [base, mainnet, arbitrum],
+// Persist the config across HMR re-evaluations in development.
+const g = globalThis as typeof globalThis & { __wagmiConfig?: WagmiConfig };
+
+/**
+ * Must only be called in the browser.
+ * WalletConnect connectors access browser-only APIs (indexedDB) during
+ * createConfig() → connector setup(), so calling this on the server throws.
+ */
+export function getWagmiConfig(): WagmiConfig {
+  if (typeof window === "undefined") {
+    throw new Error("getWagmiConfig() must only be called in the browser");
+  }
+
+  if (!g.__wagmiConfig) {
+    const connectors = connectorsForWallets(
+      [
+        {
+          groupName: "Popular",
+          wallets: [metaMaskWallet, coinbaseWallet, walletConnectWallet],
+        },
+      ],
+      {
+        appName: "LiquidArk",
+        projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? "",
+      }
+    );
+
+    g.__wagmiConfig = createConfig({
+      connectors,
+      chains: [base],
       ssr: true,
+      transports: {
+        [base.id]: http(),
+      },
     });
   }
-  return _config;
-}
 
-// Convenience export for components that import config directly
-export const config = getWagmiConfig();
+  return g.__wagmiConfig;
+}

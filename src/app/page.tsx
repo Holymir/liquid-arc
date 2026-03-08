@@ -7,12 +7,10 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAccount } from "wagmi";
 import { ConnectButton } from "@/components/wallet/ConnectButton";
-import { useWalletSync } from "@/hooks/useWalletSync";
 
 export default function Home() {
   const { isConnected } = useAccount();
   const router = useRouter();
-  useWalletSync(); // auto-register wallet on connect
 
   useEffect(() => {
     if (isConnected) {
