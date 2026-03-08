@@ -169,12 +169,15 @@ export class AerodromeAdapter implements DefiProtocolAdapter {
       const emissions = parseFloat(formatUnits(p.emissions_earned, 18));
 
       positions.push({
+        nftTokenId: p.id.toString(),
         protocol: isStaked ? "aerodrome (staked)" : "aerodrome",
         poolAddress: p.lp,
         token0Address: tokens.token0,
         token0Symbol: m0.symbol,
+        token0Decimals: m0.decimals,
         token1Address: tokens.token1,
         token1Symbol: m1.symbol,
+        token1Decimals: m1.decimals,
         liquidity: p.liquidity + p.staked,
         tickLower: p.tick_lower,
         tickUpper: p.tick_upper,

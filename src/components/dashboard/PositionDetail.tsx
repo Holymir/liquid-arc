@@ -1,0 +1,365 @@
+"use client";
+
+import { usePositionDetail } from "@/hooks/usePositionDetail";
+import type { LPPositionJSON } from "@/types";
+
+interface PositionDetailProps {
+  address: string;
+  position: LPPositionJSON;
+  onClose: () => void;
+}
+
+function formatUsd(value: number): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+}
+
+function formatPercent(value: number): string {
+  const sign = value >= 0 ? "+" : "";
+  return `${sign}${value.toFixed(2)}%`;
+}
+
+function PnlValue({ value, className = "" }: { value: number; className?: string }) {
+  const color = value >= 0 ? "text-emerald-400" : "text-red-400";
+  return (
+    <span className={`${color} ${className} tabular-nums`}>
+      {value >= 0 ? "+" : ""}
+      {formatUsd(value)}
+    </span>
+  );
+}
+
+function StatRow({
+  label,
+  value,
+  sub,
+  highlight,
+}: {
+  label: string;
+  value: React.ReactNode;
+  sub?: React.ReactNode;
+  highlight?: boolean;
+}) {
+  return (
+    <div
+      className={`flex items-start justify-between py-2.5 ${
+        highlight ? "bg-slate-800/30 -mx-3 px-3 rounded-lg" : ""
+      }`}
+    >
+      <span className="text-slate-400 text-sm">{label}</span>
+      <div className="text-right">
+        <div className="text-sm font-medium text-slate-200">{value}</div>
+        {sub && <div className="text-[11px] text-slate-500 mt-0.5">{sub}</div>}
+      </div>
+    </div>
+  );
+}
+
+export function PositionDetail({ address, position, onClose }: PositionDetailProps) {
+  const { data: pnl, isLoading, error } = usePositionDetail(
+    address,
+    position.nftTokenId
+  );
+
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end">
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
+
+      {/* Panel */}
+      <div className="relative w-full max-w-md bg-[#0d0d14] border-l border-slate-800 h-full overflow-y-auto">
+        {/* Header */}
+        <div className="sticky top-0 bg-[#0d0d14]/95 backdrop-blur-sm border-b border-slate-800 px-5 py-4 flex items-center justify-between z-10">
+          <div>
+            <h2 className="text-slate-100 font-bold text-lg">
+              {position.token0Symbol}/{position.token1Symbol}
+            </h2>
+            <div className="flex items-center gap-2 mt-0.5">
+              <span className="text-slate-500 text-xs font-mono">
+                NFT #{position.nftTokenId}
+              </span>
+              <span className="text-indigo-400/70 text-[10px] uppercase tracking-wider">
+                Aerodrome CL
+              </span>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-slate-500 hover:text-slate-300 transition-colors p-1"
+          >
+            <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+              <path
+                fillRule="evenodd"
+                d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                clipRule="evenodd"
+              />
+            </svg>
+          </button>
+        </div>
+
+        <div className="p-5 space-y-5">
+          {isLoading ? (
+            <LoadingSkeleton />
+          ) : error ? (
+            <div className="bg-slate-800/40 rounded-xl p-5 text-center">
+              <p className="text-slate-400 text-sm">{error}</p>
+              <p className="text-slate-600 text-xs mt-1">
+                P&L data will be available after the next portfolio refresh.
+              </p>
+            </div>
+          ) : pnl ? (
+            <>
+              {/* ── Total P&L ──────────────────────────────── */}
+              <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5">
+                <p className="text-slate-500 text-xs uppercase tracking-wider font-medium mb-2">
+                  Total P&L
+                </p>
+                <div className="flex items-end gap-3">
+                  <PnlValue value={pnl.totalPnl} className="text-2xl font-bold" />
+                  <span
+                    className={`text-xs font-medium px-2 py-0.5 rounded-full mb-0.5 ${
+                      pnl.totalPnl >= 0
+                        ? "bg-emerald-400/10 text-emerald-400"
+                        : "bg-red-400/10 text-red-400"
+                    }`}
+                  >
+                    {formatPercent(pnl.totalPnlPercent)}
+                  </span>
+                </div>
+                <p className="text-slate-600 text-xs mt-1.5">
+                  Entry: {formatUsd(pnl.entryValueUsd)} &rarr; Now: {formatUsd(pnl.currentPositionUsd + pnl.feesEarnedUsd + pnl.emissionsEarnedUsd)}
+                </p>
+              </div>
+
+              {/* ── P&L Breakdown ──────────────────────────── */}
+              <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5">
+                <p className="text-slate-500 text-xs uppercase tracking-wider font-medium mb-3">
+                  P&L Breakdown
+                </p>
+                <div className="divide-y divide-slate-800/60">
+                  <StatRow
+                    label="Position Value Change"
+                    value={<PnlValue value={pnl.principalPnl} />}
+                    sub="Includes impermanent loss"
+                  />
+                  <StatRow
+                    label="Trading Fees Earned"
+                    value={
+                      <span className="text-emerald-400 tabular-nums">
+                        +{formatUsd(pnl.feesEarnedUsd)}
+                      </span>
+                    }
+                    sub="Unclaimed swap fees"
+                  />
+                  <StatRow
+                    label="AERO Emissions"
+                    value={
+                      <span className="text-emerald-400 tabular-nums">
+                        +{formatUsd(pnl.emissionsEarnedUsd)}
+                      </span>
+                    }
+                    sub="Gauge rewards"
+                  />
+                  <StatRow
+                    label="Net Result"
+                    value={<PnlValue value={pnl.totalPnl} className="font-bold" />}
+                    highlight
+                  />
+                </div>
+              </div>
+
+              {/* ── Impermanent Loss ───────────────────────── */}
+              <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <p className="text-slate-500 text-xs uppercase tracking-wider font-medium">
+                    Impermanent Loss
+                  </p>
+                  <span className="group/info relative cursor-help">
+                    <svg className="w-3.5 h-3.5 text-slate-600" viewBox="0 0 16 16" fill="currentColor">
+                      <path fillRule="evenodd" d="M8 15A7 7 0 108 1a7 7 0 000 14zm.75-10.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM7.25 8a.75.75 0 011.5 0v3a.75.75 0 01-1.5 0V8z" clipRule="evenodd" />
+                    </svg>
+                    <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-3 py-2 rounded-lg bg-slate-700 text-slate-200 text-[11px] leading-relaxed whitespace-normal w-56 opacity-0 group-hover/info:opacity-100 transition-opacity shadow-lg z-10 text-center">
+                      IL compares your LP position value to simply holding the same tokens. Negative = LP underperformed holding.
+                    </span>
+                  </span>
+                </div>
+                <div className="flex items-end gap-3 mb-3">
+                  <PnlValue value={pnl.ilAbsolute} className="text-xl font-bold" />
+                  <span
+                    className={`text-xs font-medium px-2 py-0.5 rounded-full mb-0.5 ${
+                      pnl.ilAbsolute >= 0
+                        ? "bg-emerald-400/10 text-emerald-400"
+                        : "bg-red-400/10 text-red-400"
+                    }`}
+                  >
+                    {formatPercent(pnl.ilPercent)}
+                  </span>
+                </div>
+                <div className="bg-slate-800/30 rounded-lg p-3 space-y-1.5 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">If held tokens instead</span>
+                    <span className="text-slate-300 tabular-nums">{formatUsd(pnl.holdValue)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Current LP value</span>
+                    <span className="text-slate-300 tabular-nums">{formatUsd(pnl.currentPositionUsd)}</span>
+                  </div>
+                  <div className="flex justify-between pt-1.5 border-t border-slate-700/40">
+                    <span className="text-slate-400 font-medium">
+                      IL + Fees + Emissions
+                    </span>
+                    <PnlValue value={pnl.ilAbsolute + pnl.feesEarnedUsd + pnl.emissionsEarnedUsd} className="font-medium" />
+                  </div>
+                </div>
+              </div>
+
+              {/* ── Strategy Comparison ────────────────────── */}
+              <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5">
+                <p className="text-slate-500 text-xs uppercase tracking-wider font-medium mb-3">
+                  Strategy Comparison
+                </p>
+                <p className="text-slate-600 text-[11px] mb-3">
+                  What if you had used a different strategy with the same {formatUsd(pnl.entryValueUsd)}?
+                </p>
+                <div className="space-y-2">
+                  <StrategyRow
+                    label={`Hold 100% ${pnl.token0Symbol}`}
+                    value={pnl.holdToken0Value}
+                    entry={pnl.entryValueUsd}
+                  />
+                  <StrategyRow
+                    label={`Hold 100% ${pnl.token1Symbol}`}
+                    value={pnl.holdToken1Value}
+                    entry={pnl.entryValueUsd}
+                  />
+                  <StrategyRow
+                    label="Hold 50/50"
+                    value={pnl.hold5050Value}
+                    entry={pnl.entryValueUsd}
+                  />
+                  <StrategyRow
+                    label="Hold exact entry ratio"
+                    value={pnl.holdValue}
+                    entry={pnl.entryValueUsd}
+                  />
+                  <StrategyRow
+                    label="LP Position (actual)"
+                    value={pnl.currentPositionUsd + pnl.feesEarnedUsd + pnl.emissionsEarnedUsd}
+                    entry={pnl.entryValueUsd}
+                    highlight
+                  />
+                </div>
+              </div>
+
+              {/* ── Entry Info ─────────────────────────────── */}
+              <div className="bg-slate-800/30 rounded-xl p-4 space-y-2 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Entry Date</span>
+                  <span className="text-slate-400">
+                    {new Date(pnl.entryDate).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Entry Source</span>
+                  <span
+                    className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                      pnl.entrySource === "on-chain"
+                        ? "bg-emerald-400/10 text-emerald-400"
+                        : "bg-amber-400/10 text-amber-400"
+                    }`}
+                  >
+                    {pnl.entrySource === "on-chain" ? "On-chain verified" : "First-seen estimate"}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Entry {pnl.token0Symbol} Price</span>
+                  <span className="text-slate-400 tabular-nums">{formatUsd(pnl.entryToken0Price)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Entry {pnl.token1Symbol} Price</span>
+                  <span className="text-slate-400 tabular-nums">{formatUsd(pnl.entryToken1Price)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Pool</span>
+                  <a
+                    href={`https://basescan.org/address/${pnl.poolAddress}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-indigo-400 hover:text-indigo-300 font-mono transition-colors"
+                  >
+                    {pnl.poolAddress.slice(0, 6)}...{pnl.poolAddress.slice(-4)}
+                  </a>
+                </div>
+              </div>
+            </>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StrategyRow({
+  label,
+  value,
+  entry,
+  highlight,
+}: {
+  label: string;
+  value: number;
+  entry: number;
+  highlight?: boolean;
+}) {
+  const pnl = value - entry;
+  const pct = entry > 0 ? (pnl / entry) * 100 : 0;
+
+  return (
+    <div
+      className={`flex items-center justify-between py-2 px-3 rounded-lg text-sm ${
+        highlight
+          ? "bg-indigo-500/10 border border-indigo-500/20"
+          : "bg-slate-800/30"
+      }`}
+    >
+      <span className={highlight ? "text-slate-200 font-medium" : "text-slate-400"}>
+        {label}
+      </span>
+      <div className="flex items-center gap-2.5">
+        <span className="text-slate-300 tabular-nums text-xs">{formatUsd(value)}</span>
+        <span
+          className={`text-[11px] tabular-nums font-medium ${
+            pnl >= 0 ? "text-emerald-400" : "text-red-400"
+          }`}
+        >
+          {pnl >= 0 ? "+" : ""}
+          {pct.toFixed(1)}%
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function LoadingSkeleton() {
+  return (
+    <div className="space-y-5">
+      {[1, 2, 3, 4].map((i) => (
+        <div key={i} className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 animate-pulse">
+          <div className="w-24 h-3 bg-slate-700/50 rounded mb-3" />
+          <div className="w-36 h-7 bg-slate-700/40 rounded mb-2" />
+          <div className="space-y-2 mt-4">
+            <div className="w-full h-3 bg-slate-700/30 rounded" />
+            <div className="w-3/4 h-3 bg-slate-700/30 rounded" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}

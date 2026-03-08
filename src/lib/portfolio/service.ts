@@ -2,6 +2,7 @@ import type { PortfolioResponse, TokenBalanceData, LPPositionData } from "@/type
 import { getChainAdapter } from "@/lib/chain/factory";
 import { pricingService } from "@/lib/pricing/service";
 import { aerodromeAdapter } from "@/lib/defi/aerodrome/adapter";
+import { savePositionSnapshots } from "@/lib/portfolio/position-snapshot";
 import { DEFAULT_TOKEN_ADDRESSES, NATIVE_TOKEN_ADDRESS } from "@/lib/chain/base/tokens";
 import { prisma } from "@/lib/db/prisma";
 import { formatUnits } from "viem";
@@ -71,15 +72,16 @@ export async function getPortfolio(
     const price0 = prices.get(lp.token0Address.toLowerCase()) ?? 0;
     const price1 = prices.get(lp.token1Address.toLowerCase()) ?? 0;
 
-    const usdValue =
-      (lp.token0Amount ?? 0) * price0 + (lp.token1Amount ?? 0) * price1;
+    const token0Usd = (lp.token0Amount ?? 0) * price0;
+    const token1Usd = (lp.token1Amount ?? 0) * price1;
+    const usdValue = token0Usd + token1Usd;
 
     const feesEarnedUsd =
       (lp.fees0Amount ?? 0) * price0 + (lp.fees1Amount ?? 0) * price1;
 
     const emissionsEarnedUsd = (lp.emissionsEarned ?? 0) * aeroPrice;
 
-    return { ...lp, usdValue, feesEarnedUsd, emissionsEarnedUsd };
+    return { ...lp, token0Usd, token1Usd, usdValue, feesEarnedUsd, emissionsEarnedUsd };
   });
 
   // 7. Calculate total USD value
@@ -94,6 +96,7 @@ export async function getPortfolio(
   });
 
   if (wallet) {
+    // Fire-and-forget: update token balances
     void Promise.all(
       enrichedTokens.map((t) =>
         prisma.tokenBalance.upsert({
@@ -119,6 +122,11 @@ export async function getPortfolio(
         })
       )
     );
+
+    // Fire-and-forget: save position snapshots (entry detection + periodic snapshots)
+    void savePositionSnapshots(wallet.id, enrichedLPs, prices).catch((err) => {
+      console.warn("[portfolio] position snapshots failed:", err);
+    });
   }
 
   // 9. Serialize BigInts to strings for JSON response
