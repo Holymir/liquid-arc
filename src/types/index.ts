@@ -21,17 +21,22 @@ export interface TokenBalanceJSON {
 }
 
 export interface LPPositionData {
+  nftTokenId: string;      // CL NFT token ID (unique position identifier)
   protocol: string;
   poolAddress: string;
   token0Address: string;
   token0Symbol: string;
+  token0Decimals: number;
   token1Address: string;
   token1Symbol: string;
+  token1Decimals: number;
   liquidity: bigint;
   tickLower?: number;
   tickUpper?: number;
   token0Amount?: number;
   token1Amount?: number;
+  token0Usd?: number;
+  token1Usd?: number;
   usdValue?: number;
   // Unclaimed trading fees (from unstaked_earned0/1 in Sugar)
   fees0Amount?: number;
@@ -44,23 +49,71 @@ export interface LPPositionData {
 
 /** Serializable version of LPPositionData */
 export interface LPPositionJSON {
+  nftTokenId: string;
   protocol: string;
   poolAddress: string;
   token0Address: string;
   token0Symbol: string;
+  token0Decimals: number;
   token1Address: string;
   token1Symbol: string;
+  token1Decimals: number;
   liquidity: string;     // BigInt serialized as string
   tickLower?: number;
   tickUpper?: number;
   token0Amount?: number;
   token1Amount?: number;
+  token0Usd?: number;
+  token1Usd?: number;
   usdValue?: number;
   fees0Amount?: number;
   fees1Amount?: number;
   feesEarnedUsd?: number;
   emissionsEarned?: number;
   emissionsEarnedUsd?: number;
+}
+
+/** P&L and IL analysis for a single LP position */
+export interface PositionPnL {
+  nftTokenId: string;
+  poolAddress: string;
+  token0Symbol: string;
+  token1Symbol: string;
+
+  // Entry state
+  entryDate: string;
+  entryToken0Amount: number;
+  entryToken1Amount: number;
+  entryToken0Price: number;
+  entryToken1Price: number;
+  entryValueUsd: number;
+
+  // Current state
+  currentToken0Amount: number;
+  currentToken1Amount: number;
+  currentToken0Price: number;
+  currentToken1Price: number;
+  currentPositionUsd: number;
+
+  // P&L breakdown
+  principalPnl: number;
+  feesEarnedUsd: number;
+  emissionsEarnedUsd: number;
+  totalPnl: number;
+  totalPnlPercent: number;
+
+  // Impermanent Loss
+  holdValue: number;
+  ilAbsolute: number;
+  ilPercent: number;
+
+  // Hold comparisons
+  holdToken0Value: number;
+  holdToken1Value: number;
+  hold5050Value: number;
+
+  // Source of entry data
+  entrySource: "on-chain" | "first-seen" | "manual";
 }
 
 export interface PortfolioResponse {

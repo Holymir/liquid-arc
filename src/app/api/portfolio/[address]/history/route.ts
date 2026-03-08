@@ -3,23 +3,30 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { calculatePnL } from "@/lib/portfolio/pnl";
+import { requireAuth } from "@/lib/auth/session";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { address: string } }
 ) {
+  let session;
+  try {
+    session = await requireAuth();
+  } catch {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const chainId = request.nextUrl.searchParams.get("chainId") ?? "base";
   const period = (request.nextUrl.searchParams.get("period") ?? "7d") as
     | "24h"
     | "7d"
     | "30d";
 
-  const wallet = await prisma.wallet.findUnique({
+  const wallet = await prisma.wallet.findFirst({
     where: {
-      address_chainId: {
-        address: params.address.toLowerCase(),
-        chainId,
-      },
+      address: params.address.toLowerCase(),
+      userId: session.userId,
+      isActive: true,
     },
   });
 

@@ -1,0 +1,89 @@
+// GET /api/portfolio/[address]/positions/[nftTokenId]
+//
+// Returns P&L, IL, and hold-comparison data for a single LP position.
+
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/db/prisma";
+import { requireAuth } from "@/lib/auth/session";
+import { getPortfolio } from "@/lib/portfolio/service";
+import { calculatePositionPnL } from "@/lib/portfolio/position-pnl";
+import { pricingService } from "@/lib/pricing/service";
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { address: string; nftTokenId: string } }
+) {
+  let session;
+  try {
+    session = await requireAuth();
+  } catch {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const chainId = request.nextUrl.searchParams.get("chainId") ?? "base";
+  const normalizedAddress = params.address.toLowerCase();
+
+  // Verify wallet ownership
+  const wallet = await prisma.wallet.findFirst({
+    where: {
+      address: normalizedAddress,
+      userId: session.userId,
+      isActive: true,
+    },
+    select: { id: true },
+  });
+
+  if (!wallet) {
+    return NextResponse.json({ error: "Wallet not found" }, { status: 403 });
+  }
+
+  try {
+    // Fetch live portfolio data to get current position state
+    const portfolio = await getPortfolio(params.address, chainId);
+
+    // Find the specific position
+    const position = portfolio.lpPositions.find(
+      (lp) => lp.nftTokenId === params.nftTokenId
+    );
+
+    if (!position) {
+      return NextResponse.json(
+        { error: "Position not found" },
+        { status: 404 }
+      );
+    }
+
+    // Get current token prices
+    const prices = await pricingService.getPrices(chainId, [
+      position.token0Address,
+      position.token1Address,
+    ]);
+
+    const currentToken0Price = prices.get(position.token0Address.toLowerCase()) ?? 0;
+    const currentToken1Price = prices.get(position.token1Address.toLowerCase()) ?? 0;
+
+    // Calculate P&L
+    const pnl = await calculatePositionPnL(
+      wallet.id,
+      position,
+      currentToken0Price,
+      currentToken1Price
+    );
+
+    if (!pnl) {
+      return NextResponse.json(
+        { error: "No entry data yet — refresh the dashboard first" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(pnl);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("[position-detail] error:", message);
+    return NextResponse.json(
+      { error: "Failed to load position detail", detail: message },
+      { status: 500 }
+    );
+  }
+}

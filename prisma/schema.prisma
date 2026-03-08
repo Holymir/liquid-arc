@@ -9,37 +9,48 @@ datasource db {
 
 model User {
   id        String   @id @default(uuid())
+  address   String   @unique // primary login wallet (checksummed lowercase)
   createdAt DateTime @default(now()) @map("created_at")
-  wallets   Wallet[]
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // SaaS subscription (Stripe-ready, nullable until billing is live)
+  tier               String  @default("free") // "free" | "pro" | "enterprise"
+  stripeCustomerId   String? @unique @map("stripe_customer_id")
+  subscriptionId     String? @map("subscription_id")
+  subscriptionStatus String? @map("subscription_status") // "active" | "past_due" | "canceled"
+
+  wallets Wallet[]
 
   @@map("users")
 }
 
 model Wallet {
-  id            String              @id @default(uuid())
-  address       String
-  chainId       String              @map("chain_id") // "base", "solana", "ethereum", etc.
-  chainType     String              @map("chain_type") // "evm" | "svm"
-  label         String?
-  isActive      Boolean             @default(true) @map("is_active")
-  createdAt     DateTime            @default(now()) @map("created_at")
-  userId        String?             @map("user_id") // nullable now — required post-auth migration
-  user          User?               @relation(fields: [userId], references: [id])
-  tokenBalances TokenBalance[]
-  lpPositions   LPPosition[]
-  snapshots     PortfolioSnapshot[]
+  id                String              @id @default(uuid())
+  address           String
+  chainId           String              @map("chain_id")
+  chainType         String              @map("chain_type")
+  label             String?
+  isActive          Boolean             @default(true) @map("is_active")
+  createdAt         DateTime            @default(now()) @map("created_at")
+  userId            String?             @map("user_id")
+  user              User?               @relation(fields: [userId], references: [id])
+  tokenBalances     TokenBalance[]
+  lpPositions       LPPosition[]
+  snapshots         PortfolioSnapshot[]
+  positionSnapshots PositionSnapshot[]
 
   @@unique([address, chainId])
+  @@index([userId])
   @@map("wallets")
 }
 
 model TokenBalance {
   id           String   @id @default(uuid())
   walletId     String   @map("wallet_id")
-  tokenAddress String   @map("token_address") // "0xNATIVE" for ETH, "NATIVE" for SOL
+  tokenAddress String   @map("token_address")
   symbol       String?
   decimals     Int?
-  balance      String // raw balance as string (BigInt safe)
+  balance      String
   usdValue     Float?   @map("usd_value")
   lastUpdated  DateTime @default(now()) @map("last_updated")
   wallet       Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
@@ -50,13 +61,14 @@ model TokenBalance {
 model LPPosition {
   id            String   @id @default(uuid())
   walletId      String   @map("wallet_id")
-  protocol      String // "aerodrome", "raydium", "uniswap", etc.
+  nftTokenId    String?  @map("nft_token_id")
+  protocol      String
   poolAddress   String   @map("pool_address")
   token0Address String   @map("token0_address")
   token0Symbol  String?  @map("token0_symbol")
   token1Address String   @map("token1_address")
   token1Symbol  String?  @map("token1_symbol")
-  liquidity     String // BigInt as string
+  liquidity     String
   tickLower     Int?     @map("tick_lower")
   tickUpper     Int?     @map("tick_upper")
   token0Amount  Float?   @map("token0_amount")
@@ -66,15 +78,54 @@ model LPPosition {
   lastUpdated   DateTime @default(now()) @map("last_updated")
   wallet        Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
 
+  @@index([walletId, nftTokenId])
   @@map("lp_positions")
+}
+
+model PositionSnapshot {
+  id              String   @id @default(uuid())
+  walletId        String   @map("wallet_id")
+  nftTokenId      String   @map("nft_token_id")
+  poolAddress     String   @map("pool_address")
+
+  // Token amounts at snapshot time
+  token0Amount    Float    @map("token0_amount")
+  token1Amount    Float    @map("token1_amount")
+  token0Price     Float    @map("token0_price")
+  token1Price     Float    @map("token1_price")
+  positionUsd     Float    @map("position_usd")
+
+  // Unclaimed fees & emissions at snapshot time
+  fees0Amount     Float    @default(0) @map("fees0_amount")
+  fees1Amount     Float    @default(0) @map("fees1_amount")
+  feesUsd         Float    @default(0) @map("fees_usd")
+  emissionsAmount Float    @default(0) @map("emissions_amount")
+  emissionsUsd    Float    @default(0) @map("emissions_usd")
+
+  // Tick state
+  tickLower       Int?     @map("tick_lower")
+  tickUpper       Int?     @map("tick_upper")
+  liquidity       String
+
+  // Entry tracking
+  isEntry         Boolean  @default(false) @map("is_entry")
+  entrySource     String?  @map("entry_source") // "on-chain" | "first-seen"
+
+  snapshotAt      DateTime @default(now()) @map("snapshot_at")
+  wallet          Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@unique([walletId, nftTokenId, snapshotAt])
+  @@index([walletId, nftTokenId, snapshotAt(sort: Desc)])
+  @@index([nftTokenId])
+  @@map("position_snapshots")
 }
 
 model PortfolioSnapshot {
   id             String   @id @default(uuid())
   walletId       String   @map("wallet_id")
   totalUsdValue  Float    @map("total_usd_value")
-  tokenBreakdown Json?    @map("token_breakdown") // { "ETH": 1234.56, "USDC": 5000.00 }
-  lpBreakdown    Json?    @map("lp_breakdown") // { "AERO-USDC": 2500.00 }
+  tokenBreakdown Json?    @map("token_breakdown")
+  lpBreakdown    Json?    @map("lp_breakdown")
   snapshotAt     DateTime @default(now()) @map("snapshot_at")
   wallet         Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
 

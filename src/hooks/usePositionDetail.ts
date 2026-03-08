@@ -1,28 +1,31 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import type { PortfolioResponse } from "@/types";
+import type { PositionPnL } from "@/types";
 
-interface UsePortfolioResult {
-  data: PortfolioResponse | null;
+interface UsePositionDetailResult {
+  data: PositionPnL | null;
   isLoading: boolean;
   error: string | null;
   refresh: () => void;
 }
 
-export function usePortfolio(
+export function usePositionDetail(
   address?: string,
+  nftTokenId?: string | null,
   chainId = "base"
-): UsePortfolioResult {
-  const [data, setData] = useState<PortfolioResponse | null>(null);
+): UsePositionDetailResult {
+  const [data, setData] = useState<PositionPnL | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
-  const fetchPortfolio = useCallback(async () => {
-    if (!address) return;
+  const fetchDetail = useCallback(async () => {
+    if (!address || !nftTokenId) {
+      setData(null);
+      return;
+    }
 
-    // Cancel any in-flight request
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
@@ -31,22 +34,23 @@ export function usePortfolio(
     setError(null);
 
     try {
-      const response = await fetch(
-        `/api/portfolio/${address}?chainId=${chainId}`,
+      const res = await fetch(
+        `/api/portfolio/${address}/positions/${nftTokenId}?chainId=${chainId}`,
         { signal: controller.signal }
       );
 
       if (controller.signal.aborted) return;
 
-      if (!response.ok) {
-        setError(`Failed to fetch portfolio (${response.status})`);
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        setError(json.error ?? `Failed to load (${res.status})`);
         setIsLoading(false);
         return;
       }
 
-      const portfolio = await response.json();
+      const pnl = await res.json();
       if (!controller.signal.aborted) {
-        setData(portfolio);
+        setData(pnl);
         setIsLoading(false);
       }
     } catch (err) {
@@ -54,13 +58,12 @@ export function usePortfolio(
       setError(err instanceof Error ? err.message : "Network error");
       setIsLoading(false);
     }
-  }, [address, chainId]);
+  }, [address, nftTokenId, chainId]);
 
-  // Fetch once on mount / when address changes — no auto-polling
   useEffect(() => {
-    fetchPortfolio();
+    fetchDetail();
     return () => abortRef.current?.abort();
-  }, [fetchPortfolio]);
+  }, [fetchDetail]);
 
-  return { data, isLoading, error, refresh: fetchPortfolio };
+  return { data, isLoading, error, refresh: fetchDetail };
 }
