@@ -104,6 +104,18 @@ export async function calculatePositionPnL(
     holdToken1Value,
     hold5050Value,
 
+    apr: (() => {
+      const earnings = feesEarnedUsd + emissionsEarnedUsd;
+      const msElapsed = Date.now() - entry.snapshotAt.getTime();
+      const daysElapsed = msElapsed / (1000 * 60 * 60 * 24);
+      return daysElapsed > 0 && entryValueUsd > 0
+        ? (earnings / entryValueUsd) * (365 / daysElapsed) * 100
+        : 0;
+    })(),
+
+    tickLower: position.tickLower,
+    tickUpper: position.tickUpper,
+
     entrySource: (entry.entrySource as PositionPnL["entrySource"]) ?? "first-seen",
   };
 }

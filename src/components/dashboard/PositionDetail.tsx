@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { usePositionDetail } from "@/hooks/usePositionDetail";
 import type { LPPositionJSON } from "@/types";
 
@@ -85,6 +86,12 @@ export function PositionDetail({ address, position, onClose }: PositionDetailPro
               <span className="text-indigo-400/70 text-[10px] uppercase tracking-wider">
                 Aerodrome CL
               </span>
+              <Link
+                href={`/dashboard/positions/${position.nftTokenId}`}
+                className="text-indigo-400 hover:text-indigo-300 text-[10px] font-medium transition-colors"
+              >
+                Full page &rarr;
+              </Link>
             </div>
           </div>
           <button

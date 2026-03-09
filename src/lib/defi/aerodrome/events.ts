@@ -1,11 +1,11 @@
-// On-chain event parsing for Aerodrome CL position entry data
+// Aerodrome CL position entry data
 //
-// Reads IncreaseLiquidity events from the NonfungiblePositionManager to find
-// when a position was created and with what token amounts.
-// Searches recent blocks first (most positions are recent), then expands backward.
+// Primary: The Graph subgraph (instant, reliable)
+// Fallback: On-chain event scanning via public RPC (slow, may fail)
 
 import { baseClient } from "@/lib/chain/base/client";
 import { NONFUNGIBLE_POSITION_MANAGER_ADDRESS } from "./abi";
+import { getPositionEntryFromSubgraph } from "./subgraph";
 import { parseAbiItem, formatUnits } from "viem";
 
 const INCREASE_LIQUIDITY_EVENT = parseAbiItem(
@@ -31,26 +31,30 @@ export interface PositionEntryData {
 }
 
 /**
- * Fetch the initial mint event for a CL position NFT.
- * Strategy: search backward from the current block in expanding windows.
- * - First: last 7 days (~1.2M blocks, covers most recent positions)
- * - Then: last 30 days
- * - Then: last 90 days
- * - Give up after that (would need an archive/paid RPC)
+ * Fetch the initial mint data for a CL position NFT.
  *
- * Each window is scanned in 10k-block chunks.
- * Stops as soon as the event is found.
+ * Strategy:
+ * 1. Try The Graph subgraph (instant, reliable — requires GRAPH_API_KEY)
+ * 2. Fall back to on-chain event scanning via public RPC
  */
 export async function getPositionEntry(
   nftTokenId: string,
   token0Decimals: number,
   token1Decimals: number
 ): Promise<PositionEntryData | null> {
+  // 1. Try subgraph first
+  const subgraphResult = await getPositionEntryFromSubgraph(
+    nftTokenId,
+    token0Decimals,
+    token1Decimals
+  );
+  if (subgraphResult) return subgraphResult;
+
+  // 2. Fallback: scan on-chain events
   try {
     const currentBlock = await baseClient.getBlockNumber();
     const tokenIdBig = BigInt(nftTokenId);
 
-    // Search windows in days — try smallest first
     const windowDays = [7n, 30n, 90n];
 
     for (const days of windowDays) {

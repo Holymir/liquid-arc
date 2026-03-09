@@ -47,6 +47,15 @@ export interface LPPositionData {
   emissionsEarnedUsd?: number;
 }
 
+/** Lightweight P&L summary attached to each position in the portfolio response */
+export interface PnLSummary {
+  totalPnl: number;
+  totalPnlPercent: number;
+  entryValueUsd: number;
+  apr: number;           // Annualized return from fees + emissions
+  entrySource: "on-chain" | "first-seen" | "manual";
+}
+
 /** Serializable version of LPPositionData */
 export interface LPPositionJSON {
   nftTokenId: string;
@@ -71,6 +80,7 @@ export interface LPPositionJSON {
   feesEarnedUsd?: number;
   emissionsEarned?: number;
   emissionsEarnedUsd?: number;
+  pnlSummary?: PnLSummary | null;
 }
 
 /** P&L and IL analysis for a single LP position */
@@ -111,6 +121,13 @@ export interface PositionPnL {
   holdToken0Value: number;
   holdToken1Value: number;
   hold5050Value: number;
+
+  // APR
+  apr: number;           // Annualized return from fees + emissions
+
+  // Position details
+  tickLower?: number;
+  tickUpper?: number;
 
   // Source of entry data
   entrySource: "on-chain" | "first-seen" | "manual";

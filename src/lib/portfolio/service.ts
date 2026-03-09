@@ -1,4 +1,4 @@
-import type { PortfolioResponse, TokenBalanceData, LPPositionData } from "@/types";
+import type { PortfolioResponse, TokenBalanceData, LPPositionData, PnLSummary } from "@/types";
 import { getChainAdapter } from "@/lib/chain/factory";
 import { pricingService } from "@/lib/pricing/service";
 import { aerodromeAdapter } from "@/lib/defi/aerodrome/adapter";
@@ -129,7 +129,54 @@ export async function getPortfolio(
     });
   }
 
-  // 9. Serialize BigInts to strings for JSON response
+  // 9. Compute lightweight P&L summaries for each position (if entry snapshots exist)
+  const pnlSummaries = new Map<string, PnLSummary>();
+  if (wallet && enrichedLPs.length > 0) {
+    try {
+      const entries = await prisma.positionSnapshot.findMany({
+        where: {
+          walletId: wallet.id,
+          nftTokenId: { in: enrichedLPs.map((lp) => lp.nftTokenId) },
+          isEntry: true,
+        },
+        select: {
+          nftTokenId: true,
+          positionUsd: true,
+          entrySource: true,
+          snapshotAt: true,
+        },
+      });
+
+      for (const entry of entries) {
+        const lp = enrichedLPs.find((l) => l.nftTokenId === entry.nftTokenId);
+        if (!lp || !entry.positionUsd) continue;
+
+        const earnings = (lp.feesEarnedUsd ?? 0) + (lp.emissionsEarnedUsd ?? 0);
+        const currentTotal = (lp.usdValue ?? 0) + earnings;
+        const totalPnl = currentTotal - entry.positionUsd;
+        const totalPnlPercent = entry.positionUsd > 0 ? (totalPnl / entry.positionUsd) * 100 : 0;
+
+        // APR: annualized earnings yield
+        const msElapsed = Date.now() - entry.snapshotAt.getTime();
+        const daysElapsed = msElapsed / (1000 * 60 * 60 * 24);
+        const apr = daysElapsed > 0 && entry.positionUsd > 0
+          ? (earnings / entry.positionUsd) * (365 / daysElapsed) * 100
+          : 0;
+
+        pnlSummaries.set(entry.nftTokenId, {
+          totalPnl,
+          totalPnlPercent,
+          entryValueUsd: entry.positionUsd,
+          apr,
+          entrySource: (entry.entrySource as PnLSummary["entrySource"]) ?? "first-seen",
+        });
+      }
+    } catch (err) {
+      console.warn("[portfolio] P&L summary computation failed:", err);
+    }
+  }
+
+  // 10. Serialize BigInts to strings for JSON response
   return {
     walletAddress: address,
     chainId,
@@ -141,6 +188,7 @@ export async function getPortfolio(
     lpPositions: enrichedLPs.map((lp) => ({
       ...lp,
       liquidity: lp.liquidity.toString(),
+      pnlSummary: pnlSummaries.get(lp.nftTokenId) ?? null,
     })),
     lastUpdated: new Date().toISOString(),
   };

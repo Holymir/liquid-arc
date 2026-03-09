@@ -5,6 +5,7 @@ export const dynamic = "force-dynamic";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAccount } from "wagmi";
+import Link from "next/link";
 import { ConnectButton } from "@/components/wallet/ConnectButton";
 
 export default function Home() {
@@ -67,6 +68,14 @@ export default function Home() {
             </span>
           ))}
         </div>
+
+        {/* Pool Analytics link */}
+        <Link
+          href="/pools"
+          className="mt-4 text-sm text-indigo-400 hover:text-indigo-300 transition-colors border border-indigo-500/30 rounded-lg px-4 py-2"
+        >
+          Explore Pool Analytics
+        </Link>
 
         {/* Protocol badges */}
         <div className="flex items-center gap-3 mt-4 text-[11px] text-slate-600">

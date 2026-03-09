@@ -32,6 +32,9 @@ const ERC20_ABI = [
 const SUGAR_SCAN_LIMIT = 2_000n;
 
 export class AerodromeAdapter implements DefiProtocolAdapter {
+  readonly protocolId = "aerodrome-base";
+  readonly slug = "aerodrome";
+  readonly displayName = "Aerodrome";
   readonly protocolName = "aerodrome";
   readonly chainId = "base";
 

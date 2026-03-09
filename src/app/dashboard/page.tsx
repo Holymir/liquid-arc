@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAccount } from "wagmi";
 import { useTrackedWallets, type TrackedWallet } from "@/hooks/useTrackedWallets";
+import Link from "next/link";
 import { ConnectButton } from "@/components/wallet/ConnectButton";
 import { Dashboard } from "@/components/dashboard/Dashboard";
 import { WalletPanel } from "@/components/wallet/WalletPanel";
@@ -92,6 +93,12 @@ export default function DashboardPage() {
         </div>
 
         <div className="flex items-center gap-3">
+          <Link
+            href="/pools"
+            className="text-xs text-slate-400 hover:text-slate-200 transition-colors border border-slate-700 rounded-lg px-3 py-1.5 hidden sm:inline-flex"
+          >
+            Pools
+          </Link>
           {/* Active wallet indicator (mobile) */}
           {activeWallet && (
             <span className="lg:hidden text-slate-500 text-xs font-mono truncate max-w-[120px]">

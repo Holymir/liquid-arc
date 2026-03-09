@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import type { LPPositionJSON } from "@/types";
 import { PositionDetail } from "./PositionDetail";
 
@@ -72,8 +73,8 @@ function InfoTip({ text }: { text: string }) {
   );
 }
 
-function PositionCard({ pos, onSelect }: { pos: LPPositionJSON; onSelect: () => void }) {
-  const [expanded, setExpanded] = useState(false);
+function PositionCard({ pos, address, onSelect }: { pos: LPPositionJSON; address?: string; onSelect: () => void }) {
+  const router = useRouter();
 
   const inRange =
     pos.tickLower !== undefined &&
@@ -85,17 +86,21 @@ function PositionCard({ pos, onSelect }: { pos: LPPositionJSON; onSelect: () => 
   const token0Usd = pos.token0Usd ?? 0;
   const token1Usd = pos.token1Usd ?? 0;
 
+  const handleCardClick = () => {
+    if (address) router.push(`/dashboard/positions/${pos.nftTokenId}`);
+  };
+
   return (
-    <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-5 hover:border-slate-600 transition-colors">
+    <div
+      onClick={handleCardClick}
+      className={`bg-slate-800/60 border border-slate-700/60 rounded-xl p-5 hover:border-indigo-500/40 transition-colors ${address ? "cursor-pointer" : ""}`}
+    >
       {/* Header row */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2.5">
-          <button
-            onClick={onSelect}
-            className="text-slate-100 font-bold text-base hover:text-indigo-400 transition-colors text-left"
-          >
+          <span className="text-slate-100 font-bold text-base">
             {pos.token0Symbol}/{pos.token1Symbol}
-          </button>
+          </span>
           <span
             className={`text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded font-medium ${
               isStaked
@@ -116,15 +121,53 @@ function PositionCard({ pos, onSelect }: { pos: LPPositionJSON; onSelect: () => 
         <InRangeBadge inRange={inRange} />
       </div>
 
-      {/* Main value */}
+      {/* Main value + inline P&L */}
       {pos.usdValue !== undefined && (
         <div className="mb-4">
           <p className="text-slate-100 font-bold text-2xl tabular-nums">
             {formatUsd(pos.usdValue)}
           </p>
-          <p className="text-slate-500 text-xs mt-0.5">Position Value</p>
+          {pos.pnlSummary ? (
+            <div className="flex items-center gap-2 mt-1">
+              <span
+                className={`text-sm font-semibold tabular-nums ${
+                  pos.pnlSummary.totalPnl >= 0 ? "text-emerald-400" : "text-red-400"
+                }`}
+              >
+                {pos.pnlSummary.totalPnl >= 0 ? "+" : ""}
+                {formatUsd(pos.pnlSummary.totalPnl)}
+              </span>
+              <span
+                className={`text-[11px] font-medium px-1.5 py-0.5 rounded-full tabular-nums ${
+                  pos.pnlSummary.totalPnl >= 0
+                    ? "bg-emerald-400/10 text-emerald-400"
+                    : "bg-red-400/10 text-red-400"
+                }`}
+              >
+                {pos.pnlSummary.totalPnlPercent >= 0 ? "+" : ""}
+                {pos.pnlSummary.totalPnlPercent.toFixed(2)}%
+              </span>
+              {pos.pnlSummary.apr > 0 && (
+                <span className="text-[11px] font-medium px-1.5 py-0.5 rounded-full tabular-nums bg-indigo-400/10 text-indigo-400">
+                  {pos.pnlSummary.apr.toFixed(1)}% APR
+                </span>
+              )}
+            </div>
+          ) : (
+            <p className="text-slate-500 text-xs mt-0.5">Position Value</p>
+          )}
         </div>
       )}
+
+      {/* Quick P&L link */}
+      <div className="mb-3">
+        <button
+          onClick={(e) => { e.stopPropagation(); onSelect(); }}
+          className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors font-medium"
+        >
+          Quick P&L &rarr;
+        </button>
+      </div>
 
       {/* Token composition */}
       <div className="bg-slate-900/50 rounded-lg p-3 space-y-2 mb-3">
@@ -214,70 +257,6 @@ function PositionCard({ pos, onSelect }: { pos: LPPositionJSON; onSelect: () => 
         </div>
       )}
 
-      {/* Action row */}
-      <div className="flex items-center gap-4 mt-3">
-        <button
-          onClick={onSelect}
-          className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors font-medium"
-        >
-          View P&L &rarr;
-        </button>
-        <button
-          onClick={() => setExpanded(!expanded)}
-          className="text-xs text-slate-500 hover:text-slate-300 transition-colors flex items-center gap-1"
-        >
-        <svg
-          className={`w-3 h-3 transition-transform ${expanded ? "rotate-180" : ""}`}
-          viewBox="0 0 12 12"
-          fill="currentColor"
-        >
-          <path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-        </svg>
-        {expanded ? "Less details" : "More details"}
-        </button>
-      </div>
-
-      {expanded && (
-        <div className="mt-3 pt-3 border-t border-slate-700/40 space-y-2 text-xs">
-          {/* Protocol */}
-          <div className="flex justify-between">
-            <span className="text-slate-500">Protocol</span>
-            <span className="text-slate-300">Aerodrome CL</span>
-          </div>
-
-          {/* Pool address */}
-          <div className="flex justify-between">
-            <span className="text-slate-500">Pool</span>
-            <span className="text-slate-400 font-mono text-[11px]">
-              {pos.poolAddress.slice(0, 6)}...{pos.poolAddress.slice(-4)}
-            </span>
-          </div>
-
-          {/* Tick range */}
-          {pos.tickLower !== undefined && pos.tickUpper !== undefined && (
-            <div className="flex justify-between items-start">
-              <div className="flex items-center gap-1">
-                <span className="text-slate-500">Tick Range</span>
-                <InfoTip text="The price range where your liquidity is active. You earn fees only when the current price is within this range." />
-              </div>
-              <span className="text-slate-400 font-mono tabular-nums">
-                {pos.tickLower} &rarr; {pos.tickUpper}
-              </span>
-            </div>
-          )}
-
-          {/* Liquidity */}
-          <div className="flex justify-between items-start">
-            <div className="flex items-center gap-1">
-              <span className="text-slate-500">Liquidity</span>
-              <InfoTip text="Raw liquidity units in the concentrated liquidity pool. Higher = more depth at this tick range." />
-            </div>
-            <span className="text-slate-400 font-mono text-[11px]">
-              {BigInt(pos.liquidity).toLocaleString()}
-            </span>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -377,6 +356,7 @@ export function LPPositions({ address, positions, isLoading }: LPPositionsProps)
             <PositionCard
               key={pos.nftTokenId ?? idx}
               pos={pos}
+              address={address}
               onSelect={() => setSelectedPosition(pos)}
             />
           ))}

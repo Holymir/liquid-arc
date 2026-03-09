@@ -77,6 +77,8 @@ export function Dashboard({ address, chainId = "base" }: DashboardProps) {
 
       <PortfolioHeader
         totalUsdValue={data?.totalUsdValue ?? 0}
+        lpValue={data?.lpPositions.reduce((sum, lp) => sum + (lp.usdValue ?? 0), 0) ?? 0}
+        tokenValue={data?.tokenBalances.reduce((sum, t) => sum + (t.usdValue ?? 0), 0) ?? 0}
         pnl={data?.pnl}
         lastUpdated={data?.lastUpdated}
         isLoading={isLoading}
