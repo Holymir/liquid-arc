@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
+    "@sentry/nextjs": "^10.42.0",
     "bcryptjs": "^3.0.3",
     "iron-session": "^8.0.4",
     "lucide-react": "^0.577.0",
@@ -18,7 +19,9 @@
     "react": "^18",
     "react-dom": "^18",
     "recharts": "^3.7.0",
-    "viem": "^2.21.58"
+    "resend": "^6.9.3",
+    "viem": "^2.21.58",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",

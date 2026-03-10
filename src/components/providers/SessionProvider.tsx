@@ -6,6 +6,7 @@ interface User {
   id: string;
   email: string;
   tier: string;
+  emailVerified: boolean;
 }
 
 interface SessionContextValue {

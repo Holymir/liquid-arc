@@ -15,6 +15,14 @@ model User {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
+  // Email verification
+  emailVerified     Boolean  @default(false) @map("email_verified")
+  verificationToken String?  @map("verification_token")
+
+  // Password reset
+  resetToken        String?  @map("reset_token")
+  resetTokenExpiry  DateTime? @map("reset_token_expiry")
+
   // SaaS subscription (Stripe-ready, nullable until billing is live)
   tier               String  @default("free") // "free" | "pro" | "enterprise"
   stripeCustomerId   String? @unique @map("stripe_customer_id")
@@ -22,6 +30,7 @@ model User {
   subscriptionStatus String? @map("subscription_status") // "active" | "past_due" | "canceled"
 
   wallets Wallet[]
+  alerts  Alert[]
 
   @@map("users")
 }
@@ -222,4 +231,35 @@ model PortfolioSnapshot {
 
   @@index([walletId, snapshotAt(sort: Desc)])
   @@map("portfolio_snapshots")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Alerts
+// ──────────────────────────────────────────────────────────────────────────────
+
+model Alert {
+  id          String    @id @default(uuid())
+  userId      String    @map("user_id")
+  type        String    // "out_of_range" | "price_change" | "il_threshold" | "fees_earned"
+  config      Json      // type-specific params (e.g. { nftTokenId, threshold })
+  channel     String    @default("email") // "email" | "webhook"
+  isActive    Boolean   @default(true) @map("is_active")
+  lastFiredAt DateTime? @map("last_fired_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  history     AlertHistory[]
+
+  @@index([userId, isActive])
+  @@map("alerts")
+}
+
+model AlertHistory {
+  id      String   @id @default(uuid())
+  alertId String   @map("alert_id")
+  payload Json
+  sentAt  DateTime @default(now()) @map("sent_at")
+  alert   Alert    @relation(fields: [alertId], references: [id], onDelete: Cascade)
+
+  @@index([alertId, sentAt(sort: Desc)])
+  @@map("alert_history")
 }

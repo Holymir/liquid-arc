@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { requireAuth } from "@/lib/auth/session";
+import { addWalletSchema } from "@/lib/validation/schemas";
+import { getTierLimits } from "@/lib/auth/tier";
 
 export async function GET() {
   let session;
@@ -39,14 +41,34 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = await request.json();
-  const { address, label } = body;
+  const body = await request.json().catch(() => null);
 
-  if (!address) {
-    return NextResponse.json({ error: "address is required" }, { status: 400 });
+  const parsed = addWalletSchema.safeParse(body);
+  if (!parsed.success) {
+    const msg = parsed.error.errors[0]?.message ?? "Invalid input";
+    return NextResponse.json({ error: msg }, { status: 400 });
   }
 
+  const { address, label } = parsed.data;
   const normalized = address.toLowerCase();
+
+  // Check tier-based wallet limit
+  const user = await prisma.user.findUnique({
+    where: { id: session.userId },
+    select: { tier: true },
+  });
+  const limits = getTierLimits(user?.tier ?? "free");
+
+  const currentCount = await prisma.wallet.count({
+    where: { userId: session.userId, isActive: true },
+  });
+
+  if (currentCount >= limits.maxWallets) {
+    return NextResponse.json(
+      { error: `Wallet limit reached (${limits.maxWallets}). Upgrade your plan to add more.` },
+      { status: 403 }
+    );
+  }
 
   const wallet = await prisma.wallet.upsert({
     where: { address_chainId: { address: normalized, chainId: "base" } },
@@ -78,7 +100,6 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: "address is required" }, { status: 400 });
   }
 
-  // Only deactivate wallets owned by this user
   await prisma.wallet.updateMany({
     where: { address: address.toLowerCase(), userId: session.userId },
     data: { isActive: false },

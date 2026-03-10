@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
       prisma.pool.count({ where }),
     ]);
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       pools: pools.map((p) => ({
         poolAddress: p.poolAddress,
         chainId: p.chainId,
@@ -128,6 +128,10 @@ export async function GET(request: NextRequest) {
       })),
       pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
     });
+
+    // Public market data — cache for 5 minutes
+    response.headers.set("Cache-Control", "public, s-maxage=300, stale-while-revalidate=60");
+    return response;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error("[pools] GET error:", message);

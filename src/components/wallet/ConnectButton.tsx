@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useSession } from "@/components/providers/SessionProvider";
-import { ChevronDown, LogOut, Loader2 } from "lucide-react";
+import { ChevronDown, LogOut, Loader2, Settings } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 
 export function ConnectButton() {
@@ -57,6 +57,16 @@ export function ConnectButton() {
             <p className="text-xs text-slate-500 truncate">{user.email}</p>
             <p className="text-[10px] text-indigo-400 uppercase tracking-wider mt-0.5">{user.tier}</p>
           </div>
+          <button
+            onClick={() => {
+              setMenuOpen(false);
+              router.push("/settings");
+            }}
+            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 transition-colors"
+          >
+            <Settings className="w-3.5 h-3.5" />
+            Settings
+          </button>
           <button
             onClick={async () => {
               setMenuOpen(false);

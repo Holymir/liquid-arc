@@ -15,6 +15,7 @@ export async function GET() {
       id: true,
       email: true,
       tier: true,
+      emailVerified: true,
       subscriptionStatus: true,
     },
   });

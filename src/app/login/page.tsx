@@ -120,9 +120,12 @@ export default function LoginPage() {
                 )}
               </button>
 
-              <div className="text-center pt-1">
+              <div className="flex items-center justify-between pt-1">
+                <Link href="/forgot-password" className="text-xs text-slate-500 hover:text-slate-300 transition-colors">
+                  Forgot password?
+                </Link>
                 <Link href="/register" className="text-xs text-slate-500 hover:text-slate-300 transition-colors">
-                  Don&apos;t have an account? Sign up
+                  Sign up
                 </Link>
               </div>
             </form>

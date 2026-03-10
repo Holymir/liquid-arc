@@ -4,15 +4,18 @@ import { getIronSession } from "iron-session";
 import { cookies } from "next/headers";
 import { sessionOptions, type SessionData } from "@/lib/auth/session";
 import { prisma } from "@/lib/db/prisma";
+import { loginSchema } from "@/lib/validation/schemas";
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
-  const email = (body?.email ?? "").trim().toLowerCase();
-  const password = body?.password ?? "";
 
-  if (!email || !password) {
-    return NextResponse.json({ error: "Email and password are required" }, { status: 400 });
+  const parsed = loginSchema.safeParse(body);
+  if (!parsed.success) {
+    const msg = parsed.error.errors[0]?.message ?? "Invalid input";
+    return NextResponse.json({ error: msg }, { status: 400 });
   }
+
+  const { email, password } = parsed.data;
 
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user) {
@@ -30,6 +33,11 @@ export async function POST(req: NextRequest) {
   await session.save();
 
   return NextResponse.json({
-    user: { id: user.id, email: user.email, tier: user.tier },
+    user: {
+      id: user.id,
+      email: user.email,
+      tier: user.tier,
+      emailVerified: user.emailVerified,
+    },
   });
 }
