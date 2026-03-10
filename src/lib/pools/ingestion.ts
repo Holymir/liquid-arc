@@ -43,29 +43,23 @@ export async function runIngestion(): Promise<IngestionResult[]> {
         },
       });
 
-      // Fetch pools (with embedded day data where supported)
+      // Fetch pools — use embedded day data if available (single query)
       console.log(`[ingestion] Fetching pools for ${adapter.protocolId}...`);
-      const pools = await adapter.fetchPools({ minTvlUsd: 1000, limit: 500 });
+      let pools: RawPoolData[];
+      let poolDayDataMap = new Map<string, RawPoolDayData[]>();
 
-      // Fetch day data for top pools
-      const poolDayDataMap = new Map<string, RawPoolDayData[]>();
-      const topPools = pools.slice(0, 200); // already sorted by TVL desc
-
-      // Batch fetch day data — 5 at a time to avoid rate limits
-      for (let i = 0; i < topPools.length; i += 5) {
-        const batch = topPools.slice(i, i + 5);
-        const batchResults = await Promise.allSettled(
-          batch.map((p) => adapter.fetchPoolDayData(p.poolAddress, 30))
-        );
-        for (let j = 0; j < batch.length; j++) {
-          const r = batchResults[j];
-          if (r.status === "fulfilled" && r.value.length > 0) {
-            poolDayDataMap.set(batch[j].poolAddress, r.value);
-          }
-        }
+      if (adapter.fetchPoolsWithDayData) {
+        const result = await adapter.fetchPoolsWithDayData({ minTvlUsd: 1000, limit: 500 });
+        pools = result.pools;
+        poolDayDataMap = result.dayDataByPool;
+        console.log(`[ingestion] Got ${pools.length} pools with embedded day data`);
+      } else {
+        pools = await adapter.fetchPools({ minTvlUsd: 1000, limit: 500 });
       }
 
-      // Fetch USD price history for unique tokens (for volatility + correlation)
+      const topPools = pools.slice(0, 200);
+
+      // Fetch token price history for volatility — batch 10 at a time
       const uniqueTokens = new Set<string>();
       for (const pool of topPools) {
         uniqueTokens.add(pool.token0Address);
@@ -73,8 +67,8 @@ export async function runIngestion(): Promise<IngestionResult[]> {
       }
       const tokenPriceMap = new Map<string, number[]>();
       const tokenAddresses = [...uniqueTokens];
-      for (let i = 0; i < tokenAddresses.length; i += 5) {
-        const batch = tokenAddresses.slice(i, i + 5);
+      for (let i = 0; i < tokenAddresses.length; i += 10) {
+        const batch = tokenAddresses.slice(i, i + 10);
         const batchResults = await Promise.allSettled(
           batch.map((addr) => adapter.fetchTokenPriceHistory(addr, 30))
         );

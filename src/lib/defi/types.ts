@@ -54,6 +54,11 @@ export interface ProtocolIdentity {
 /** Fetches pool-level analytics data */
 export interface PoolDataProvider extends ProtocolIdentity {
   fetchPools(options?: { minTvlUsd?: number; limit?: number }): Promise<RawPoolData[]>;
+  /** Fetch pools + embedded day data in a single query (avoids per-pool fetches) */
+  fetchPoolsWithDayData?(options?: { minTvlUsd?: number; limit?: number }): Promise<{
+    pools: RawPoolData[];
+    dayDataByPool: Map<string, RawPoolDayData[]>;
+  }>;
   fetchPoolDayData(poolAddress: string, days: number): Promise<RawPoolDayData[]>;
   fetchTokenPriceHistory(tokenAddress: string, days: number): Promise<TokenPriceHistory>;
 }

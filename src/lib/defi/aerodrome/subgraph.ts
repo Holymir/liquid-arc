@@ -154,10 +154,12 @@ export async function fetchPoolsFromSubgraph(
   const dayDataByPool = new Map<string, RawPoolDayData[]>();
 
   for (const p of data.pools) {
-    // Sum last 24h fees from day data (first entry is most recent day)
+    // Use most recent day data for accurate TVL (subgraph totalValueLockedUSD
+    // is cumulative and unreliable — it inflates over time)
     const day1 = p.poolDayData[0];
     const feesUsd24h = day1 ? parseFloat(day1.feesUSD) : 0;
     const volumeUsd24h = day1 ? parseFloat(day1.volumeUSD) : 0;
+    const tvlUsd = day1 ? parseFloat(day1.tvlUSD) : parseFloat(p.totalValueLockedUSD);
 
     pools.push({
       poolAddress: p.id,
@@ -169,7 +171,7 @@ export async function fetchPoolsFromSubgraph(
       token1Decimals: parseInt(p.token1.decimals, 10),
       feeTier: parseInt(p.feeTier, 10),
       poolType: "cl",
-      tvlUsd: parseFloat(p.totalValueLockedUSD),
+      tvlUsd,
       volumeUsd24h,
       feesUsd24h,
       currentTick: p.tick ? parseInt(p.tick, 10) : undefined,
