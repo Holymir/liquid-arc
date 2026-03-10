@@ -4,7 +4,11 @@ const COINGECKO_PLATFORM: Record<string, string> = {
   base: "base",
   ethereum: "ethereum",
   arbitrum: "arbitrum-one",
-  // Solana: "solana" — add when Solana support is implemented
+  polygon: "polygon-pos",
+  optimism: "optimistic-ethereum",
+  bsc: "binance-smart-chain",
+  avalanche: "avalanche",
+  solana: "solana",
 };
 
 interface CacheEntry {
