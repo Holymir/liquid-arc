@@ -1,11 +1,52 @@
 import type { PortfolioResponse, TokenBalanceData, LPPositionData, PnLSummary } from "@/types";
 import { getChainAdapter } from "@/lib/chain/factory";
 import { pricingService } from "@/lib/pricing/service";
-import { aerodromeAdapter } from "@/lib/defi/aerodrome/adapter";
+import { getDefiAdapters } from "@/lib/defi/registry";
 import { savePositionSnapshots } from "@/lib/portfolio/position-snapshot";
 import { DEFAULT_TOKEN_ADDRESSES, NATIVE_TOKEN_ADDRESS } from "@/lib/chain/base/tokens";
+import { DEFAULT_SOLANA_TOKEN_ADDRESSES } from "@/lib/chain/solana/adapter";
+import { EVM_CHAINS } from "@/lib/chain/evm/chains";
+import { VELO_TOKEN_ADDRESS } from "@/lib/defi/velodrome/adapter";
 import { prisma } from "@/lib/db/prisma";
 import { formatUnits } from "viem";
+
+// Emissions reward token addresses per chain (for pricing emissions)
+const EMISSIONS_TOKENS: Record<string, string> = {
+  base: "0x940181a94A35A4569E4529A3CDfB74e38FD98631",     // AERO
+  optimism: VELO_TOKEN_ADDRESS,                              // VELO
+};
+
+/** Get default token addresses to track for a given chain */
+function getDefaultTokenAddresses(chainId: string): string[] {
+  if (chainId === "base") return DEFAULT_TOKEN_ADDRESSES;
+  if (chainId === "solana") return DEFAULT_SOLANA_TOKEN_ADDRESSES;
+  const evmConfig = EVM_CHAINS[chainId];
+  if (evmConfig) return evmConfig.knownTokens.map((t) => t.address);
+  return [];
+}
+
+/** Get chain-specific native token info */
+function getNativeTokenInfo(chainId: string): {
+  symbol: string;
+  decimals: number;
+  wrappedAddress: string;
+} {
+  if (chainId === "base") {
+    return { symbol: "ETH", decimals: 18, wrappedAddress: "0x4200000000000000000000000000000000000006" };
+  }
+  if (chainId === "solana") {
+    return { symbol: "SOL", decimals: 9, wrappedAddress: "So11111111111111111111111111111111111111112" };
+  }
+  const evmConfig = EVM_CHAINS[chainId];
+  if (evmConfig) {
+    return {
+      symbol: evmConfig.nativeSymbol,
+      decimals: 18,
+      wrappedAddress: evmConfig.wrappedNativeAddress,
+    };
+  }
+  return { symbol: "ETH", decimals: 18, wrappedAddress: "" };
+}
 
 export async function getPortfolio(
   address: string,
@@ -13,46 +54,49 @@ export async function getPortfolio(
 ): Promise<PortfolioResponse> {
   const adapter = getChainAdapter(chainId);
   const normalizedAddress = address.toLowerCase();
+  const defaultTokens = getDefaultTokenAddresses(chainId);
 
-  // 1. Fetch native balance + ERC20 token balances in parallel with LP positions.
-  //    LP position fetch is best-effort: a failure (e.g. RPC timeout) returns []
-  //    so the rest of the portfolio still loads correctly.
-  const [nativeBalance, tokenBalances, lpPositions] = await Promise.all([
+  // 1. Fetch native balance + token balances + LP positions from all protocols in parallel.
+  //    LP position fetches are best-effort: failures return [] so the portfolio still loads.
+  const defiAdapters = getDefiAdapters(chainId);
+
+  const [nativeBalance, tokenBalances, ...lpResults] = await Promise.all([
     adapter.getNativeBalance(address),
-    adapter.getTokenBalances(address, DEFAULT_TOKEN_ADDRESSES),
-    chainId === "base"
-      ? aerodromeAdapter.getLPPositions(address).catch((err: unknown) => {
-          console.warn(
-            "[portfolio] LP position fetch failed, returning empty:",
-            err instanceof Error ? err.message : err
-          );
-          return [];
-        })
-      : Promise.resolve([]),
+    adapter.getTokenBalances(address, defaultTokens),
+    ...defiAdapters.map((defi) =>
+      defi.getLPPositions(address).catch((err: unknown) => {
+        console.warn(
+          `[portfolio] ${defi.displayName} LP fetch failed, returning empty:`,
+          err instanceof Error ? err.message : err
+        );
+        return [] as LPPositionData[];
+      })
+    ),
   ]);
 
-  // AERO token on Base — needed to price emissions rewards
-  const AERO_ADDRESS = "0x940181a94A35A4569E4529A3CDfB74e38FD98631";
+  const lpPositions = lpResults.flat();
 
   // 2. Collect all token addresses that need pricing
+  const emissionsToken = EMISSIONS_TOKENS[chainId];
   const allTokenAddresses = [
     ...tokenBalances.map((t) => t.tokenAddress),
     ...lpPositions.flatMap((p) => [p.token0Address, p.token1Address]),
-    AERO_ADDRESS,
+    ...(emissionsToken ? [emissionsToken] : []),
   ];
 
   // 3. Fetch prices
   const prices = await pricingService.getPrices(chainId, allTokenAddresses);
 
   // 4. Build native balance token entry
+  const nativeInfo = getNativeTokenInfo(chainId);
   const nativeEntry: TokenBalanceData = {
     tokenAddress: NATIVE_TOKEN_ADDRESS,
-    symbol: "ETH",
-    decimals: 18,
+    symbol: nativeInfo.symbol,
+    decimals: nativeInfo.decimals,
     balance: nativeBalance,
-    formattedBalance: formatUnits(nativeBalance, 18),
-    usdValue: (prices.get("0x4200000000000000000000000000000000000006") ?? 0) *
-      parseFloat(formatUnits(nativeBalance, 18)),
+    formattedBalance: formatUnits(nativeBalance, nativeInfo.decimals),
+    usdValue: (prices.get(nativeInfo.wrappedAddress.toLowerCase()) ?? 0) *
+      parseFloat(formatUnits(nativeBalance, nativeInfo.decimals)),
   };
 
   // 5. Enrich token balances with USD values
@@ -66,7 +110,9 @@ export async function getPortfolio(
   ].filter((t) => parseFloat(t.formattedBalance) > 0);
 
   // 6. Enrich LP positions with USD values (principal + fees + emissions)
-  const aeroPrice = prices.get(AERO_ADDRESS.toLowerCase()) ?? 0;
+  const emissionsPrice = emissionsToken
+    ? (prices.get(emissionsToken.toLowerCase()) ?? 0)
+    : 0;
 
   const enrichedLPs: LPPositionData[] = lpPositions.map((lp) => {
     const price0 = prices.get(lp.token0Address.toLowerCase()) ?? 0;
@@ -79,7 +125,7 @@ export async function getPortfolio(
     const feesEarnedUsd =
       (lp.fees0Amount ?? 0) * price0 + (lp.fees1Amount ?? 0) * price1;
 
-    const emissionsEarnedUsd = (lp.emissionsEarned ?? 0) * aeroPrice;
+    const emissionsEarnedUsd = (lp.emissionsEarned ?? 0) * emissionsPrice;
 
     return { ...lp, token0Usd, token1Usd, usdValue, feesEarnedUsd, emissionsEarnedUsd };
   });
