@@ -1,17 +1,30 @@
-// POST /api/internal/ingest
+// POST/GET /api/internal/ingest
 //
 // Triggers pool data ingestion from all registered protocols.
-// Protected by INGEST_SECRET header. Call from cron or manually.
+// Protected by INGEST_SECRET header or Vercel CRON_SECRET.
 
 import { NextRequest, NextResponse } from "next/server";
 import "@/lib/defi/init"; // ensure adapters are registered
 import { runIngestion } from "@/lib/pools/ingestion";
 
-export async function POST(request: NextRequest) {
-  const secret = request.headers.get("x-api-key");
+function isAuthorized(request: NextRequest): boolean {
   const expected = process.env.INGEST_SECRET;
 
-  if (!expected || secret !== expected) {
+  // Manual trigger via x-api-key header
+  if (expected && request.headers.get("x-api-key") === expected) return true;
+
+  // Vercel Cron sends Authorization: Bearer <CRON_SECRET>
+  const cronSecret = process.env.CRON_SECRET;
+  if (cronSecret) {
+    const auth = request.headers.get("authorization");
+    if (auth === `Bearer ${cronSecret}`) return true;
+  }
+
+  return false;
+}
+
+export async function POST(request: NextRequest) {
+  if (!isAuthorized(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -25,7 +38,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Also support GET for easy cron services (Vercel Cron uses GET)
+// Vercel Cron uses GET
 export async function GET(request: NextRequest) {
   return POST(request);
 }
