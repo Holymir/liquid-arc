@@ -1,7 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { isAddress } from "viem";
+
+function isEvmAddress(addr: string): boolean {
+  return /^0x[a-fA-F0-9]{40}$/.test(addr);
+}
 
 export interface TrackedWallet {
   id: string;
@@ -41,7 +44,7 @@ export function useTrackedWallets(): UseTrackedWalletsResult {
 
   const addWallet = useCallback(
     async (address: string, label?: string): Promise<boolean> => {
-      if (!isAddress(address)) return false;
+      if (!isEvmAddress(address)) return false;
 
       try {
         const res = await fetch("/api/wallets", {

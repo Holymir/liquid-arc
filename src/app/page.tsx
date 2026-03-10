@@ -1,85 +1,117 @@
 "use client";
 
-export const dynamic = "force-dynamic";
-
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAccount } from "wagmi";
-import { ConnectButton } from "@/components/wallet/ConnectButton";
+import Link from "next/link";
+import { useSession } from "@/components/providers/SessionProvider";
+import { AppHeader } from "@/components/layout/AppHeader";
+import { ArrowRight, BarChart3, Gift, History, Wallet } from "lucide-react";
+
+const features = [
+  { icon: BarChart3, label: "Concentrated LP Tracking" },
+  { icon: Gift, label: "Claimable Rewards" },
+  { icon: History, label: "Portfolio History" },
+  { icon: Wallet, label: "Multi-Wallet" },
+];
 
 export default function Home() {
-  const { isConnected } = useAccount();
+  const { status } = useSession();
   const router = useRouter();
 
   useEffect(() => {
-    if (isConnected) {
-      router.push("/dashboard");
+    if (status === "authenticated") {
+      router.replace("/dashboard");
     }
-  }, [isConnected, router]);
+  }, [status, router]);
 
   return (
-    <main className="min-h-screen bg-[#0a0a0f] flex flex-col items-center justify-center p-8">
-      <div className="flex flex-col items-center gap-6 max-w-md">
-        {/* Logo */}
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              className="w-7 h-7 text-indigo-400"
-              stroke="currentColor"
-              strokeWidth={1.5}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941"
-              />
-            </svg>
+    <div className="min-h-screen bg-[#06080d]">
+      <AppHeader hideConnect={status === "authenticated"} />
+
+      <main className="flex-1 flex items-center justify-center px-4 sm:px-6 py-16 sm:py-24">
+        <div className="w-full max-w-lg relative">
+          {/* Ambient glow */}
+          <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-96 h-96 bg-indigo-600/8 rounded-full blur-3xl pointer-events-none" />
+
+          <div className="relative">
+            {/* Hero text */}
+            <div className="text-center mb-10">
+              <p className="text-indigo-400 text-xs font-semibold tracking-widest uppercase mb-4">
+                DeFi Portfolio Intelligence
+              </p>
+              <h1 className="text-3xl sm:text-4xl font-bold text-slate-100 tracking-tight leading-tight">
+                Your LP Positions,
+                <br />
+                <span className="text-indigo-400">Crystal Clear</span>
+              </h1>
+              <p className="mt-4 text-slate-400 text-sm sm:text-base leading-relaxed max-w-md mx-auto">
+                Real-time LP analytics, P&L tracking, and impermanent loss
+                monitoring — starting with Aerodrome on Base.
+              </p>
+            </div>
+
+            {/* CTA card */}
+            <div className="glass-card rounded-2xl p-6 sm:p-8">
+              <h2 className="text-lg font-semibold text-slate-100">
+                Get Started
+              </h2>
+              <p className="text-slate-400 text-sm mt-1">
+                Create an account to start tracking your positions and rewards.
+              </p>
+
+              <div className="mt-6 flex flex-col sm:flex-row gap-3">
+                <Link
+                  href="/register"
+                  className="flex-1 flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-semibold py-2.5 rounded-xl text-sm shadow-lg shadow-indigo-600/20 hover:shadow-indigo-500/30 transition-all"
+                >
+                  Get Started
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+                <Link
+                  href="/login"
+                  className="flex-1 flex items-center justify-center gap-2 text-slate-300 hover:text-white border border-slate-700/40 hover:border-slate-600 py-2.5 rounded-xl text-sm transition-all"
+                >
+                  Sign in
+                </Link>
+              </div>
+
+              {/* Features */}
+              <div className="mt-6 grid grid-cols-2 gap-2.5">
+                {features.map(({ icon: Icon, label }) => (
+                  <div
+                    key={label}
+                    className="flex items-center gap-2.5 rounded-lg bg-slate-800/20 border border-slate-700/20 px-3 py-2.5"
+                  >
+                    <Icon className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                    <span className="text-slate-300 text-xs">{label}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Pool Analytics link */}
+              <Link
+                href="/pools"
+                className="mt-5 flex items-center justify-center gap-2 text-sm text-indigo-400 hover:text-indigo-300 border border-indigo-500/20 hover:border-indigo-500/40 rounded-xl px-4 py-2.5 transition-all group"
+              >
+                Explore Pool Analytics
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+              </Link>
+            </div>
+
+            {/* Protocol badges */}
+            <div className="flex items-center justify-center gap-4 mt-6 text-xs text-slate-500">
+              <div className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
+                <span>Aerodrome</span>
+              </div>
+              <span className="text-slate-700">&middot;</span>
+              <span className="text-slate-600">Uniswap soon</span>
+              <span className="text-slate-700">&middot;</span>
+              <span className="text-slate-600">More chains coming</span>
+            </div>
           </div>
-          <h1 className="text-3xl sm:text-4xl font-bold text-slate-100 tracking-tight">
-            LiquidArk
-          </h1>
         </div>
-
-        <p className="text-slate-400 text-center text-sm sm:text-base leading-relaxed">
-          Track your DeFi LP positions, token balances, and P&L — starting with Aerodrome on Base.
-        </p>
-
-        {/* Connect */}
-        <div className="mt-2">
-          <ConnectButton />
-        </div>
-
-        {/* Feature pills */}
-        <div className="flex flex-wrap justify-center gap-2 mt-4">
-          {[
-            "Concentrated LP Tracking",
-            "Claimable Rewards",
-            "Portfolio History",
-            "Multi-Wallet",
-          ].map((label) => (
-            <span
-              key={label}
-              className="text-slate-500 text-xs border border-slate-800 rounded-full px-3 py-1"
-            >
-              {label}
-            </span>
-          ))}
-        </div>
-
-        {/* Protocol badges */}
-        <div className="flex items-center gap-3 mt-4 text-[11px] text-slate-600">
-          <div className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
-            Aerodrome
-          </div>
-          <span className="text-slate-700">&middot;</span>
-          <span className="text-slate-700">Uniswap soon</span>
-          <span className="text-slate-700">&middot;</span>
-          <span className="text-slate-700">More chains coming</span>
-        </div>
-      </div>
-    </main>
+      </main>
+    </div>
   );
 }

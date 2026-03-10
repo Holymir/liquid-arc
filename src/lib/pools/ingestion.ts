@@ -1,0 +1,311 @@
+// Pool data ingestion pipeline
+//
+// Fetches pool data from all registered protocol adapters and writes
+// to the database. Triggered by cron or manual API call.
+
+import { prisma } from "@/lib/db/prisma";
+import { protocolRegistry } from "@/lib/defi/registry";
+import type { RawPoolData, RawPoolDayData } from "@/lib/defi/types";
+
+interface IngestionResult {
+  protocol: string;
+  poolsUpserted: number;
+  dayDataUpserted: number;
+  errors: string[];
+}
+
+/**
+ * Run full ingestion for all registered pool providers.
+ */
+export async function runIngestion(): Promise<IngestionResult[]> {
+  const adapters = protocolRegistry.getAllPoolProviders();
+  const results: IngestionResult[] = [];
+
+  for (const adapter of adapters) {
+    const result: IngestionResult = {
+      protocol: adapter.protocolId,
+      poolsUpserted: 0,
+      dayDataUpserted: 0,
+      errors: [],
+    };
+
+    try {
+      // Ensure protocol record exists
+      await prisma.protocol.upsert({
+        where: { id: adapter.protocolId },
+        update: { isActive: true },
+        create: {
+          id: adapter.protocolId,
+          slug: adapter.slug,
+          displayName: adapter.displayName,
+          chainId: adapter.chainId,
+          poolType: "cl",
+        },
+      });
+
+      // Fetch pools (with embedded day data where supported)
+      console.log(`[ingestion] Fetching pools for ${adapter.protocolId}...`);
+      const pools = await adapter.fetchPools({ minTvlUsd: 1000, limit: 500 });
+
+      // Fetch day data for top pools
+      const poolDayDataMap = new Map<string, RawPoolDayData[]>();
+      const topPools = pools.slice(0, 200); // already sorted by TVL desc
+
+      // Batch fetch day data — 5 at a time to avoid rate limits
+      for (let i = 0; i < topPools.length; i += 5) {
+        const batch = topPools.slice(i, i + 5);
+        const batchResults = await Promise.allSettled(
+          batch.map((p) => adapter.fetchPoolDayData(p.poolAddress, 30))
+        );
+        for (let j = 0; j < batch.length; j++) {
+          const r = batchResults[j];
+          if (r.status === "fulfilled" && r.value.length > 0) {
+            poolDayDataMap.set(batch[j].poolAddress, r.value);
+          }
+        }
+      }
+
+      // Fetch USD price history for unique tokens (for volatility + correlation)
+      const uniqueTokens = new Set<string>();
+      for (const pool of topPools) {
+        uniqueTokens.add(pool.token0Address);
+        uniqueTokens.add(pool.token1Address);
+      }
+      const tokenPriceMap = new Map<string, number[]>();
+      const tokenAddresses = [...uniqueTokens];
+      for (let i = 0; i < tokenAddresses.length; i += 5) {
+        const batch = tokenAddresses.slice(i, i + 5);
+        const batchResults = await Promise.allSettled(
+          batch.map((addr) => adapter.fetchTokenPriceHistory(addr, 30))
+        );
+        for (let j = 0; j < batch.length; j++) {
+          const r = batchResults[j];
+          if (r.status === "fulfilled" && r.value.prices.length > 0) {
+            tokenPriceMap.set(batch[j], r.value.prices.map((p) => p.priceUsd));
+          }
+        }
+      }
+      console.log(`[ingestion] Fetched USD prices for ${tokenPriceMap.size} tokens`);
+
+      // Upsert pools
+      for (const pool of pools) {
+        try {
+          const dayData = poolDayDataMap.get(pool.poolAddress) ?? [];
+          const token0Prices = tokenPriceMap.get(pool.token0Address) ?? [];
+          const token1Prices = tokenPriceMap.get(pool.token1Address) ?? [];
+          const { volume7d, fees7d, apr24h, apr7d } =
+            computePoolMetrics(pool, dayData);
+
+          await prisma.pool.upsert({
+            where: {
+              chainId_poolAddress: {
+                chainId: adapter.chainId,
+                poolAddress: pool.poolAddress,
+              },
+            },
+            update: {
+              tvlUsd: pool.tvlUsd,
+              volume24hUsd: pool.volumeUsd24h,
+              volume7dUsd: volume7d,
+              fees24hUsd: pool.feesUsd24h,
+              fees7dUsd: fees7d,
+              apr24h,
+              apr7d,
+              currentTick: pool.currentTick,
+              totalLiquidity: pool.totalLiquidity,
+              ...computeVolatilityMetrics(token0Prices, token1Prices),
+              lastSyncedAt: new Date(),
+            },
+            create: {
+
+              protocolId: adapter.protocolId,
+              chainId: adapter.chainId,
+              poolAddress: pool.poolAddress,
+              token0Address: pool.token0Address,
+              token0Symbol: pool.token0Symbol,
+              token0Decimals: pool.token0Decimals,
+              token1Address: pool.token1Address,
+              token1Symbol: pool.token1Symbol,
+              token1Decimals: pool.token1Decimals,
+              feeTier: pool.feeTier,
+              tickSpacing: pool.tickSpacing,
+              poolType: pool.poolType,
+              tvlUsd: pool.tvlUsd,
+              volume24hUsd: pool.volumeUsd24h,
+              volume7dUsd: volume7d,
+              fees24hUsd: pool.feesUsd24h,
+              fees7dUsd: fees7d,
+              apr24h,
+              apr7d,
+              currentTick: pool.currentTick,
+              totalLiquidity: pool.totalLiquidity,
+              ...computeVolatilityMetrics(token0Prices, token1Prices),
+              lastSyncedAt: new Date(),
+            },
+          });
+          result.poolsUpserted++;
+        } catch (err) {
+          result.errors.push(
+            `Pool ${pool.poolAddress}: ${err instanceof Error ? err.message : String(err)}`
+          );
+        }
+      }
+
+      // Upsert day data
+      for (const [poolAddress, dayData] of poolDayDataMap) {
+        const pool = await prisma.pool.findUnique({
+          where: {
+            chainId_poolAddress: {
+              chainId: adapter.chainId,
+              poolAddress,
+            },
+          },
+          select: { id: true },
+        });
+        if (!pool) continue;
+
+        for (const day of dayData) {
+          try {
+            await prisma.poolDayData.upsert({
+              where: {
+                poolId_date: { poolId: pool.id, date: day.date },
+              },
+              update: {
+                volumeUsd: day.volumeUsd,
+                feesUsd: day.feesUsd,
+                tvlUsd: day.tvlUsd,
+                txCount: day.txCount,
+                token0Price: day.token0Price,
+                token1Price: day.token1Price,
+              },
+              create: {
+                poolId: pool.id,
+                date: day.date,
+                volumeUsd: day.volumeUsd,
+                feesUsd: day.feesUsd,
+                tvlUsd: day.tvlUsd,
+                txCount: day.txCount,
+                token0Price: day.token0Price,
+                token1Price: day.token1Price,
+              },
+            });
+            result.dayDataUpserted++;
+          } catch {
+            // Ignore duplicate/race condition errors
+          }
+        }
+      }
+
+      console.log(
+        `[ingestion] ${adapter.protocolId}: ${result.poolsUpserted} pools, ` +
+        `${result.dayDataUpserted} day records, ${result.errors.length} errors`
+      );
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      result.errors.push(`Fatal: ${msg}`);
+      console.error(`[ingestion] ${adapter.protocolId} failed:`, msg);
+    }
+
+    results.push(result);
+  }
+
+  return results;
+}
+
+// ── Metric Computation ─────────────────────────────────────────────────────
+
+function computePoolMetrics(
+  pool: RawPoolData,
+  dayData: RawPoolDayData[]
+): {
+  volume7d: number;
+  fees7d: number;
+  apr24h: number;
+  apr7d: number;
+} {
+  const last7 = dayData.slice(0, 7);
+  const volume7d = last7.reduce((sum, d) => sum + d.volumeUsd, 0);
+  const fees7d = last7.reduce((sum, d) => sum + d.feesUsd, 0);
+
+  const apr24h =
+    pool.tvlUsd > 0 ? (pool.feesUsd24h / pool.tvlUsd) * 365 * 100 : 0;
+  const avgDailyFees7d = last7.length > 0 ? fees7d / last7.length : 0;
+  const avgTvl7d =
+    last7.length > 0
+      ? last7.reduce((sum, d) => sum + d.tvlUsd, 0) / last7.length
+      : pool.tvlUsd;
+  const apr7d = avgTvl7d > 0 ? (avgDailyFees7d / avgTvl7d) * 365 * 100 : 0;
+
+  return { volume7d, fees7d, apr24h, apr7d };
+}
+
+function computeVolatilityMetrics(
+  token0UsdPrices: number[],
+  token1UsdPrices: number[]
+): {
+  token0Volatility30d: number | null;
+  token1Volatility30d: number | null;
+  pairCorrelation30d: number | null;
+} {
+  const vol0 = annualizedVolatility(token0UsdPrices);
+  const vol1 = annualizedVolatility(token1UsdPrices);
+  const corr = pearsonCorrelation(
+    dailyReturns(token0UsdPrices),
+    dailyReturns(token1UsdPrices)
+  );
+
+  return {
+    token0Volatility30d: vol0,
+    token1Volatility30d: vol1,
+    pairCorrelation30d: corr,
+  };
+}
+
+function dailyReturns(prices: number[]): number[] {
+  if (prices.length < 2) return [];
+  const returns: number[] = [];
+  for (let i = 1; i < prices.length; i++) {
+    if (prices[i - 1] > 0) {
+      returns.push(Math.log(prices[i] / prices[i - 1]));
+    }
+  }
+  return returns;
+}
+
+function annualizedVolatility(prices: number[]): number | null {
+  const returns = dailyReturns(prices);
+  if (returns.length < 3) return null;
+
+  const mean = returns.reduce((s, r) => s + r, 0) / returns.length;
+  const variance =
+    returns.reduce((s, r) => s + (r - mean) ** 2, 0) / (returns.length - 1);
+  const dailyVol = Math.sqrt(variance);
+
+  return dailyVol * Math.sqrt(365) * 100; // annualized percentage
+}
+
+function pearsonCorrelation(x: number[], y: number[]): number | null {
+  const n = Math.min(x.length, y.length);
+  if (n < 3) return null;
+
+  const xSlice = x.slice(0, n);
+  const ySlice = y.slice(0, n);
+
+  const xMean = xSlice.reduce((s, v) => s + v, 0) / n;
+  const yMean = ySlice.reduce((s, v) => s + v, 0) / n;
+
+  let sumXY = 0;
+  let sumX2 = 0;
+  let sumY2 = 0;
+
+  for (let i = 0; i < n; i++) {
+    const dx = xSlice[i] - xMean;
+    const dy = ySlice[i] - yMean;
+    sumXY += dx * dy;
+    sumX2 += dx * dx;
+    sumY2 += dy * dy;
+  }
+
+  const denom = Math.sqrt(sumX2 * sumY2);
+  return denom > 0 ? sumXY / denom : null;
+}

@@ -1,15 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { isAddress } from "viem";
 import { truncateAddress } from "@/lib/chain/utils";
 import type { TrackedWallet } from "@/hooks/useTrackedWallets";
+import { Plus, X, Wallet } from "lucide-react";
+
+function isEvmAddress(addr: string): boolean {
+  return /^0x[a-fA-F0-9]{40}$/.test(addr);
+}
 
 interface WalletPanelProps {
   wallets: TrackedWallet[];
   isLoading: boolean;
   selectedAddress?: string;
-  connectedAddress?: string;
   onSelect: (wallet: TrackedWallet) => void;
   onAdd: (address: string, label?: string) => Promise<boolean>;
   onRemove: (address: string) => Promise<void>;
@@ -19,7 +22,6 @@ export function WalletPanel({
   wallets,
   isLoading,
   selectedAddress,
-  connectedAddress,
   onSelect,
   onAdd,
   onRemove,
@@ -35,7 +37,7 @@ export function WalletPanel({
     setError("");
 
     const trimmed = address.trim();
-    if (!isAddress(trimmed)) {
+    if (!isEvmAddress(trimmed)) {
       setError("Invalid EVM address");
       return;
     }
@@ -59,49 +61,63 @@ export function WalletPanel({
   };
 
   return (
-    <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4">
+    <div className="glass-card rounded-2xl p-4">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-slate-300 font-semibold text-sm uppercase tracking-wider">
+        <h2 className="text-slate-400 font-semibold text-xs uppercase tracking-widest">
           Tracked Wallets
         </h2>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="text-indigo-400 hover:text-indigo-300 text-xs font-medium transition-colors"
+          className="flex items-center gap-1 text-indigo-400 hover:text-indigo-300 text-xs font-medium rounded-lg px-2 py-1 hover:bg-indigo-400/5 transition-all"
         >
-          {showForm ? "Cancel" : "+ Add"}
+          {showForm ? (
+            <>
+              <X className="w-3 h-3" /> Cancel
+            </>
+          ) : (
+            <>
+              <Plus className="w-3 h-3" /> Add
+            </>
+          )}
         </button>
       </div>
 
       {/* Add wallet form */}
       {showForm && (
-        <form onSubmit={handleSubmit} className="mb-4 space-y-3">
-          <div>
-            <input
-              type="text"
-              placeholder="0x... wallet address"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 font-mono placeholder:text-slate-600 focus:outline-none focus:border-indigo-500"
-            />
-          </div>
-          <div>
-            <input
-              type="text"
-              placeholder="Label (optional)"
-              value={label}
-              onChange={(e) => setLabel(e.target.value)}
-              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-indigo-500"
-            />
-          </div>
+        <form onSubmit={handleSubmit} className="mb-4 space-y-2.5">
+          <input
+            type="text"
+            placeholder="0x... wallet address"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            className="w-full bg-slate-800/60 border border-slate-700/50 rounded-lg px-3 py-2 text-sm text-slate-200 font-mono placeholder:text-slate-600 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition-all"
+          />
+          <input
+            type="text"
+            placeholder="Label (optional)"
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            className="w-full bg-slate-800/60 border border-slate-700/50 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition-all"
+          />
           {error && (
-            <p className="text-red-400 text-xs">{error}</p>
+            <p className="text-red-400 text-xs flex items-center gap-1.5">
+              <span className="w-1 h-1 rounded-full bg-red-400" />
+              {error}
+            </p>
           )}
           <button
             type="submit"
             disabled={submitting}
-            className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-medium py-2 rounded-lg text-sm transition-colors"
+            className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium py-2 rounded-lg text-sm shadow-lg shadow-indigo-600/10 transition-all"
           >
-            {submitting ? "Adding..." : "Track Wallet"}
+            {submitting ? (
+              <span className="inline-flex items-center gap-2">
+                <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Adding...
+              </span>
+            ) : (
+              "Track Wallet"
+            )}
           </button>
         </form>
       )}
@@ -110,60 +126,55 @@ export function WalletPanel({
       {isLoading ? (
         <div className="space-y-2">
           {[1, 2].map((i) => (
-            <div key={i} className="bg-slate-800/60 rounded-xl p-3 animate-pulse">
-              <div className="w-32 h-4 bg-slate-700 rounded" />
+            <div key={i} className="bg-slate-800/30 rounded-xl p-3 animate-pulse">
+              <div className="w-32 h-4 bg-slate-700/30 rounded" />
             </div>
           ))}
         </div>
       ) : wallets.length === 0 ? (
-        <p className="text-slate-500 text-xs text-center py-6">
-          No wallets tracked yet
-        </p>
+        <div className="py-8 text-center">
+          <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-slate-800/40 border border-slate-700/30 mb-2">
+            <Wallet className="w-4 h-4 text-slate-600" />
+          </div>
+          <p className="text-slate-500 text-xs">No wallets tracked yet</p>
+        </div>
       ) : (
-        <div className="space-y-1.5">
+        <div className="space-y-1">
           {wallets.map((w) => {
             const isSelected = w.address.toLowerCase() === selectedAddress?.toLowerCase();
-            const isConnectedWallet = w.address.toLowerCase() === connectedAddress?.toLowerCase();
 
             return (
               <div
                 key={w.address}
                 onClick={() => onSelect(w)}
-                className={`group relative rounded-xl px-3 py-2.5 cursor-pointer transition-colors ${
+                className={`group relative rounded-xl px-3 py-2.5 cursor-pointer transition-all ${
                   isSelected
-                    ? "bg-indigo-600/15 border border-indigo-500/30"
-                    : "hover:bg-slate-800/60 border border-transparent"
+                    ? "bg-indigo-600/10 border border-indigo-500/25"
+                    : "hover:bg-slate-800/40 border border-transparent"
                 }`}
               >
                 <div className="flex items-center justify-between gap-2">
                   <div className="min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      {w.label && (
-                        <span className="text-slate-200 text-sm font-medium truncate">
-                          {w.label}
-                        </span>
-                      )}
-                      {isConnectedWallet && (
-                        <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-green-400" title="Connected" />
-                      )}
-                    </div>
+                    {w.label && (
+                      <span className="text-slate-200 text-sm font-medium truncate block">
+                        {w.label}
+                      </span>
+                    )}
                     <span className="text-slate-500 text-xs font-mono block truncate">
                       {truncateAddress(w.address, 6)}
                     </span>
                   </div>
 
-                  {!isConnectedWallet && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onRemove(w.address);
-                      }}
-                      className="opacity-0 group-hover:opacity-100 shrink-0 text-slate-600 hover:text-red-400 text-xs transition-all"
-                      title="Remove"
-                    >
-                      ✕
-                    </button>
-                  )}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRemove(w.address);
+                    }}
+                    className="opacity-0 group-hover:opacity-100 shrink-0 w-6 h-6 flex items-center justify-center rounded-lg text-slate-600 hover:text-red-400 hover:bg-red-400/5 transition-all"
+                    title="Remove"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
                 </div>
               </div>
             );
@@ -172,23 +183,23 @@ export function WalletPanel({
       )}
 
       {/* Protocol legend */}
-      <div className="mt-4 pt-3 border-t border-slate-800">
-        <p className="text-[10px] text-slate-600 uppercase tracking-wider mb-2">Networks</p>
-        <div className="space-y-1">
+      <div className="mt-4 pt-3 border-t border-slate-800/40">
+        <p className="text-[10px] text-slate-600 uppercase tracking-widest mb-2 font-medium">Networks</p>
+        <div className="space-y-1.5">
           <div className="flex items-center gap-2 text-xs">
             <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
             <span className="text-slate-400">Base</span>
-            <span className="text-slate-500 ml-auto">Aerodrome</span>
+            <span className="text-slate-500 ml-auto text-[11px]">Aerodrome</span>
           </div>
           <div className="flex items-center gap-2 text-xs">
             <span className="w-1.5 h-1.5 rounded-full bg-slate-600" />
             <span className="text-slate-600">Ethereum</span>
-            <span className="text-slate-700 ml-auto">Uniswap · Soon</span>
+            <span className="text-slate-700 ml-auto text-[11px]">Uniswap &middot; Soon</span>
           </div>
           <div className="flex items-center gap-2 text-xs">
             <span className="w-1.5 h-1.5 rounded-full bg-slate-600" />
             <span className="text-slate-600">Arbitrum</span>
-            <span className="text-slate-700 ml-auto">Uniswap · Soon</span>
+            <span className="text-slate-700 ml-auto text-[11px]">Uniswap &middot; Soon</span>
           </div>
         </div>
       </div>

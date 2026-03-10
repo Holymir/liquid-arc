@@ -3,8 +3,6 @@ import { cookies } from "next/headers";
 
 export interface SessionData {
   userId?: string;
-  address?: string;
-  nonce?: string;
   isLoggedIn: boolean;
 }
 
@@ -40,5 +38,5 @@ export async function requireAuth() {
   if (!session.isLoggedIn || !session.userId) {
     throw new Error("Unauthorized");
   }
-  return session as SessionData & { userId: string; address: string };
+  return session as SessionData & { userId: string };
 }

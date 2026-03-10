@@ -8,10 +8,20 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  address   String   @unique // primary login wallet (checksummed lowercase)
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  address      String?  @unique // optional wallet address (legacy, can be null)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Email verification
+  emailVerified     Boolean  @default(false) @map("email_verified")
+  verificationToken String?  @map("verification_token")
+
+  // Password reset
+  resetToken        String?  @map("reset_token")
+  resetTokenExpiry  DateTime? @map("reset_token_expiry")
 
   // SaaS subscription (Stripe-ready, nullable until billing is live)
   tier               String  @default("free") // "free" | "pro" | "enterprise"
@@ -20,6 +30,7 @@ model User {
   subscriptionStatus String? @map("subscription_status") // "active" | "past_due" | "canceled"
 
   wallets Wallet[]
+  alerts  Alert[]
 
   @@map("users")
 }
@@ -120,6 +131,95 @@ model PositionSnapshot {
   @@map("position_snapshots")
 }
 
+// ──────────────────────────────────────────────────────────────────────────────
+// Pool Analytics (multi-protocol)
+// ──────────────────────────────────────────────────────────────────────────────
+
+model Protocol {
+  id             String   @id                          // e.g. "aerodrome-base"
+  slug           String                                // e.g. "aerodrome"
+  displayName    String   @map("display_name")
+  chainId        String   @map("chain_id")
+  poolType       String   @map("pool_type")            // "cl", "v2", "stable"
+  subgraphId     String?  @map("subgraph_id")
+  factoryAddress String?  @map("factory_address")
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  pools Pool[]
+
+  @@unique([slug, chainId])
+  @@map("protocols")
+}
+
+model Pool {
+  id             String    @id @default(uuid())
+  protocolId     String    @map("protocol_id")
+  chainId        String    @map("chain_id")
+  poolAddress    String    @map("pool_address")
+
+  token0Address  String    @map("token0_address")
+  token0Symbol   String?   @map("token0_symbol")
+  token0Decimals Int?      @map("token0_decimals")
+  token1Address  String    @map("token1_address")
+  token1Symbol   String?   @map("token1_symbol")
+  token1Decimals Int?      @map("token1_decimals")
+
+  feeTier        Int?      @map("fee_tier")
+  tickSpacing    Int?      @map("tick_spacing")
+  poolType       String?   @map("pool_type")
+
+  // Denormalized current stats (updated by ingestion)
+  tvlUsd         Float?    @map("tvl_usd")
+  volume24hUsd   Float?    @map("volume_24h_usd")
+  volume7dUsd    Float?    @map("volume_7d_usd")
+  fees24hUsd     Float?    @map("fees_24h_usd")
+  fees7dUsd      Float?    @map("fees_7d_usd")
+  apr24h         Float?    @map("apr_24h")
+  apr7d          Float?    @map("apr_7d")
+  currentTick    Int?      @map("current_tick")
+  totalLiquidity String?   @map("total_liquidity")
+
+  // Volatility & correlation (computed during ingestion)
+  token0Volatility30d  Float? @map("token0_volatility_30d")
+  token1Volatility30d  Float? @map("token1_volatility_30d")
+  pairCorrelation30d   Float? @map("pair_correlation_30d")
+
+  lastSyncedAt   DateTime? @map("last_synced_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  protocol       Protocol  @relation(fields: [protocolId], references: [id])
+  dayData        PoolDayData[]
+
+  @@unique([chainId, poolAddress])
+  @@index([protocolId])
+  @@index([token0Address, token1Address])
+  @@index([tvlUsd(sort: Desc)])
+  @@index([fees24hUsd(sort: Desc)])
+  @@map("pools")
+}
+
+model PoolDayData {
+  id            String   @id @default(uuid())
+  poolId        String   @map("pool_id")
+  date          DateTime @db.Date
+
+  volumeUsd     Float    @map("volume_usd")
+  feesUsd       Float    @map("fees_usd")
+  tvlUsd        Float    @map("tvl_usd")
+  txCount       Int      @default(0) @map("tx_count")
+  token0Price   Float?   @map("token0_price")
+  token1Price   Float?   @map("token1_price")
+
+  createdAt     DateTime @default(now()) @map("created_at")
+  pool          Pool     @relation(fields: [poolId], references: [id], onDelete: Cascade)
+
+  @@unique([poolId, date])
+  @@index([poolId, date(sort: Desc)])
+  @@map("pool_day_data")
+}
+
 model PortfolioSnapshot {
   id             String   @id @default(uuid())
   walletId       String   @map("wallet_id")
@@ -131,4 +231,35 @@ model PortfolioSnapshot {
 
   @@index([walletId, snapshotAt(sort: Desc)])
   @@map("portfolio_snapshots")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Alerts
+// ──────────────────────────────────────────────────────────────────────────────
+
+model Alert {
+  id          String    @id @default(uuid())
+  userId      String    @map("user_id")
+  type        String    // "out_of_range" | "price_change" | "il_threshold" | "fees_earned"
+  config      Json      // type-specific params (e.g. { nftTokenId, threshold })
+  channel     String    @default("email") // "email" | "webhook"
+  isActive    Boolean   @default(true) @map("is_active")
+  lastFiredAt DateTime? @map("last_fired_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  history     AlertHistory[]
+
+  @@index([userId, isActive])
+  @@map("alerts")
+}
+
+model AlertHistory {
+  id      String   @id @default(uuid())
+  alertId String   @map("alert_id")
+  payload Json
+  sentAt  DateTime @default(now()) @map("sent_at")
+  alert   Alert    @relation(fields: [alertId], references: [id], onDelete: Cascade)
+
+  @@index([alertId, sentAt(sort: Desc)])
+  @@map("alert_history")
 }

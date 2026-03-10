@@ -1,10 +1,14 @@
 import { getTokenPrices } from "./coingecko";
 import { getDexScreenerPrice } from "./dexscreener";
+import { cacheGet, cacheSet } from "@/lib/cache";
+
+const PRICE_CACHE_TTL = 30; // seconds
 
 export class PricingService {
   /**
    * Fetches USD prices for a list of token addresses on a given chain.
    * Primary source: CoinGecko. Falls back to DexScreener for misses.
+   * Results are cached for 30 seconds.
    */
   async getPrices(
     chainId: string,
@@ -12,10 +16,27 @@ export class PricingService {
   ): Promise<Map<string, number>> {
     if (tokenAddresses.length === 0) return new Map();
 
-    const prices = await getTokenPrices(chainId, tokenAddresses);
+    const result = new Map<string, number>();
+    const uncached: string[] = [];
+
+    // Check cache first
+    for (const addr of tokenAddresses) {
+      const key = `price:${chainId}:${addr.toLowerCase()}`;
+      const cached = cacheGet<number>(key);
+      if (cached !== undefined) {
+        result.set(addr.toLowerCase(), cached);
+      } else {
+        uncached.push(addr);
+      }
+    }
+
+    if (uncached.length === 0) return result;
+
+    // Fetch uncached prices
+    const prices = await getTokenPrices(chainId, uncached);
 
     // Find addresses not covered by CoinGecko
-    const misses = tokenAddresses.filter(
+    const misses = uncached.filter(
       (addr) => !prices.has(addr.toLowerCase())
     );
 
@@ -27,14 +48,20 @@ export class PricingService {
         })
       );
 
-      for (const result of fallbackResults) {
-        if (result.status === "fulfilled" && result.value.price !== null) {
-          prices.set(result.value.addr, result.value.price);
+      for (const r of fallbackResults) {
+        if (r.status === "fulfilled" && r.value.price !== null) {
+          prices.set(r.value.addr, r.value.price);
         }
       }
     }
 
-    return prices;
+    // Cache and merge
+    for (const [addr, price] of prices) {
+      cacheSet(`price:${chainId}:${addr}`, price, PRICE_CACHE_TTL);
+      result.set(addr, price);
+    }
+
+    return result;
   }
 }
 

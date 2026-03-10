@@ -1,13 +1,76 @@
-// DeFi protocol adapter interface — chain-agnostic
-// EVM protocols (Aerodrome) and SVM protocols (Raydium, Orca) both implement this.
+// DeFi protocol adapter interfaces
+//
+// PositionProvider  — user LP position data (existing capability)
+// PoolDataProvider  — pool-level analytics (new: TVL, volume, fees, APR)
+// ProtocolAdapter   — combines both
 
 import type { LPPositionData } from "@/types";
+import type { PositionEntryData } from "./aerodrome/events";
 
-export interface DefiProtocolAdapter {
-  protocolName: string;
-  chainId: string;
-  getLPPositions(address: string): Promise<LPPositionData[]>;
-  // Future: adjustPosition(), removePosition(), compoundFees()
+// ── Raw data shapes returned by adapters (protocol-agnostic) ──────────────
+
+export interface RawPoolData {
+  poolAddress: string;
+  token0Address: string;
+  token0Symbol?: string;
+  token0Decimals?: number;
+  token1Address: string;
+  token1Symbol?: string;
+  token1Decimals?: number;
+  feeTier?: number;
+  tickSpacing?: number;
+  poolType: "cl" | "v2" | "stable";
+  tvlUsd: number;
+  volumeUsd24h: number;
+  feesUsd24h: number;
+  currentTick?: number;
+  totalLiquidity?: string;
 }
 
-export { LPPositionData };
+export interface RawPoolDayData {
+  date: Date;
+  volumeUsd: number;
+  feesUsd: number;
+  tvlUsd: number;
+  txCount: number;
+  token0Price?: number;
+  token1Price?: number;
+}
+
+export interface TokenPriceHistory {
+  tokenAddress: string;
+  prices: { date: Date; priceUsd: number }[];
+}
+
+// ── Adapter interfaces ────────────────────────────────────────────────────
+
+export interface ProtocolIdentity {
+  protocolId: string;   // e.g. "aerodrome-base"
+  slug: string;         // e.g. "aerodrome"
+  displayName: string;  // e.g. "Aerodrome"
+  chainId: string;      // e.g. "base"
+}
+
+/** Fetches pool-level analytics data */
+export interface PoolDataProvider extends ProtocolIdentity {
+  fetchPools(options?: { minTvlUsd?: number; limit?: number }): Promise<RawPoolData[]>;
+  fetchPoolDayData(poolAddress: string, days: number): Promise<RawPoolDayData[]>;
+  fetchTokenPriceHistory(tokenAddress: string, days: number): Promise<TokenPriceHistory>;
+}
+
+/** Fetches user position data */
+export interface PositionProvider extends ProtocolIdentity {
+  getLPPositions(address: string): Promise<LPPositionData[]>;
+  getPositionEntry?(
+    nftTokenId: string,
+    token0Decimals: number,
+    token1Decimals: number
+  ): Promise<PositionEntryData | null>;
+}
+
+/** Complete protocol adapter */
+export interface ProtocolAdapter extends PoolDataProvider, PositionProvider {}
+
+// Keep backward compat
+export type DefiProtocolAdapter = PositionProvider;
+export type { LPPositionData };

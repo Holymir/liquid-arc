@@ -13,8 +13,9 @@ export async function GET() {
     where: { id: session.userId },
     select: {
       id: true,
-      address: true,
+      email: true,
       tier: true,
+      emailVerified: true,
       subscriptionStatus: true,
     },
   });
