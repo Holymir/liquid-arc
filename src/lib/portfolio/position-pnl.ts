@@ -115,6 +115,8 @@ export async function calculatePositionPnL(
 
     tickLower: position.tickLower,
     tickUpper: position.tickUpper,
+    token0Decimals: position.token0Decimals,
+    token1Decimals: position.token1Decimals,
 
     entrySource: (entry.entrySource as PositionPnL["entrySource"]) ?? "first-seen",
   };

@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import localFont from "next/font/local";
 import "./globals.css";
-import { Web3Provider } from "@/components/providers/Web3Provider";
+import { SessionProvider } from "@/components/providers/SessionProvider";
+import { RouteProgress } from "@/components/layout/RouteProgress";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -27,9 +29,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[#0a0a0f] text-slate-200`}
+        className={`${geistSans.variable} ${geistMono.variable} font-[family-name:var(--font-geist-sans)] antialiased bg-[#06080d] text-slate-200`}
       >
-        <Web3Provider>{children}</Web3Provider>
+        <Suspense>
+          <RouteProgress />
+        </Suspense>
+        <SessionProvider>{children}</SessionProvider>
       </body>
     </html>
   );

@@ -1,11 +1,14 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { useAccount } from "wagmi";
 import Link from "next/link";
+import { useSession } from "@/components/providers/SessionProvider";
+import { useTrackedWallets } from "@/hooks/useTrackedWallets";
 import { usePositionDetail } from "@/hooks/usePositionDetail";
-import { ConnectButton } from "@/components/wallet/ConnectButton";
+import { AppHeader } from "@/components/layout/AppHeader";
+import { PriceRangeChart } from "@/components/dashboard/PriceRangeChart";
+import { ArrowLeft, RefreshCw, ExternalLink, Info } from "lucide-react";
 
 function formatUsd(value: number): string {
   return new Intl.NumberFormat("en-US", {
@@ -45,7 +48,7 @@ function StatRow({
   return (
     <div
       className={`flex items-start justify-between py-3 ${
-        highlight ? "bg-slate-800/30 -mx-4 px-4 rounded-lg" : ""
+        highlight ? "bg-slate-800/20 -mx-4 px-4 rounded-lg" : ""
       }`}
     >
       <span className="text-slate-400 text-sm">{label}</span>
@@ -75,8 +78,8 @@ function StrategyRow({
     <div
       className={`flex items-center justify-between py-2.5 px-4 rounded-lg text-sm ${
         highlight
-          ? "bg-indigo-500/10 border border-indigo-500/20"
-          : "bg-slate-800/30"
+          ? "bg-indigo-500/8 border border-indigo-500/15"
+          : "bg-slate-800/20 border border-slate-700/15"
       }`}
     >
       <span className={highlight ? "text-slate-200 font-medium" : "text-slate-400"}>
@@ -99,48 +102,36 @@ function StrategyRow({
 
 export default function PositionPage() {
   const { nftTokenId } = useParams<{ nftTokenId: string }>();
-  const { isConnected, address } = useAccount();
+  const { status } = useSession();
+  const { wallets } = useTrackedWallets();
   const router = useRouter();
-  const hasConnected = useRef(false);
+
+  // Use the first tracked wallet address for position lookup
+  const address = wallets[0]?.address;
 
   useEffect(() => {
-    if (isConnected) hasConnected.current = true;
-  }, [isConnected]);
-
-  useEffect(() => {
-    if (!isConnected && hasConnected.current) {
-      router.push("/");
-    }
-  }, [isConnected, router]);
+    if (status === "unauthenticated") router.replace("/login");
+  }, [status, router]);
 
   const { data: pnl, isLoading, error, refresh } = usePositionDetail(
     address,
     nftTokenId
   );
 
-  if (!isConnected) return null;
+  if (status === "loading" || status === "unauthenticated") return null;
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f]">
-      {/* Header */}
-      <header className="sticky top-0 z-30 border-b border-slate-800/80 bg-[#0a0a0f]/90 backdrop-blur-md px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
+    <div className="min-h-screen bg-[#06080d]">
+      <AppHeader
+        leftSlot={
           <Link
             href="/dashboard"
-            className="text-slate-400 hover:text-slate-200 transition-colors p-1"
+            className="text-slate-400 hover:text-slate-200 p-1.5 rounded-lg hover:bg-slate-800/40 transition-all"
           >
-            <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
-              <path
-                fillRule="evenodd"
-                d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z"
-                clipRule="evenodd"
-              />
-            </svg>
+            <ArrowLeft className="w-4 h-4" />
           </Link>
-          <span className="text-slate-100 font-bold text-lg tracking-tight">LiquidArk</span>
-        </div>
-        <ConnectButton />
-      </header>
+        }
+      />
 
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 lg:py-8">
         {/* Breadcrumb */}
@@ -155,16 +146,17 @@ export default function PositionPage() {
         {isLoading ? (
           <LoadingSkeleton />
         ) : error ? (
-          <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-8 text-center">
+          <div className="glass-card rounded-2xl p-8 text-center">
             <p className="text-slate-400 text-sm font-medium">{error}</p>
-            <p className="text-slate-600 text-xs mt-1.5">
+            <p className="text-slate-500 text-xs mt-1.5">
               P&L data will be available after the next portfolio refresh.
             </p>
             <div className="flex items-center justify-center gap-3 mt-4">
               <button
                 onClick={refresh}
-                className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors font-medium"
+                className="inline-flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300 font-medium transition-colors"
               >
+                <RefreshCw className="w-3 h-3" />
                 Try again
               </button>
               <Link
@@ -177,21 +169,21 @@ export default function PositionPage() {
           </div>
         ) : pnl ? (
           <div className="space-y-6">
-            {/* ── Position Header ──────────────────────────── */}
+            {/* Position Header */}
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
               <div>
-                <h1 className="text-slate-100 font-bold text-2xl">
+                <h1 className="text-slate-100 font-bold text-2xl tracking-tight">
                   {pnl.token0Symbol}/{pnl.token1Symbol}
                 </h1>
                 <div className="flex items-center gap-2 mt-1">
                   <span className="text-slate-500 text-xs font-mono">
                     NFT #{pnl.nftTokenId}
                   </span>
-                  <span className="text-indigo-400/70 text-[10px] uppercase tracking-wider font-medium">
+                  <span className="text-indigo-400/60 text-[10px] uppercase tracking-wider font-medium">
                     Aerodrome CL
                   </span>
                   <span
-                    className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                    className={`px-1.5 py-0.5 rounded-md text-[10px] font-medium ${
                       pnl.entrySource === "on-chain"
                         ? "bg-emerald-400/10 text-emerald-400"
                         : "bg-amber-400/10 text-amber-400"
@@ -203,18 +195,19 @@ export default function PositionPage() {
               </div>
               <button
                 onClick={refresh}
-                className="text-xs text-slate-500 hover:text-slate-300 transition-colors self-start sm:self-end"
+                disabled={isLoading}
+                className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-300 font-medium rounded-lg px-2.5 py-1.5 hover:bg-slate-800/40 disabled:opacity-40 transition-all self-start sm:self-end"
               >
-                Refresh
+                <RefreshCw className={`w-3 h-3 ${isLoading ? "animate-spin" : ""}`} />
+                {isLoading ? "Refreshing" : "Refresh"}
               </button>
             </div>
 
-            {/* ── Hero P&L Card ───────────────────────────── */}
-            <div className="bg-gradient-to-br from-slate-900/80 to-slate-800/40 border border-slate-700/50 rounded-2xl p-6 sm:p-8">
+            {/* Hero P&L Card */}
+            <div className="glass-card rounded-2xl p-6 sm:p-8">
               <div className="grid sm:grid-cols-3 gap-6">
-                {/* Position Value */}
                 <div>
-                  <p className="text-slate-500 text-xs uppercase tracking-wider font-medium mb-1.5">
+                  <p className="text-slate-500 text-xs uppercase tracking-widest font-medium mb-1.5">
                     Position Value
                   </p>
                   <p className="text-slate-100 font-bold text-3xl tabular-nums">
@@ -230,15 +223,14 @@ export default function PositionPage() {
                   )}
                 </div>
 
-                {/* Total P&L */}
                 <div>
-                  <p className="text-slate-500 text-xs uppercase tracking-wider font-medium mb-1.5">
+                  <p className="text-slate-500 text-xs uppercase tracking-widest font-medium mb-1.5">
                     Total P&L
                   </p>
                   <div className="flex items-end gap-3">
                     <PnlValue value={pnl.totalPnl} className="text-3xl font-bold" />
                     <span
-                      className={`text-sm font-semibold px-2.5 py-1 rounded-full mb-0.5 ${
+                      className={`text-sm font-semibold px-2.5 py-1 rounded-md mb-0.5 ${
                         pnl.totalPnl >= 0
                           ? "bg-emerald-400/10 text-emerald-400"
                           : "bg-red-400/10 text-red-400"
@@ -256,9 +248,8 @@ export default function PositionPage() {
                   </p>
                 </div>
 
-                {/* APR */}
                 <div>
-                  <p className="text-slate-500 text-xs uppercase tracking-wider font-medium mb-1.5">
+                  <p className="text-slate-500 text-xs uppercase tracking-widest font-medium mb-1.5">
                     Estimated APR
                   </p>
                   <p className="text-indigo-400 font-bold text-3xl tabular-nums">
@@ -271,13 +262,27 @@ export default function PositionPage() {
               </div>
             </div>
 
+            {/* Price Range Chart */}
+            {pnl.tickLower != null && pnl.tickUpper != null && pnl.token0Decimals != null && pnl.token1Decimals != null && (
+              <PriceRangeChart
+                tickLower={pnl.tickLower}
+                tickUpper={pnl.tickUpper}
+                token0Decimals={pnl.token0Decimals}
+                token1Decimals={pnl.token1Decimals}
+                token0Symbol={pnl.token0Symbol}
+                token1Symbol={pnl.token1Symbol}
+                currentToken0Price={pnl.currentToken0Price}
+                currentToken1Price={pnl.currentToken1Price}
+              />
+            )}
+
             <div className="grid sm:grid-cols-2 gap-6">
-              {/* ── P&L Breakdown ──────────────────────────── */}
-              <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6">
-                <p className="text-slate-500 text-xs uppercase tracking-wider font-medium mb-4">
+              {/* P&L Breakdown */}
+              <div className="glass-card rounded-2xl p-6">
+                <p className="text-slate-500 text-xs uppercase tracking-widest font-medium mb-4">
                   P&L Breakdown
                 </p>
-                <div className="divide-y divide-slate-800/60">
+                <div className="divide-y divide-slate-800/40">
                   <StatRow
                     label="Position Value Change"
                     value={<PnlValue value={pnl.principalPnl} />}
@@ -309,17 +314,15 @@ export default function PositionPage() {
                 </div>
               </div>
 
-              {/* ── Impermanent Loss ───────────────────────── */}
-              <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6">
+              {/* Impermanent Loss */}
+              <div className="glass-card rounded-2xl p-6">
                 <div className="flex items-center gap-2 mb-4">
-                  <p className="text-slate-500 text-xs uppercase tracking-wider font-medium">
+                  <p className="text-slate-500 text-xs uppercase tracking-widest font-medium">
                     Impermanent Loss
                   </p>
                   <span className="group/info relative cursor-help">
-                    <svg className="w-3.5 h-3.5 text-slate-600" viewBox="0 0 16 16" fill="currentColor">
-                      <path fillRule="evenodd" d="M8 15A7 7 0 108 1a7 7 0 000 14zm.75-10.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM7.25 8a.75.75 0 011.5 0v3a.75.75 0 01-1.5 0V8z" clipRule="evenodd" />
-                    </svg>
-                    <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-3 py-2 rounded-lg bg-slate-700 text-slate-200 text-[11px] leading-relaxed whitespace-normal w-56 opacity-0 group-hover/info:opacity-100 transition-opacity shadow-lg z-10 text-center">
+                    <Info className="w-3.5 h-3.5 text-slate-600" />
+                    <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-slate-200 text-[11px] leading-relaxed whitespace-normal w-56 opacity-0 group-hover/info:opacity-100 transition-opacity shadow-xl z-10 text-center">
                       IL compares your LP position value to simply holding the same tokens. Negative = LP underperformed holding.
                     </span>
                   </span>
@@ -327,7 +330,7 @@ export default function PositionPage() {
                 <div className="flex items-end gap-3 mb-4">
                   <PnlValue value={pnl.ilAbsolute} className="text-2xl font-bold" />
                   <span
-                    className={`text-xs font-medium px-2 py-0.5 rounded-full mb-0.5 ${
+                    className={`text-xs font-semibold px-2 py-0.5 rounded-md mb-0.5 ${
                       pnl.ilAbsolute >= 0
                         ? "bg-emerald-400/10 text-emerald-400"
                         : "bg-red-400/10 text-red-400"
@@ -336,7 +339,7 @@ export default function PositionPage() {
                     {formatPercent(pnl.ilPercent)}
                   </span>
                 </div>
-                <div className="bg-slate-800/30 rounded-lg p-4 space-y-2 text-sm">
+                <div className="bg-slate-800/20 border border-slate-700/20 rounded-lg p-4 space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-slate-500">If held tokens instead</span>
                     <span className="text-slate-300 tabular-nums">{formatUsd(pnl.holdValue)}</span>
@@ -345,7 +348,7 @@ export default function PositionPage() {
                     <span className="text-slate-500">Current LP value</span>
                     <span className="text-slate-300 tabular-nums">{formatUsd(pnl.currentPositionUsd)}</span>
                   </div>
-                  <div className="flex justify-between pt-2 border-t border-slate-700/40">
+                  <div className="flex justify-between pt-2 border-t border-slate-700/30">
                     <span className="text-slate-400 font-medium">
                       IL + Fees + Emissions
                     </span>
@@ -355,9 +358,9 @@ export default function PositionPage() {
               </div>
             </div>
 
-            {/* ── Strategy Comparison (full width) ─────────── */}
-            <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6">
-              <p className="text-slate-500 text-xs uppercase tracking-wider font-medium mb-2">
+            {/* Strategy Comparison */}
+            <div className="glass-card rounded-2xl p-6">
+              <p className="text-slate-500 text-xs uppercase tracking-widest font-medium mb-2">
                 Strategy Comparison
               </p>
               <p className="text-slate-600 text-xs mb-4">
@@ -393,10 +396,10 @@ export default function PositionPage() {
               </div>
             </div>
 
-            {/* ── Entry & Position Info ─────────────────────── */}
+            {/* Entry & Position Info */}
             <div className="grid sm:grid-cols-2 gap-6">
-              <div className="bg-slate-800/30 border border-slate-800/50 rounded-2xl p-5 space-y-3 text-sm">
-                <p className="text-slate-500 text-xs uppercase tracking-wider font-medium mb-1">
+              <div className="bg-slate-800/20 border border-slate-700/20 rounded-2xl p-5 space-y-3 text-sm">
+                <p className="text-slate-500 text-xs uppercase tracking-widest font-medium mb-1">
                   Entry Info
                 </p>
                 <div className="flex justify-between">
@@ -427,8 +430,8 @@ export default function PositionPage() {
                 </div>
               </div>
 
-              <div className="bg-slate-800/30 border border-slate-800/50 rounded-2xl p-5 space-y-3 text-sm">
-                <p className="text-slate-500 text-xs uppercase tracking-wider font-medium mb-1">
+              <div className="bg-slate-800/20 border border-slate-700/20 rounded-2xl p-5 space-y-3 text-sm">
+                <p className="text-slate-500 text-xs uppercase tracking-widest font-medium mb-1">
                   Current State
                 </p>
                 <div className="flex justify-between">
@@ -443,7 +446,7 @@ export default function PositionPage() {
                     {pnl.currentToken1Amount.toLocaleString("en-US", { maximumFractionDigits: 6 })} @ {formatUsd(pnl.currentToken1Price)}
                   </span>
                 </div>
-                <div className="flex justify-between pt-2 border-t border-slate-700/30">
+                <div className="flex justify-between pt-2 border-t border-slate-700/20">
                   <span className="text-slate-500">Protocol</span>
                   <span className="text-slate-300">Aerodrome CL</span>
                 </div>
@@ -453,9 +456,10 @@ export default function PositionPage() {
                     href={`https://basescan.org/address/${pnl.poolAddress}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-indigo-400 hover:text-indigo-300 font-mono transition-colors"
+                    className="inline-flex items-center gap-1 text-indigo-400 hover:text-indigo-300 font-mono transition-colors"
                   >
                     {pnl.poolAddress.slice(0, 6)}...{pnl.poolAddress.slice(-4)}
+                    <ExternalLink className="w-2.5 h-2.5" />
                   </a>
                 </div>
                 {pnl.tickLower !== undefined && pnl.tickUpper !== undefined && (
@@ -472,9 +476,10 @@ export default function PositionPage() {
                     href={`https://basescan.org/token/0x827922686190790b37229fd06084350e74485b72?a=${pnl.nftTokenId}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-indigo-400 hover:text-indigo-300 font-mono transition-colors"
+                    className="inline-flex items-center gap-1 text-indigo-400 hover:text-indigo-300 font-mono transition-colors"
                   >
                     #{pnl.nftTokenId}
+                    <ExternalLink className="w-2.5 h-2.5" />
                   </a>
                 </div>
               </div>
@@ -489,36 +494,30 @@ export default function PositionPage() {
 function LoadingSkeleton() {
   return (
     <div className="space-y-6">
-      {/* Header skeleton */}
       <div>
-        <div className="w-40 h-8 bg-slate-800/60 rounded mb-2" />
-        <div className="w-56 h-4 bg-slate-800/40 rounded" />
+        <div className="w-40 h-8 bg-slate-800/40 rounded mb-2" />
+        <div className="w-56 h-4 bg-slate-800/30 rounded" />
       </div>
-      {/* Hero card skeleton */}
-      <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-8 animate-pulse">
-        <div className="grid sm:grid-cols-2 gap-6">
-          <div>
-            <div className="w-20 h-3 bg-slate-700/50 rounded mb-3" />
-            <div className="w-40 h-9 bg-slate-700/40 rounded mb-2" />
-            <div className="w-28 h-3 bg-slate-700/30 rounded" />
-          </div>
-          <div>
-            <div className="w-16 h-3 bg-slate-700/50 rounded mb-3" />
-            <div className="w-36 h-9 bg-slate-700/40 rounded mb-2" />
-            <div className="w-24 h-3 bg-slate-700/30 rounded" />
-          </div>
+      <div className="glass-card rounded-2xl p-8 animate-pulse">
+        <div className="grid sm:grid-cols-3 gap-6">
+          {[1, 2, 3].map((i) => (
+            <div key={i}>
+              <div className="w-20 h-3 bg-slate-700/30 rounded mb-3" />
+              <div className="w-40 h-9 bg-slate-700/30 rounded mb-2" />
+              <div className="w-28 h-3 bg-slate-700/20 rounded" />
+            </div>
+          ))}
         </div>
       </div>
-      {/* Cards skeleton */}
       <div className="grid sm:grid-cols-2 gap-6">
         {[1, 2].map((i) => (
-          <div key={i} className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 animate-pulse">
-            <div className="w-24 h-3 bg-slate-700/50 rounded mb-4" />
+          <div key={i} className="glass-card rounded-2xl p-6 animate-pulse">
+            <div className="w-24 h-3 bg-slate-700/30 rounded mb-4" />
             <div className="space-y-3">
               {[1, 2, 3].map((j) => (
                 <div key={j} className="flex justify-between">
-                  <div className="w-28 h-4 bg-slate-700/30 rounded" />
-                  <div className="w-20 h-4 bg-slate-700/30 rounded" />
+                  <div className="w-28 h-4 bg-slate-700/20 rounded" />
+                  <div className="w-20 h-4 bg-slate-700/20 rounded" />
                 </div>
               ))}
             </div>

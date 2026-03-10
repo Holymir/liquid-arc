@@ -24,7 +24,19 @@ export async function GET(request: NextRequest) {
   const chains = params.get("chain")?.split(",").filter(Boolean);
   const protocols = params.get("protocol")?.split(",").filter(Boolean);
   const token = params.get("token")?.toLowerCase();
-  const minTvl = parseFloat(params.get("minTvl") ?? "0") || 0;
+
+  // Range filters for numeric columns
+  const rangeFields = ["tvlUsd", "volume24hUsd", "fees24hUsd", "apr24h", "apr7d", "pairCorrelation30d"] as const;
+  const rangeFilters: Record<string, { gte?: number; lte?: number }> = {};
+  for (const field of rangeFields) {
+    const minVal = parseFloat(params.get(`min_${field}`) ?? "");
+    const maxVal = parseFloat(params.get(`max_${field}`) ?? "");
+    if (!isNaN(minVal) || !isNaN(maxVal)) {
+      rangeFilters[field] = {};
+      if (!isNaN(minVal)) rangeFilters[field].gte = minVal;
+      if (!isNaN(maxVal)) rangeFilters[field].lte = maxVal;
+    }
+  }
 
   // Sorting
   const sortBy = (params.get("sortBy") as SortField) || "tvlUsd";
@@ -35,21 +47,40 @@ export async function GET(request: NextRequest) {
   const limit = Math.min(100, Math.max(1, parseInt(params.get("limit") ?? "50", 10)));
   const skip = (page - 1) * limit;
 
-  // Build where clause
+  // Hide empty pools (zero TVL, volume, and fees)
+  const hideEmpty = params.get("hideEmpty") === "1";
+
+  // Build where clause using AND array to avoid OR conflicts
   const where: Record<string, unknown> = {};
+  const andClauses: Record<string, unknown>[] = [];
+
   if (chains?.length) where.chainId = { in: chains };
   if (protocols?.length) {
     where.protocol = { slug: { in: protocols } };
   }
-  if (minTvl > 0) where.tvlUsd = { gte: minTvl };
-  if (token) {
-    where.OR = [
-      { token0Symbol: { contains: token, mode: "insensitive" } },
-      { token1Symbol: { contains: token, mode: "insensitive" } },
-      { token0Address: { equals: token } },
-      { token1Address: { equals: token } },
-    ];
+  if (hideEmpty) {
+    andClauses.push({
+      OR: [
+        { tvlUsd: { gt: 0 } },
+        { volume24hUsd: { gt: 0 } },
+        { fees24hUsd: { gt: 0 } },
+      ],
+    });
   }
+  for (const [field, range] of Object.entries(rangeFilters)) {
+    where[field] = range;
+  }
+  if (token) {
+    andClauses.push({
+      OR: [
+        { token0Symbol: { contains: token, mode: "insensitive" } },
+        { token1Symbol: { contains: token, mode: "insensitive" } },
+        { token0Address: { equals: token } },
+        { token1Address: { equals: token } },
+      ],
+    });
+  }
+  if (andClauses.length) where.AND = andClauses;
 
   try {
     const [pools, total] = await Promise.all([

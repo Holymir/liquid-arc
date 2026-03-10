@@ -128,6 +128,8 @@ export interface PositionPnL {
   // Position details
   tickLower?: number;
   tickUpper?: number;
+  token0Decimals?: number;
+  token1Decimals?: number;
 
   // Source of entry data
   entrySource: "on-chain" | "first-seen" | "manual";
