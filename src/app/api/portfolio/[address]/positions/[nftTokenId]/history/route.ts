@@ -16,7 +16,7 @@ const PERIOD_HOURS: Record<string, number> = {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { address: string; nftTokenId: string } }
+  { params }: { params: Promise<{ address: string; nftTokenId: string }> }
 ) {
   let session;
   try {
@@ -25,11 +25,12 @@ export async function GET(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const { address, nftTokenId } = await params;
   const period = request.nextUrl.searchParams.get("period") ?? "7d";
 
   const wallet = await prisma.wallet.findFirst({
     where: {
-      address: params.address.toLowerCase(),
+      address: address.toLowerCase(),
       userId: session.userId,
       isActive: true,
     },
@@ -46,7 +47,7 @@ export async function GET(
   const snapshots = await prisma.positionSnapshot.findMany({
     where: {
       walletId: wallet.id,
-      nftTokenId: params.nftTokenId,
+      nftTokenId,
       snapshotAt: { gte: since },
     },
     orderBy: { snapshotAt: "asc" },

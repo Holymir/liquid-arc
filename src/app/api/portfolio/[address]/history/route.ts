@@ -7,7 +7,7 @@ import { requireAuth } from "@/lib/auth/session";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { address: string } }
+  { params }: { params: Promise<{ address: string }> }
 ) {
   let session;
   try {
@@ -16,6 +16,7 @@ export async function GET(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const { address } = await params;
   const chainId = request.nextUrl.searchParams.get("chainId") ?? "base";
   const period = (request.nextUrl.searchParams.get("period") ?? "7d") as
     | "24h"
@@ -24,7 +25,7 @@ export async function GET(
 
   const wallet = await prisma.wallet.findFirst({
     where: {
-      address: params.address.toLowerCase(),
+      address: address.toLowerCase(),
       userId: session.userId,
       isActive: true,
     },

@@ -7,8 +7,9 @@ import { prisma } from "@/lib/db/prisma";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { chainId: string; poolAddress: string } }
+  { params }: { params: Promise<{ chainId: string; poolAddress: string }> }
 ) {
+  const { chainId, poolAddress } = await params;
   const period = request.nextUrl.searchParams.get("period") ?? "30d";
   const days = period === "7d" ? 7 : period === "90d" ? 90 : 30;
 
@@ -16,8 +17,8 @@ export async function GET(
     const pool = await prisma.pool.findUnique({
       where: {
         chainId_poolAddress: {
-          chainId: params.chainId,
-          poolAddress: params.poolAddress.toLowerCase(),
+          chainId,
+          poolAddress: poolAddress.toLowerCase(),
         },
       },
       include: {

@@ -11,7 +11,7 @@ import { pricingService } from "@/lib/pricing/service";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { address: string; nftTokenId: string } }
+  { params }: { params: Promise<{ address: string; nftTokenId: string }> }
 ) {
   let session;
   try {
@@ -20,8 +20,9 @@ export async function GET(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const { address, nftTokenId } = await params;
   const chainId = request.nextUrl.searchParams.get("chainId") ?? "base";
-  const normalizedAddress = params.address.toLowerCase();
+  const normalizedAddress = address.toLowerCase();
 
   // Verify wallet ownership
   const wallet = await prisma.wallet.findFirst({
@@ -39,11 +40,11 @@ export async function GET(
 
   try {
     // Fetch live portfolio data to get current position state
-    const portfolio = await getPortfolio(params.address, chainId);
+    const portfolio = await getPortfolio(address, chainId);
 
     // Find the specific position
     const position = portfolio.lpPositions.find(
-      (lp) => lp.nftTokenId === params.nftTokenId
+      (lp) => lp.nftTokenId === nftTokenId
     );
 
     if (!position) {

@@ -9,7 +9,7 @@ import { requireAuth } from "@/lib/auth/session";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { address: string } }
+  { params }: { params: Promise<{ address: string }> }
 ) {
   let session;
   try {
@@ -18,8 +18,9 @@ export async function GET(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const { address } = await params;
   const chainId = request.nextUrl.searchParams.get("chainId") ?? "base";
-  const normalizedAddress = params.address.toLowerCase();
+  const normalizedAddress = address.toLowerCase();
 
   // Verify the user owns this wallet
   const wallet = await prisma.wallet.findFirst({
@@ -36,7 +37,7 @@ export async function GET(
   }
 
   try {
-    const portfolio = await getPortfolio(params.address, chainId);
+    const portfolio = await getPortfolio(address, chainId);
 
     // Fire-and-forget snapshot
     void saveSnapshotData(wallet.id, portfolio).catch((err) => {
