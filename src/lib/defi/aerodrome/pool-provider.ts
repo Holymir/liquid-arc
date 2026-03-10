@@ -34,6 +34,13 @@ export class VelodromeStylePoolProvider implements PoolDataProvider {
     return pools;
   }
 
+  async fetchPoolsWithDayData(options?: { minTvlUsd?: number; limit?: number }): Promise<{
+    pools: RawPoolData[];
+    dayDataByPool: Map<string, RawPoolDayData[]>;
+  }> {
+    return fetchPoolsFromSubgraph(this.subgraphId, options);
+  }
+
   async fetchPoolDayData(poolAddress: string, days: number): Promise<RawPoolDayData[]> {
     return fetchPoolDayDataFromSubgraph(poolAddress, days, this.subgraphId);
   }
