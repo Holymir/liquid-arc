@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
   }).catch((err) => console.error("[register] verification email failed:", err));
 
   // Auto-login after registration
-  const session = await getIronSession<SessionData>(cookies(), sessionOptions);
+  const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
   session.userId = user.id;
   session.isLoggedIn = true;
   await session.save();

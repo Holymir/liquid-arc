@@ -121,7 +121,7 @@ export default function PoolsPage() {
   const [appliedFilters, setAppliedFilters] = useState<Record<string, RangeFilter>>(emptyFilters);
 
   // Debounce filter inputs
-  const filterTimer = useRef<ReturnType<typeof setTimeout>>();
+  const filterTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   useEffect(() => {
     clearTimeout(filterTimer.current);
     filterTimer.current = setTimeout(() => {
