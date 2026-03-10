@@ -1,31 +1,40 @@
 // Pool data ingestion pipeline
 //
-// Fetches pool data from all registered protocol adapters and writes
-// to the database. Triggered by cron or manual API call.
+// Split into 3 phases to fit within Vercel's 60s function timeout:
+//   phase=1 (default): Fetch pools from subgraph + upsert to DB
+//   phase=2: Upsert day data from embedded subgraph response
+//   phase=3: Fetch token price history + compute volatility/correlation
+//
+// Run all 3 sequentially: curl phase=1, then phase=2, then phase=3.
+// Or omit phase param to run phase 1 only (pools + day data, no volatility).
 
 import { prisma } from "@/lib/db/prisma";
 import { protocolRegistry } from "@/lib/defi/registry";
 import type { RawPoolData, RawPoolDayData } from "@/lib/defi/types";
 
-interface IngestionResult {
+export interface IngestionResult {
   protocol: string;
+  phase: number;
   poolsUpserted: number;
   dayDataUpserted: number;
+  volatilityUpdated: number;
   errors: string[];
 }
 
 /**
- * Run full ingestion for all registered pool providers.
+ * Run ingestion for a specific phase.
  */
-export async function runIngestion(): Promise<IngestionResult[]> {
+export async function runIngestion(phase = 1): Promise<IngestionResult[]> {
   const adapters = protocolRegistry.getAllPoolProviders();
   const results: IngestionResult[] = [];
 
   for (const adapter of adapters) {
     const result: IngestionResult = {
       protocol: adapter.protocolId,
+      phase,
       poolsUpserted: 0,
       dayDataUpserted: 0,
+      volatilityUpdated: 0,
       errors: [],
     };
 
@@ -43,167 +52,218 @@ export async function runIngestion(): Promise<IngestionResult[]> {
         },
       });
 
-      // Fetch pools — use embedded day data if available (single query)
-      console.log(`[ingestion] Fetching pools for ${adapter.protocolId}...`);
-      let pools: RawPoolData[];
-      let poolDayDataMap = new Map<string, RawPoolDayData[]>();
-
-      if (adapter.fetchPoolsWithDayData) {
-        const result = await adapter.fetchPoolsWithDayData({ minTvlUsd: 1000, limit: 500 });
-        pools = result.pools;
-        poolDayDataMap = result.dayDataByPool;
-        console.log(`[ingestion] Got ${pools.length} pools with embedded day data`);
-      } else {
-        pools = await adapter.fetchPools({ minTvlUsd: 1000, limit: 500 });
+      if (phase === 1) {
+        // ── Phase 1: Fetch pools + upsert pools + upsert day data ──────
+        await runPhase1(adapter, result);
+      } else if (phase === 2) {
+        // ── Phase 2: Volatility & correlation for top pools ────────────
+        await runPhase2(adapter, result);
       }
-
-      const topPools = pools.slice(0, 200);
-
-      // Fetch token price history for volatility — batch 10 at a time
-      const uniqueTokens = new Set<string>();
-      for (const pool of topPools) {
-        uniqueTokens.add(pool.token0Address);
-        uniqueTokens.add(pool.token1Address);
-      }
-      const tokenPriceMap = new Map<string, number[]>();
-      const tokenAddresses = [...uniqueTokens];
-      for (let i = 0; i < tokenAddresses.length; i += 10) {
-        const batch = tokenAddresses.slice(i, i + 10);
-        const batchResults = await Promise.allSettled(
-          batch.map((addr) => adapter.fetchTokenPriceHistory(addr, 30))
-        );
-        for (let j = 0; j < batch.length; j++) {
-          const r = batchResults[j];
-          if (r.status === "fulfilled" && r.value.prices.length > 0) {
-            tokenPriceMap.set(batch[j], r.value.prices.map((p) => p.priceUsd));
-          }
-        }
-      }
-      console.log(`[ingestion] Fetched USD prices for ${tokenPriceMap.size} tokens`);
-
-      // Upsert pools
-      for (const pool of pools) {
-        try {
-          const dayData = poolDayDataMap.get(pool.poolAddress) ?? [];
-          const token0Prices = tokenPriceMap.get(pool.token0Address) ?? [];
-          const token1Prices = tokenPriceMap.get(pool.token1Address) ?? [];
-          const { volume7d, fees7d, apr24h, apr7d } =
-            computePoolMetrics(pool, dayData);
-
-          await prisma.pool.upsert({
-            where: {
-              chainId_poolAddress: {
-                chainId: adapter.chainId,
-                poolAddress: pool.poolAddress,
-              },
-            },
-            update: {
-              tvlUsd: pool.tvlUsd,
-              volume24hUsd: pool.volumeUsd24h,
-              volume7dUsd: volume7d,
-              fees24hUsd: pool.feesUsd24h,
-              fees7dUsd: fees7d,
-              apr24h,
-              apr7d,
-              currentTick: pool.currentTick,
-              totalLiquidity: pool.totalLiquidity,
-              ...computeVolatilityMetrics(token0Prices, token1Prices),
-              lastSyncedAt: new Date(),
-            },
-            create: {
-
-              protocolId: adapter.protocolId,
-              chainId: adapter.chainId,
-              poolAddress: pool.poolAddress,
-              token0Address: pool.token0Address,
-              token0Symbol: pool.token0Symbol,
-              token0Decimals: pool.token0Decimals,
-              token1Address: pool.token1Address,
-              token1Symbol: pool.token1Symbol,
-              token1Decimals: pool.token1Decimals,
-              feeTier: pool.feeTier,
-              tickSpacing: pool.tickSpacing,
-              poolType: pool.poolType,
-              tvlUsd: pool.tvlUsd,
-              volume24hUsd: pool.volumeUsd24h,
-              volume7dUsd: volume7d,
-              fees24hUsd: pool.feesUsd24h,
-              fees7dUsd: fees7d,
-              apr24h,
-              apr7d,
-              currentTick: pool.currentTick,
-              totalLiquidity: pool.totalLiquidity,
-              ...computeVolatilityMetrics(token0Prices, token1Prices),
-              lastSyncedAt: new Date(),
-            },
-          });
-          result.poolsUpserted++;
-        } catch (err) {
-          result.errors.push(
-            `Pool ${pool.poolAddress}: ${err instanceof Error ? err.message : String(err)}`
-          );
-        }
-      }
-
-      // Upsert day data
-      for (const [poolAddress, dayData] of poolDayDataMap) {
-        const pool = await prisma.pool.findUnique({
-          where: {
-            chainId_poolAddress: {
-              chainId: adapter.chainId,
-              poolAddress,
-            },
-          },
-          select: { id: true },
-        });
-        if (!pool) continue;
-
-        for (const day of dayData) {
-          try {
-            await prisma.poolDayData.upsert({
-              where: {
-                poolId_date: { poolId: pool.id, date: day.date },
-              },
-              update: {
-                volumeUsd: day.volumeUsd,
-                feesUsd: day.feesUsd,
-                tvlUsd: day.tvlUsd,
-                txCount: day.txCount,
-                token0Price: day.token0Price,
-                token1Price: day.token1Price,
-              },
-              create: {
-                poolId: pool.id,
-                date: day.date,
-                volumeUsd: day.volumeUsd,
-                feesUsd: day.feesUsd,
-                tvlUsd: day.tvlUsd,
-                txCount: day.txCount,
-                token0Price: day.token0Price,
-                token1Price: day.token1Price,
-              },
-            });
-            result.dayDataUpserted++;
-          } catch {
-            // Ignore duplicate/race condition errors
-          }
-        }
-      }
-
-      console.log(
-        `[ingestion] ${adapter.protocolId}: ${result.poolsUpserted} pools, ` +
-        `${result.dayDataUpserted} day records, ${result.errors.length} errors`
-      );
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       result.errors.push(`Fatal: ${msg}`);
-      console.error(`[ingestion] ${adapter.protocolId} failed:`, msg);
+      console.error(`[ingestion] ${adapter.protocolId} phase ${phase} failed:`, msg);
     }
 
     results.push(result);
   }
 
   return results;
+}
+
+// ── Phase 1: Pools + Day Data ───────────────────────────────────────────────
+
+async function runPhase1(
+  adapter: ReturnType<typeof protocolRegistry.getAllPoolProviders>[0],
+  result: IngestionResult
+) {
+  console.log(`[ingestion] Phase 1: Fetching pools for ${adapter.protocolId}...`);
+
+  let pools: RawPoolData[];
+  let poolDayDataMap = new Map<string, RawPoolDayData[]>();
+
+  if (adapter.fetchPoolsWithDayData) {
+    const data = await adapter.fetchPoolsWithDayData({ minTvlUsd: 1000, limit: 500 });
+    pools = data.pools;
+    poolDayDataMap = data.dayDataByPool;
+    console.log(`[ingestion] Got ${pools.length} pools with embedded day data`);
+  } else {
+    pools = await adapter.fetchPools({ minTvlUsd: 1000, limit: 500 });
+  }
+
+  // Upsert pools (no volatility data in phase 1)
+  for (const pool of pools) {
+    try {
+      const dayData = poolDayDataMap.get(pool.poolAddress) ?? [];
+      const { volume7d, fees7d, apr24h, apr7d } = computePoolMetrics(pool, dayData);
+
+      await prisma.pool.upsert({
+        where: {
+          chainId_poolAddress: {
+            chainId: adapter.chainId,
+            poolAddress: pool.poolAddress,
+          },
+        },
+        update: {
+          tvlUsd: pool.tvlUsd,
+          volume24hUsd: pool.volumeUsd24h,
+          volume7dUsd: volume7d,
+          fees24hUsd: pool.feesUsd24h,
+          fees7dUsd: fees7d,
+          apr24h,
+          apr7d,
+          currentTick: pool.currentTick,
+          totalLiquidity: pool.totalLiquidity,
+          lastSyncedAt: new Date(),
+        },
+        create: {
+          protocolId: adapter.protocolId,
+          chainId: adapter.chainId,
+          poolAddress: pool.poolAddress,
+          token0Address: pool.token0Address,
+          token0Symbol: pool.token0Symbol,
+          token0Decimals: pool.token0Decimals,
+          token1Address: pool.token1Address,
+          token1Symbol: pool.token1Symbol,
+          token1Decimals: pool.token1Decimals,
+          feeTier: pool.feeTier,
+          tickSpacing: pool.tickSpacing,
+          poolType: pool.poolType,
+          tvlUsd: pool.tvlUsd,
+          volume24hUsd: pool.volumeUsd24h,
+          volume7dUsd: volume7d,
+          fees24hUsd: pool.feesUsd24h,
+          fees7dUsd: fees7d,
+          apr24h,
+          apr7d,
+          currentTick: pool.currentTick,
+          totalLiquidity: pool.totalLiquidity,
+          lastSyncedAt: new Date(),
+        },
+      });
+      result.poolsUpserted++;
+    } catch (err) {
+      result.errors.push(
+        `Pool ${pool.poolAddress}: ${err instanceof Error ? err.message : String(err)}`
+      );
+    }
+  }
+
+  // Upsert day data in batched transactions
+  const dayOps: ReturnType<typeof prisma.poolDayData.upsert>[] = [];
+  for (const [poolAddress, dayData] of poolDayDataMap) {
+    const pool = await prisma.pool.findUnique({
+      where: {
+        chainId_poolAddress: { chainId: adapter.chainId, poolAddress },
+      },
+      select: { id: true },
+    });
+    if (!pool) continue;
+
+    for (const day of dayData) {
+      dayOps.push(
+        prisma.poolDayData.upsert({
+          where: { poolId_date: { poolId: pool.id, date: day.date } },
+          update: {
+            volumeUsd: day.volumeUsd,
+            feesUsd: day.feesUsd,
+            tvlUsd: day.tvlUsd,
+            txCount: day.txCount,
+            token0Price: day.token0Price,
+            token1Price: day.token1Price,
+          },
+          create: {
+            poolId: pool.id,
+            date: day.date,
+            volumeUsd: day.volumeUsd,
+            feesUsd: day.feesUsd,
+            tvlUsd: day.tvlUsd,
+            txCount: day.txCount,
+            token0Price: day.token0Price,
+            token1Price: day.token1Price,
+          },
+        })
+      );
+    }
+  }
+
+  for (let i = 0; i < dayOps.length; i += 50) {
+    const batch = dayOps.slice(i, i + 50);
+    await prisma.$transaction(batch);
+    result.dayDataUpserted += batch.length;
+  }
+
+  console.log(
+    `[ingestion] Phase 1 done: ${result.poolsUpserted} pools, ${result.dayDataUpserted} day records`
+  );
+}
+
+// ── Phase 2: Volatility & Correlation ───────────────────────────────────────
+
+async function runPhase2(
+  adapter: ReturnType<typeof protocolRegistry.getAllPoolProviders>[0],
+  result: IngestionResult
+) {
+  console.log(`[ingestion] Phase 2: Computing volatility for ${adapter.protocolId}...`);
+
+  // Get top pools that need volatility data
+  const pools = await prisma.pool.findMany({
+    where: {
+      protocolId: adapter.protocolId,
+      tvlUsd: { gt: 10000 },
+    },
+    orderBy: { tvlUsd: "desc" },
+    take: 100,
+    select: {
+      id: true,
+      poolAddress: true,
+      token0Address: true,
+      token1Address: true,
+    },
+  });
+
+  // Collect unique tokens
+  const uniqueTokens = new Set<string>();
+  for (const pool of pools) {
+    uniqueTokens.add(pool.token0Address);
+    uniqueTokens.add(pool.token1Address);
+  }
+
+  // Fetch price history — batch 10 at a time
+  const tokenPriceMap = new Map<string, number[]>();
+  const tokenAddresses = [...uniqueTokens];
+
+  for (let i = 0; i < tokenAddresses.length; i += 10) {
+    const batch = tokenAddresses.slice(i, i + 10);
+    const batchResults = await Promise.allSettled(
+      batch.map((addr) => adapter.fetchTokenPriceHistory(addr, 30))
+    );
+    for (let j = 0; j < batch.length; j++) {
+      const r = batchResults[j];
+      if (r.status === "fulfilled" && r.value.prices.length > 0) {
+        tokenPriceMap.set(batch[j], r.value.prices.map((p) => p.priceUsd));
+      }
+    }
+  }
+
+  console.log(`[ingestion] Fetched prices for ${tokenPriceMap.size} tokens`);
+
+  // Update volatility/correlation for each pool
+  for (const pool of pools) {
+    const token0Prices = tokenPriceMap.get(pool.token0Address) ?? [];
+    const token1Prices = tokenPriceMap.get(pool.token1Address) ?? [];
+    const metrics = computeVolatilityMetrics(token0Prices, token1Prices);
+
+    if (metrics.token0Volatility30d !== null || metrics.pairCorrelation30d !== null) {
+      await prisma.pool.update({
+        where: { id: pool.id },
+        data: metrics,
+      });
+      result.volatilityUpdated++;
+    }
+  }
+
+  console.log(`[ingestion] Phase 2 done: ${result.volatilityUpdated} pools updated with volatility`);
 }
 
 // ── Metric Computation ─────────────────────────────────────────────────────

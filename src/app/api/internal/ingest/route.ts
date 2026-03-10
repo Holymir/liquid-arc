@@ -1,6 +1,8 @@
-// POST/GET /api/internal/ingest
+// POST/GET /api/internal/ingest?phase=1|2
 //
-// Triggers pool data ingestion from all registered protocols.
+// Phase 1 (default): Fetch pools from subgraph, upsert pools + day data
+// Phase 2: Compute volatility & correlation from token price history
+//
 // Protected by INGEST_SECRET header or Vercel CRON_SECRET.
 
 import { NextRequest, NextResponse } from "next/server";
@@ -28,9 +30,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const phase = parseInt(request.nextUrl.searchParams.get("phase") ?? "1", 10);
+
   try {
-    const results = await runIngestion();
-    return NextResponse.json({ ok: true, results });
+    const results = await runIngestion(phase);
+    return NextResponse.json({ ok: true, phase, results });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error("[ingest] Fatal error:", message);
@@ -38,7 +42,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Vercel Cron uses GET
+// Vercel Cron uses GET — runs phase 1 by default (daily pool refresh)
 export async function GET(request: NextRequest) {
   return POST(request);
 }
