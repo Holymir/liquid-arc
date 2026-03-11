@@ -68,71 +68,192 @@ export default function BillingPage() {
 
   return (
     <AppLayout>
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-1">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-10">
+
+        {/* ── Page header ─────────────────────────────────────────── */}
+        <div className="mb-10">
+          <div className="flex items-center gap-3 mb-3">
             <Link
               href="/settings"
-              className="text-slate-400 hover:text-slate-200 p-1.5 rounded-lg hover:bg-slate-800/40 transition-all"
+              className="p-1.5 rounded-lg text-slate-500 hover:text-slate-200 hover:bg-white/[0.04] transition-all"
             >
               <ArrowLeft className="w-4 h-4" />
             </Link>
-            <h1 className="text-xl font-bold text-slate-100">Plans & Billing</h1>
+            <h1
+              className="text-2xl font-bold tracking-tight"
+              style={{ fontFamily: "var(--font-syne)", color: "var(--text-primary)" }}
+            >
+              Plans &amp; Billing
+            </h1>
+            {/* Current plan badge */}
+            <span
+              className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold capitalize"
+              style={{
+                background: "rgba(0,229,196,0.10)",
+                color: "#00e5c4",
+                border: "1px solid rgba(0,229,196,0.22)",
+              }}
+            >
+              {user.tier}
+            </span>
           </div>
-          <p className="text-sm text-slate-500 mt-1">
-            Current plan: <span className="text-arc-400 capitalize">{user.tier}</span>
+          <p className="text-sm pl-10" style={{ color: "var(--text-muted)" }}>
+            Choose the plan that fits your DeFi workflow.
           </p>
         </div>
 
-        <div className="grid sm:grid-cols-3 gap-4">
+        {/* ── Plan cards grid ──────────────────────────────────────── */}
+        <div className="grid sm:grid-cols-3 gap-5">
           {PLANS.map((plan) => {
             const isCurrent = user.tier === plan.tier;
             return (
               <div
                 key={plan.tier}
-                className={`rounded-2xl p-5 border transition-all ${
-                  plan.popular
-                    ? "bg-arc-500/5 border-arc-500/30"
-                    : "bg-slate-800/20 border-slate-700/20"
-                }`}
+                className="e-card flex flex-col transition-all"
+                style={{
+                  borderRadius: "20px",
+                  padding: "28px",
+                  borderTop: plan.popular ? "2px solid #00e5c4" : undefined,
+                  background: plan.popular
+                    ? "var(--surface-2)"
+                    : "var(--surface-1)",
+                  position: "relative",
+                }}
               >
-                {plan.popular && (
-                  <div className="flex items-center gap-1 text-[10px] text-arc-400 font-semibold uppercase tracking-wider mb-3">
-                    <Zap className="w-3 h-3" /> Most Popular
+                {/* Current plan pill — floated above card header */}
+                {isCurrent && (
+                  <div className="mb-4">
+                    <span
+                      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider"
+                      style={{
+                        background: "rgba(0,229,196,0.10)",
+                        color: "#00e5c4",
+                        border: "1px solid rgba(0,229,196,0.22)",
+                      }}
+                    >
+                      Current plan
+                    </span>
                   </div>
                 )}
-                <h3 className="text-slate-200 font-semibold">{plan.name}</h3>
-                <div className="flex items-baseline gap-1 mt-2">
-                  <span className="text-2xl font-bold text-slate-100">{plan.price}</span>
-                  <span className="text-xs text-slate-500">{plan.period}</span>
+
+                {/* Popular badge */}
+                {plan.popular && !isCurrent && (
+                  <div className="mb-4 flex items-center gap-1.5">
+                    <Zap className="w-3 h-3" style={{ color: "#00e5c4" }} />
+                    <span className="section-label">Most Popular</span>
+                  </div>
+                )}
+
+                {/* Plan name */}
+                <h3
+                  className="font-semibold text-base mb-1"
+                  style={{
+                    fontFamily: "var(--font-syne)",
+                    color: "var(--text-primary)",
+                  }}
+                >
+                  {plan.name}
+                </h3>
+
+                {/* Price */}
+                <div className="flex items-baseline gap-1.5 mt-2 mb-6">
+                  <span
+                    className="font-bold leading-none"
+                    style={{
+                      fontFamily: "var(--font-syne)",
+                      fontSize: "48px",
+                      color: "var(--text-primary)",
+                    }}
+                  >
+                    {plan.price}
+                  </span>
+                  <span
+                    className="text-xs"
+                    style={{ color: "var(--text-muted)" }}
+                  >
+                    {plan.period}
+                  </span>
                 </div>
 
-                <ul className="mt-4 space-y-2">
+                {/* Divider */}
+                <div
+                  className="mb-6"
+                  style={{
+                    height: "1px",
+                    background: "rgba(255,255,255,0.06)",
+                  }}
+                />
+
+                {/* Features list */}
+                <ul className="flex flex-col gap-3 flex-1 mb-7">
                   {plan.features.map((f) => (
-                    <li key={f} className="flex items-start gap-2 text-xs text-slate-400">
-                      <Check className="w-3 h-3 text-emerald-400 shrink-0 mt-0.5" />
-                      {f}
+                    <li key={f} className="flex items-start gap-2.5 text-sm">
+                      <span
+                        className="shrink-0 mt-0.5 flex items-center justify-center w-4 h-4 rounded-full"
+                        style={{
+                          background: "rgba(0,229,196,0.10)",
+                        }}
+                      >
+                        <Check
+                          className="w-2.5 h-2.5"
+                          style={{ color: "#00e5c4" }}
+                        />
+                      </span>
+                      <span style={{ color: "var(--text-secondary)" }}>{f}</span>
                     </li>
                   ))}
                 </ul>
 
-                <button
-                  onClick={() => handleUpgrade(plan.tier)}
-                  disabled={isCurrent}
-                  className={`w-full mt-5 py-2 rounded-xl text-sm font-semibold transition-all ${
-                    isCurrent
-                      ? "bg-slate-800/40 text-slate-500 cursor-not-allowed"
-                      : plan.popular
-                      ? "bg-arc-600 hover:bg-arc-500 text-white shadow-lg shadow-arc-600/20"
-                      : "bg-slate-800/40 hover:bg-slate-700/40 text-slate-300"
-                  }`}
-                >
-                  {isCurrent ? "Current plan" : "Upgrade"}
-                </button>
+                {/* CTA button */}
+                {isCurrent ? (
+                  <button
+                    disabled
+                    className="w-full py-2.5 text-sm font-semibold rounded-xl"
+                    style={{
+                      background: "rgba(255,255,255,0.04)",
+                      color: "var(--text-muted)",
+                      border: "1px solid rgba(255,255,255,0.07)",
+                      cursor: "not-allowed",
+                      opacity: 0.7,
+                    }}
+                  >
+                    Current plan
+                  </button>
+                ) : plan.popular ? (
+                  <button
+                    onClick={() => handleUpgrade(plan.tier)}
+                    className="btn-primary w-full py-2.5 text-sm"
+                  >
+                    Upgrade to Pro
+                  </button>
+                ) : plan.tier === "free" ? (
+                  <button
+                    onClick={() => handleUpgrade(plan.tier)}
+                    disabled
+                    className="btn-ghost w-full py-2.5 text-sm"
+                  >
+                    Downgrade
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handleUpgrade(plan.tier)}
+                    className="btn-ghost w-full py-2.5 text-sm"
+                  >
+                    Contact Sales
+                  </button>
+                )}
               </div>
             );
           })}
         </div>
+
+        {/* ── Footer note ─────────────────────────────────────────── */}
+        <p
+          className="text-center text-xs mt-8"
+          style={{ color: "var(--text-muted)" }}
+        >
+          All plans include a 14-day free trial. No credit card required to start.
+        </p>
       </div>
     </AppLayout>
   );

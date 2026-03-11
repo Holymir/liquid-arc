@@ -50,19 +50,19 @@ function PositionCard({
   const pnl = pos.pnlSummary;
 
   return (
-    <div className="border border-slate-700/30 rounded-lg bg-slate-800/10 hover:bg-slate-800/20 transition-all overflow-hidden">
+    <div className="border-b border-[rgba(255,255,255,0.04)] last:border-0 hover:bg-white/[0.02] transition-colors overflow-hidden">
       {/* Compact row — always visible */}
       <button
         onClick={onToggle}
-        className="w-full flex items-center gap-3 px-4 py-3 text-left"
+        className="w-full flex items-center gap-3 px-5 py-3 text-left"
       >
         {/* Pair name */}
         <div className="flex items-center gap-2 min-w-0 shrink-0">
-          <span className="text-slate-100 font-semibold text-sm tracking-tight">
+          <span className="text-[#E8F0FF] font-semibold text-sm tracking-tight">
             {pos.token0Symbol}/{pos.token1Symbol}
           </span>
           <span
-            className={`w-1.5 h-1.5 rounded-full shrink-0 ${inRange ? "bg-emerald-400" : "bg-amber-400"}`}
+            className={`w-2 h-2 rounded-full shrink-0 ${inRange ? "bg-emerald-400" : "bg-amber-400"}`}
             title={inRange ? "In Range" : "Out of Range"}
           />
           {isStaked && (
@@ -81,22 +81,22 @@ function PositionCard({
           )}
           {pnl && (
             <span
-              className={`text-[11px] font-semibold tabular-nums px-1.5 py-0.5 rounded ${
+              className={`text-[11px] font-semibold tabular-nums px-1.5 py-0.5 rounded border ${
                 pnl.totalPnl >= 0
-                  ? "bg-emerald-400/10 text-emerald-400"
-                  : "bg-red-400/10 text-red-400"
+                  ? "bg-emerald-400/8 border-emerald-400/15 text-emerald-400"
+                  : "bg-red-400/8 border-red-400/15 text-red-400"
               }`}
             >
               {pnl.totalPnlPercent >= 0 ? "+" : ""}
               {pnl.totalPnlPercent.toFixed(1)}%
             </span>
           )}
-          <span className="text-slate-200 text-sm font-semibold tabular-nums">
+          <span className="text-[#E8F0FF] text-sm font-semibold tabular-nums">
             {pos.usdValue != null ? formatUsd(pos.usdValue) : "-"}
           </span>
           <ChevronDown
-            className={`w-4 h-4 text-slate-500 transition-transform duration-200 ${
-              isExpanded ? "rotate-180" : ""
+            className={`w-4 h-4 transition-transform duration-200 ${
+              isExpanded ? "rotate-180 text-arc-400" : "text-slate-700"
             }`}
           />
         </div>
@@ -109,69 +109,89 @@ function PositionCard({
         }`}
       >
         <div className="overflow-hidden">
-          <div className="px-4 pb-4 space-y-3">
-            {/* Stats row */}
-            <div className="flex flex-wrap gap-x-5 gap-y-1.5 text-xs">
+          <div className="px-5 pb-4 space-y-3">
+            {/* Stats grid — 3 mini stat boxes */}
+            <div className="grid grid-cols-3 gap-px bg-[rgba(255,255,255,0.04)] rounded-lg overflow-hidden">
               {pnl && (
-                <div>
-                  <span className="text-slate-500">P&L </span>
-                  <span
-                    className={`font-semibold tabular-nums ${
+                <div className="bg-[#0C1826] px-3 py-2.5">
+                  <p className="stat-label mb-1">P&amp;L</p>
+                  <p
+                    className={`text-xs font-semibold tabular-nums ${
                       pnl.totalPnl >= 0 ? "text-emerald-400" : "text-red-400"
                     }`}
                   >
                     {pnl.totalPnl >= 0 ? "+" : ""}
                     {formatUsd(pnl.totalPnl)}
-                  </span>
+                  </p>
                 </div>
               )}
               {pnl && pnl.apr > 0 && (
-                <div>
-                  <span className="text-slate-500">APR </span>
-                  <span className="text-arc-400 font-semibold tabular-nums">
+                <div className="bg-[#0C1826] px-3 py-2.5">
+                  <p className="stat-label mb-1">APR</p>
+                  <p className="text-xs font-semibold tabular-nums text-arc-400">
                     {pnl.apr.toFixed(1)}%
-                  </span>
+                  </p>
                 </div>
               )}
-              <div>
-                <span className="text-slate-500">Range </span>
-                <span className={inRange ? "text-emerald-400" : "text-amber-400"}>
+              <div className="bg-[#0C1826] px-3 py-2.5">
+                <p className="stat-label mb-1">Range</p>
+                <p
+                  className={`text-xs font-semibold ${
+                    inRange ? "text-emerald-400" : "text-amber-400"
+                  }`}
+                >
                   {inRange ? "Active" : "Inactive"}
-                </span>
+                </p>
               </div>
             </div>
 
-            {/* Token composition — compact */}
-            <div className="flex gap-4 text-xs">
-              {pos.token0Amount !== undefined && (
-                <div className="flex items-center gap-1.5">
-                  <span className="text-slate-500">{pos.token0Symbol}</span>
-                  <span className="text-slate-300 font-mono tabular-nums">
-                    {formatToken(pos.token0Amount)}
-                  </span>
-                </div>
-              )}
-              {pos.token1Amount !== undefined && (
-                <div className="flex items-center gap-1.5">
-                  <span className="text-slate-500">{pos.token1Symbol}</span>
-                  <span className="text-slate-300 font-mono tabular-nums">
-                    {formatToken(pos.token1Amount)}
-                  </span>
-                </div>
-              )}
-            </div>
+            {/* Token composition — monospace, clean */}
+            {(pos.token0Amount !== undefined || pos.token1Amount !== undefined) && (
+              <div className="flex gap-4 text-xs">
+                {pos.token0Amount !== undefined && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-slate-500 uppercase text-[10px] tracking-wide">
+                      {pos.token0Symbol}
+                    </span>
+                    <span
+                      className="text-slate-300 tabular-nums"
+                      style={{ fontFamily: "var(--font-geist-mono)" }}
+                    >
+                      {formatToken(pos.token0Amount)}
+                    </span>
+                  </div>
+                )}
+                {pos.token1Amount !== undefined && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-slate-500 uppercase text-[10px] tracking-wide">
+                      {pos.token1Symbol}
+                    </span>
+                    <span
+                      className="text-slate-300 tabular-nums"
+                      style={{ fontFamily: "var(--font-geist-mono)" }}
+                    >
+                      {formatToken(pos.token1Amount)}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Claimable summary */}
             {totalClaimable > 0 && (
               <div className="flex items-center gap-2 text-xs">
-                <Gift className="w-3 h-3 text-emerald-400/60" />
+                <Gift className="w-3.5 h-3.5 text-arc-400/70 shrink-0" />
                 <span className="text-slate-500">Claimable</span>
-                <span className="text-emerald-400 font-semibold tabular-nums">
+                <span
+                  className="text-arc-400 font-semibold tabular-nums"
+                  style={{ fontFamily: "var(--font-geist-mono)" }}
+                >
                   +{formatUsd(totalClaimable)}
                 </span>
                 {(pos.feesEarnedUsd ?? 0) > 0 && (pos.emissionsEarnedUsd ?? 0) > 0 && (
-                  <span className="text-slate-600 text-[10px]">
-                    (fees {formatUsd(pos.feesEarnedUsd!)} + emissions {formatUsd(pos.emissionsEarnedUsd!)})
+                  <span className="text-slate-700 text-[10px]">
+                    fees {formatUsd(pos.feesEarnedUsd!)} + emissions{" "}
+                    {formatUsd(pos.emissionsEarnedUsd!)}
                   </span>
                 )}
               </div>
@@ -179,11 +199,11 @@ function PositionCard({
 
             {/* Action button */}
             {address && (
-              <div className="pt-1">
+              <div className="pt-0.5">
                 <Link
                   href={`/dashboard/positions/${pos.nftTokenId}`}
                   onClick={(e) => e.stopPropagation()}
-                  className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-slate-200 bg-slate-800/30 hover:bg-slate-800/50 border border-slate-700/30 rounded-lg px-3 py-1.5 transition-all"
+                  className="btn-ghost text-xs px-3 py-1.5 inline-flex items-center gap-1.5"
                 >
                   <ExternalLink className="w-3 h-3" />
                   Full Stats
@@ -208,15 +228,16 @@ export function LPPositions({ address, positions, isLoading }: LPPositionsProps)
 
   if (isLoading) {
     return (
-      <div className="glass-card rounded-2xl p-6">
-        <h2 className="text-slate-400 font-semibold text-xs uppercase tracking-widest mb-4">
-          LP Positions
-        </h2>
-        <div className="space-y-2">
+      <div className="e-card rounded-xl overflow-hidden">
+        {/* Loading header */}
+        <div className="px-5 py-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+          <span className="section-label">LP Positions</span>
+        </div>
+        <div className="divide-y divide-[rgba(255,255,255,0.04)]">
           {[1, 2, 3].map((i) => (
             <div
               key={i}
-              className="border border-slate-700/20 rounded-lg p-3 animate-pulse flex items-center gap-3"
+              className="px-5 py-3 animate-pulse flex items-center gap-3"
             >
               <div className="w-28 h-4 bg-slate-700/30 rounded" />
               <div className="ml-auto w-16 h-4 bg-slate-700/30 rounded" />
@@ -229,29 +250,40 @@ export function LPPositions({ address, positions, isLoading }: LPPositionsProps)
   }
 
   return (
-    <div className="glass-card rounded-2xl p-6 animate-fade-in-up">
-      {/* Section header with totals */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
-        <div className="flex items-center gap-3">
-          <h2 className="text-slate-400 font-semibold text-xs uppercase tracking-widest">
-            LP Positions
-          </h2>
+    <div className="e-card rounded-xl overflow-hidden animate-fade-in-up">
+      {/* Section header */}
+      <div
+        className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-5 py-4"
+        style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}
+      >
+        <div className="flex items-center gap-2.5">
+          <span className="section-label">LP Positions</span>
           {positions.length > 0 && (
-            <span className="bg-slate-800/60 border border-slate-700/30 text-slate-400 text-[10px] font-medium px-1.5 py-0.5 rounded-md">
+            <span className="bg-white/5 border border-white/[0.08] text-slate-400 text-[10px] font-medium px-1.5 py-0.5 rounded-md tabular-nums">
               {positions.length}
             </span>
           )}
         </div>
         {positions.length > 0 && (
           <div className="flex items-center gap-4 text-xs">
-            <div className="text-right">
-              <span className="text-slate-500">Total</span>
-              <span className="ml-1.5 text-slate-200 font-semibold tabular-nums">{formatUsd(totalLpValue)}</span>
+            <div className="flex items-center gap-1.5">
+              <span className="stat-label">Total</span>
+              <span
+                className="text-[#E8F0FF] font-semibold tabular-nums"
+                style={{ fontFamily: "var(--font-geist-mono)" }}
+              >
+                {formatUsd(totalLpValue)}
+              </span>
             </div>
             {totalClaimable > 0 && (
-              <div className="text-right">
-                <span className="text-slate-500">Claimable</span>
-                <span className="ml-1.5 text-emerald-400 font-semibold tabular-nums">+{formatUsd(totalClaimable)}</span>
+              <div className="flex items-center gap-1.5">
+                <span className="stat-label">Claimable</span>
+                <span
+                  className="text-arc-400 font-semibold tabular-nums"
+                  style={{ fontFamily: "var(--font-geist-mono)" }}
+                >
+                  +{formatUsd(totalClaimable)}
+                </span>
               </div>
             )}
           </div>
@@ -259,17 +291,17 @@ export function LPPositions({ address, positions, isLoading }: LPPositionsProps)
       </div>
 
       {positions.length === 0 ? (
-        <div className="py-12 text-center">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-slate-800/40 border border-slate-700/30 mb-3">
-            <Layers className="w-5 h-5 text-slate-600" />
+        <div className="py-14 flex flex-col items-center text-center px-6">
+          <div className="e-card inline-flex items-center justify-center w-11 h-11 rounded-xl mb-3">
+            <Layers className="w-4.5 h-4.5 text-slate-600" />
           </div>
-          <p className="text-slate-300 text-sm font-medium">No active LP positions</p>
-          <p className="text-slate-500 text-xs mt-1">
-            Aerodrome CL positions on Base will appear here
+          <p className="text-slate-300 text-sm font-semibold">No active LP positions</p>
+          <p className="text-slate-600 text-xs mt-1.5 max-w-xs">
+            Concentrated liquidity positions tracked on-chain will appear here once detected.
           </p>
         </div>
       ) : (
-        <div className="space-y-1.5">
+        <div>
           {positions.map((pos, idx) => {
             const id = pos.nftTokenId ?? String(idx);
             return (
@@ -291,7 +323,6 @@ export function LPPositions({ address, positions, isLoading }: LPPositionsProps)
           })}
         </div>
       )}
-
     </div>
   );
 }

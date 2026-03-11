@@ -3,25 +3,28 @@
 @tailwind utilities;
 
 /* ─────────────────────────────────────────────────────────
-   Design tokens — Crystalline Signal
-   Primary accent: #00e5c4 (arc-400)
-   Background: #030b14 (deep navy)
+   Design tokens — Midnight Precision
+   Primary accent: #00e5c4 (arc-400 teal)
+   Background: #060D18 (deep navy)
 ───────────────────────────────────────────────────────── */
 :root {
-  /* Surfaces */
-  --background:   #030b14;
-  --surface-1:    #060e1f;   /* sidebar, elevated cards */
-  --surface-2:    #0b1629;   /* card hover */
-  --foreground:   #e2e8f0;
+  /* Surfaces — layered depth system */
+  --background:   #060D18;   /* Page background */
+  --surface-1:    #0C1826;   /* Cards, sidebar */
+  --surface-2:    #111F35;   /* Elevated / hover */
+  --surface-3:    #162540;   /* Highest elevation */
+  --foreground:   #E2E8F0;
 
   /* Card chrome */
-  --card:        #0c1525;
-  --card-border: rgba(255, 255, 255, 0.05);
+  --card:        #0C1826;
+  --card-border: rgba(255, 255, 255, 0.07);
+  --card-border-muted: rgba(255, 255, 255, 0.04);
 
   /* Accent — Crystalline Signal teal */
   --accent:       #00e5c4;
   --accent-light: #68e9d4;
   --accent-muted: rgba(0, 229, 196, 0.10);
+  --accent-border: rgba(0, 229, 196, 0.22);
 
   /* Status */
   --gain:         #34d399;
@@ -30,15 +33,16 @@
   --loss-muted:   rgba(248, 113, 113, 0.10);
 
   /* Text hierarchy */
-  --text-primary:   #f1f5f9;
-  --text-secondary: #94a3b8;
-  --text-muted:     #64748b;
-  --text-dim:       #475569;
+  --text-primary:   #E8F0FF;  /* Headings, prominent numbers */
+  --text-secondary: #8A9BB8;  /* Labels, secondary info */
+  --text-muted:     #4A5D75;  /* Placeholders, timestamps */
+  --text-dim:       #2E4057;  /* Dividers, very muted */
 
   /* Header / sidebar chrome */
-  --header-bg:    rgba(3, 11, 20, 0.88);
-  --header-border: rgba(255, 255, 255, 0.05);
-  --sidebar-bg:   linear-gradient(180deg, #060e1f 0%, #040c1a 100%);
+  --header-bg:     rgba(6, 13, 24, 0.92);
+  --header-border: rgba(255, 255, 255, 0.06);
+  --sidebar-bg:    #091220;
+  --sidebar-border: rgba(255, 255, 255, 0.06);
 }
 
 /* ─────────────────────────────────────────────────────────
@@ -50,20 +54,25 @@ html, body {
   font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
 }
 
-/* Smooth transitions for interactive elements */
-button, a, input, select {
-  transition: all 0.2s ease-out;
+/* Interactive transitions — scoped, not all */
+button, a {
+  transition: color 0.15s ease-out, background-color 0.15s ease-out,
+              border-color 0.15s ease-out, opacity 0.15s ease-out,
+              box-shadow 0.15s ease-out;
+}
+input, select {
+  transition: border-color 0.15s ease-out, box-shadow 0.15s ease-out;
 }
 
 /* Thin teal scrollbar */
-::-webkit-scrollbar       { width: 5px; height: 5px; }
+::-webkit-scrollbar       { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: rgba(0, 229, 196, 0.12);
+  background: rgba(0, 229, 196, 0.10);
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 229, 196, 0.25);
+  background: rgba(0, 229, 196, 0.22);
 }
 
 /* ─────────────────────────────────────────────────────────
@@ -74,16 +83,47 @@ button, a, input, select {
 }
 
 /* ─────────────────────────────────────────────────────────
-   Glass card
+   Enterprise card — solid, no glass blur
+───────────────────────────────────────────────────────── */
+.e-card {
+  background: var(--surface-1);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+}
+.e-card-hover:hover {
+  background: var(--surface-2);
+  border-color: rgba(255, 255, 255, 0.09);
+}
+
+/* ─────────────────────────────────────────────────────────
+   Glass card — kept for backward compat, now more solid
 ───────────────────────────────────────────────────────── */
 .glass-card {
-  background: linear-gradient(
-    135deg,
-    rgba(6, 14, 31, 0.85) 0%,
-    rgba(4, 12, 26, 0.60) 100%
-  );
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(12px);
+  background: var(--surface-1);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+}
+
+/* ─────────────────────────────────────────────────────────
+   Section label — teal uppercase monospace label
+───────────────────────────────────────────────────────── */
+.section-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--accent);
+  font-family: var(--font-geist-mono);
+}
+
+/* Muted variant for data/stat labels */
+.stat-label {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-family: var(--font-geist-mono);
 }
 
 /* ─────────────────────────────────────────────────────────
@@ -95,16 +135,17 @@ button, a, input, select {
   background: #00e5c4;
   color: #020910;
   font-weight: 700;
+  border-radius: 10px;
 }
 .btn-primary:hover:not(:disabled) {
-  background: #2cffd7;
-  box-shadow: 0 0 32px rgba(0, 229, 196, 0.40);
+  background: #1ef0d0;
+  box-shadow: 0 0 24px rgba(0, 229, 196, 0.35);
 }
 .btn-primary:active:not(:disabled) {
   background: #00c4aa;
 }
 .btn-primary:disabled {
-  opacity: 0.50;
+  opacity: 0.45;
   cursor: not-allowed;
 }
 
@@ -112,16 +153,31 @@ button, a, input, select {
 .btn-secondary {
   background: transparent;
   color: #00e5c4;
-  border: 1px solid rgba(0, 229, 196, 0.30);
+  border: 1px solid rgba(0, 229, 196, 0.28);
   font-weight: 600;
+  border-radius: 10px;
 }
 .btn-secondary:hover:not(:disabled) {
-  background: rgba(0, 229, 196, 0.08);
-  border-color: rgba(0, 229, 196, 0.50);
+  background: rgba(0, 229, 196, 0.06);
+  border-color: rgba(0, 229, 196, 0.45);
 }
 .btn-secondary:disabled {
-  opacity: 0.45;
+  opacity: 0.40;
   cursor: not-allowed;
+}
+
+/* Ghost — subtle for secondary actions */
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--card-border);
+  font-weight: 500;
+  border-radius: 8px;
+}
+.btn-ghost:hover:not(:disabled) {
+  background: rgba(255,255,255,0.04);
+  color: var(--text-primary);
+  border-color: rgba(255,255,255,0.10);
 }
 
 /* ─────────────────────────────────────────────────────────
@@ -133,8 +189,8 @@ button, a, input, select {
   font-size: 0.875rem;
   background: transparent;
   outline: none;
-  color: #f0f4ff;
-  border-bottom: 1px solid rgba(240, 244, 255, 0.12);
+  color: var(--text-primary);
+  border-bottom: 1px solid rgba(240, 244, 255, 0.10);
   font-family: var(--font-geist-sans);
   transition: border-color 0.2s ease;
 }
@@ -142,18 +198,18 @@ button, a, input, select {
   border-bottom: 2px solid #00e5c4;
 }
 .underline-input::placeholder {
-  color: rgba(240, 244, 255, 0.28);
+  color: var(--text-muted);
 }
 
 /* ─────────────────────────────────────────────────────────
-   Auth shell (login, register, forgot-pw, reset-pw, verify)
+   Auth shell animations
 ───────────────────────────────────────────────────────── */
 .auth-reveal {
-  animation: auth-reveal 0.5s ease-out forwards;
+  animation: auth-reveal 0.45s ease-out forwards;
 }
 
 @keyframes auth-reveal {
-  from { opacity: 0; transform: translateY(14px); }
+  from { opacity: 0; transform: translateY(12px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
@@ -164,7 +220,7 @@ button, a, input, select {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-.animate-fade-in-up { animation: fadeInUp 0.4s ease-out forwards; }
+.animate-fade-in-up { animation: fadeInUp 0.35s ease-out forwards; }
 
 /* Stagger helpers */
 .stagger-1 { animation-delay: 0.05s; opacity: 0; }
@@ -174,37 +230,67 @@ button, a, input, select {
 
 @keyframes float {
   0%, 100% { transform: translateY(0px); }
-  50%       { transform: translateY(-8px); }
+  50%       { transform: translateY(-6px); }
 }
 .animate-float { animation: float 5s ease-in-out infinite; }
 
-/* Generic opacity pulse (used by inline animation: "pulse ...") */
+/* Generic opacity pulse */
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50%       { opacity: 0.5; }
 }
 
-/* Teal pulse for live status dot */
+/* Teal glow pulse for live status dot */
 @keyframes pulse-teal {
-  0%, 100% { box-shadow: 0 0 5px #00e5c4; opacity: 1; }
-  50%       { box-shadow: 0 0 10px #00e5c4; opacity: 0.6; }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(0,229,196,0.5); opacity: 1; }
+  50%       { box-shadow: 0 0 0 4px rgba(0,229,196,0); opacity: 0.7; }
 }
-.pulse-teal { animation: pulse-teal 2s ease-in-out infinite; }
+.pulse-teal { animation: pulse-teal 2.5s ease-in-out infinite; }
 
-/* Sidebar nav link — CSS hover instead of JS DOM mutation */
+/* ─────────────────────────────────────────────────────────
+   Sidebar nav link — data-active based hover system
+───────────────────────────────────────────────────────── */
 .sidebar-nav-link {
-  padding-left: 10px;
-  padding-right: 12px;
+  padding: 9px 12px 9px 12px;
   background: transparent;
-  color: rgba(240, 244, 255, 0.45);
+  color: rgba(138, 155, 184, 0.65);
   border-left: 2px solid transparent;
+  border-radius: 8px;
 }
 .sidebar-nav-link:not([data-active]):hover {
   background: rgba(255, 255, 255, 0.04);
-  color: #f0f4ff;
+  color: var(--text-primary);
 }
 .sidebar-nav-link[data-active] {
   background: rgba(0, 229, 196, 0.08);
   color: #00e5c4;
   border-left-color: #00e5c4;
+}
+
+/* ─────────────────────────────────────────────────────────
+   Table styles
+───────────────────────────────────────────────────────── */
+.data-table thead tr {
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.data-table thead th {
+  padding: 10px 16px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-family: var(--font-geist-mono);
+}
+.data-table tbody tr {
+  border-bottom: 1px solid rgba(255,255,255,0.035);
+  transition: background-color 0.12s ease;
+}
+.data-table tbody tr:hover {
+  background: rgba(255,255,255,0.025);
+}
+.data-table td {
+  padding: 12px 16px;
+  font-size: 13px;
+  color: var(--text-secondary);
 }
