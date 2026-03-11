@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useSession } from "@/components/providers/SessionProvider";
 import { useTrackedWallets } from "@/hooks/useTrackedWallets";
 import { usePositionDetail } from "@/hooks/usePositionDetail";
-import { AppHeader } from "@/components/layout/AppHeader";
+import { AppLayout } from "@/components/layout/AppLayout";
 import { PriceRangeChart } from "@/components/dashboard/PriceRangeChart";
 import { ArrowLeft, RefreshCw, ExternalLink, Info } from "lucide-react";
 
@@ -78,7 +78,7 @@ function StrategyRow({
     <div
       className={`flex items-center justify-between py-2.5 px-4 rounded-lg text-sm ${
         highlight
-          ? "bg-indigo-500/8 border border-indigo-500/15"
+          ? "bg-arc-500/8 border border-arc-500/15"
           : "bg-slate-800/20 border border-slate-700/15"
       }`}
     >
@@ -121,21 +121,16 @@ export default function PositionPage() {
   if (status === "loading" || status === "unauthenticated") return null;
 
   return (
-    <div className="min-h-screen bg-[#06080d]">
-      <AppHeader
-        leftSlot={
+    <AppLayout>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+        {/* Breadcrumb */}
+        <div className="flex items-center gap-2 text-xs text-slate-500 mb-6">
           <Link
             href="/dashboard"
             className="text-slate-400 hover:text-slate-200 p-1.5 rounded-lg hover:bg-slate-800/40 transition-all"
           >
             <ArrowLeft className="w-4 h-4" />
           </Link>
-        }
-      />
-
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 lg:py-8">
-        {/* Breadcrumb */}
-        <div className="flex items-center gap-2 text-xs text-slate-500 mb-6">
           <Link href="/dashboard" className="hover:text-slate-300 transition-colors">
             Dashboard
           </Link>
@@ -154,7 +149,7 @@ export default function PositionPage() {
             <div className="flex items-center justify-center gap-3 mt-4">
               <button
                 onClick={refresh}
-                className="inline-flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300 font-medium transition-colors"
+                className="inline-flex items-center gap-1.5 text-xs text-arc-400 hover:text-arc-300 font-medium transition-colors"
               >
                 <RefreshCw className="w-3 h-3" />
                 Try again
@@ -179,7 +174,7 @@ export default function PositionPage() {
                   <span className="text-slate-500 text-xs font-mono">
                     NFT #{pnl.nftTokenId}
                   </span>
-                  <span className="text-indigo-400/60 text-[10px] uppercase tracking-wider font-medium">
+                  <span className="text-arc-400/60 text-[10px] uppercase tracking-wider font-medium">
                     Aerodrome CL
                   </span>
                   <span
@@ -252,7 +247,7 @@ export default function PositionPage() {
                   <p className="text-slate-500 text-xs uppercase tracking-widest font-medium mb-1.5">
                     Estimated APR
                   </p>
-                  <p className="text-indigo-400 font-bold text-3xl tabular-nums">
+                  <p className="text-arc-400 font-bold text-3xl tabular-nums">
                     {pnl.apr.toFixed(1)}%
                   </p>
                   <p className="text-slate-600 text-xs mt-1">
@@ -456,7 +451,7 @@ export default function PositionPage() {
                     href={`https://basescan.org/address/${pnl.poolAddress}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-indigo-400 hover:text-indigo-300 font-mono transition-colors"
+                    className="inline-flex items-center gap-1 text-arc-400 hover:text-arc-300 font-mono transition-colors"
                   >
                     {pnl.poolAddress.slice(0, 6)}...{pnl.poolAddress.slice(-4)}
                     <ExternalLink className="w-2.5 h-2.5" />
@@ -476,7 +471,7 @@ export default function PositionPage() {
                     href={`https://basescan.org/token/0x827922686190790b37229fd06084350e74485b72?a=${pnl.nftTokenId}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-indigo-400 hover:text-indigo-300 font-mono transition-colors"
+                    className="inline-flex items-center gap-1 text-arc-400 hover:text-arc-300 font-mono transition-colors"
                   >
                     #{pnl.nftTokenId}
                     <ExternalLink className="w-2.5 h-2.5" />
@@ -487,7 +482,7 @@ export default function PositionPage() {
           </div>
         ) : null}
       </div>
-    </div>
+    </AppLayout>
   );
 }
 

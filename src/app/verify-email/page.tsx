@@ -3,12 +3,17 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { AppHeader } from "@/components/layout/AppHeader";
-import { Loader2, CheckCircle, XCircle } from "lucide-react";
+import { Loader2, CheckCircle, XCircle, ArrowRight } from "lucide-react";
 
 export default function VerifyEmailPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[#06080d] flex items-center justify-center"><Loader2 className="w-6 h-6 text-indigo-400 animate-spin" /></div>}>
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center" style={{ background: "#030b14" }}>
+          <Loader2 className="w-5 h-5 text-arc-400 animate-spin" />
+        </div>
+      }
+    >
       <VerifyEmailContent />
     </Suspense>
   );
@@ -18,15 +23,11 @@ function VerifyEmailContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
 
-  const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
+  const [status, setStatus]     = useState<"loading" | "success" | "error">("loading");
   const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
-    if (!token) {
-      setStatus("error");
-      setErrorMsg("Missing verification token");
-      return;
-    }
+    if (!token) { setStatus("error"); setErrorMsg("Missing verification token"); return; }
 
     fetch("/api/auth/verify-email", {
       method: "POST",
@@ -42,50 +43,113 @@ function VerifyEmailContent() {
           setErrorMsg(data.error ?? "Verification failed");
         }
       })
-      .catch(() => {
-        setStatus("error");
-        setErrorMsg("Network error");
-      });
+      .catch(() => { setStatus("error"); setErrorMsg("Network error"); });
   }, [token]);
 
   return (
-    <div className="min-h-screen bg-[#06080d]">
-      <AppHeader hideConnect />
+    <div className="min-h-screen flex flex-col" style={{ background: "#030b14" }}>
+      {/* Ambient glow */}
+      <div
+        className="pointer-events-none fixed inset-0"
+        style={{
+          background:
+            "radial-gradient(ellipse 60% 50% at 50% 0%, rgba(0,229,196,0.06) 0%, transparent 70%)",
+        }}
+      />
 
-      <main className="flex items-center justify-center px-4 py-24">
-        <div className="glass-card rounded-2xl p-8 text-center max-w-sm">
+      {/* Top brand bar */}
+      <header className="relative z-10 flex items-center px-6 sm:px-10 py-5">
+        <Link
+          href="/"
+          className="font-extrabold text-base tracking-tight hover:opacity-75 transition-opacity"
+          style={{ color: "#f0f4ff", fontFamily: "var(--font-syne), sans-serif" }}
+        >
+          LiquidArc
+        </Link>
+      </header>
+
+      {/* Centered state */}
+      <main className="relative z-10 flex-1 flex items-center justify-center px-4 py-12">
+        <div className="w-full max-w-sm text-center auth-reveal">
+
           {status === "loading" && (
             <>
-              <Loader2 className="w-8 h-8 text-indigo-400 animate-spin mx-auto mb-3" />
-              <p className="text-slate-300 text-sm">Verifying your email...</p>
+              <Loader2 className="w-10 h-10 text-arc-400 animate-spin mx-auto mb-6" />
+              <h1
+                className="text-xl font-extrabold mb-2"
+                style={{ color: "#f0f4ff", fontFamily: "var(--font-syne), sans-serif" }}
+              >
+                Verifying your email…
+              </h1>
+              <p className="text-sm" style={{ color: "rgba(240,244,255,0.38)" }}>
+                Hold tight, this only takes a second.
+              </p>
             </>
           )}
+
           {status === "success" && (
             <>
-              <CheckCircle className="w-10 h-10 text-emerald-400 mx-auto mb-3" />
-              <p className="text-slate-200 text-sm font-medium">Email verified!</p>
-              <p className="text-slate-500 text-xs mt-1.5">Your account is now fully activated.</p>
+              <div
+                className="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-6"
+                style={{ background: "rgba(52,211,153,0.08)", border: "1px solid rgba(52,211,153,0.18)" }}
+              >
+                <CheckCircle className="w-7 h-7 text-emerald-400" />
+              </div>
+              <h1
+                className="text-2xl font-extrabold mb-2"
+                style={{ color: "#f0f4ff", fontFamily: "var(--font-syne), sans-serif" }}
+              >
+                Email verified.
+              </h1>
+              <p className="text-sm mb-8" style={{ color: "rgba(240,244,255,0.38)" }}>
+                Your account is fully activated. Start tracking your positions.
+              </p>
               <Link
                 href="/dashboard"
-                className="inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2.5 px-6 rounded-xl text-sm mt-4 transition-all"
+                className="btn-primary inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm"
+                style={{ fontFamily: "var(--font-syne), sans-serif" }}
               >
-                Go to Dashboard
+                <span>Go to Dashboard</span><ArrowRight className="w-4 h-4" />
               </Link>
             </>
           )}
+
           {status === "error" && (
             <>
-              <XCircle className="w-10 h-10 text-red-400 mx-auto mb-3" />
-              <p className="text-slate-200 text-sm font-medium">Verification failed</p>
-              <p className="text-slate-500 text-xs mt-1.5">{errorMsg}</p>
-              <Link
-                href="/dashboard"
-                className="text-xs text-indigo-400 hover:text-indigo-300 mt-3 inline-block transition-colors"
+              <div
+                className="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-6"
+                style={{ background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.18)" }}
               >
-                Go to Dashboard
-              </Link>
+                <XCircle className="w-7 h-7 text-red-400" />
+              </div>
+              <h1
+                className="text-2xl font-extrabold mb-2"
+                style={{ color: "#f0f4ff", fontFamily: "var(--font-syne), sans-serif" }}
+              >
+                Verification failed.
+              </h1>
+              <p className="text-sm mb-8" style={{ color: "rgba(240,244,255,0.38)" }}>
+                {errorMsg}
+              </p>
+              <div className="flex items-center justify-center gap-4">
+                <Link
+                  href="/dashboard"
+                  className="btn-primary inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm"
+                  style={{ fontFamily: "var(--font-syne), sans-serif" }}
+                >
+                  <span>Dashboard</span><ArrowRight className="w-4 h-4" />
+                </Link>
+                <Link
+                  href="/login"
+                  className="text-sm transition-colors"
+                  style={{ color: "rgba(240,244,255,0.38)", fontFamily: "var(--font-geist-mono)" }}
+                >
+                  Sign in
+                </Link>
+              </div>
             </>
           )}
+
         </div>
       </main>
     </div>

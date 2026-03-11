@@ -20,18 +20,18 @@ export function AppHeader({ leftSlot, rightSlot, hideConnect }: AppHeaderProps) 
   const pathname = usePathname();
 
   return (
-    <header className="sticky top-0 z-30 border-b border-slate-800/50 bg-[#06080d]/80 backdrop-blur-xl">
+    <header className="sticky top-0 z-30" style={{ background: "rgba(3,11,20,0.88)", backdropFilter: "blur(14px)", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           {leftSlot}
 
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-indigo-600/20 border border-indigo-500/25 flex items-center justify-center">
+            <div className="w-7 h-7 rounded-lg bg-arc-600/20 border border-arc-500/25 flex items-center justify-center">
               <svg
                 viewBox="0 0 24 24"
                 fill="none"
-                className="w-3.5 h-3.5 text-indigo-400"
+                className="w-3.5 h-3.5 text-arc-400"
                 stroke="currentColor"
                 strokeWidth={1.5}
               >
@@ -43,7 +43,7 @@ export function AppHeader({ leftSlot, rightSlot, hideConnect }: AppHeaderProps) 
               </svg>
             </div>
             <span className="text-slate-100 font-bold text-sm tracking-tight hidden sm:block">
-              LiquidArk
+              LiquidArc
             </span>
           </Link>
 

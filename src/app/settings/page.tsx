@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useSession } from "@/components/providers/SessionProvider";
-import { AppHeader } from "@/components/layout/AppHeader";
+import { AppLayout } from "@/components/layout/AppLayout";
 import { ArrowLeft, CreditCard, Bell, User, CheckCircle, AlertCircle } from "lucide-react";
 
 export default function SettingsPage() {
@@ -18,26 +18,23 @@ export default function SettingsPage() {
   if (status === "loading" || !user) return null;
 
   return (
-    <div className="min-h-screen bg-[#06080d]">
-      <AppHeader
-        leftSlot={
+    <AppLayout>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+        <div className="flex items-center gap-3 mb-6">
           <Link
             href="/dashboard"
             className="text-slate-400 hover:text-slate-200 p-1.5 rounded-lg hover:bg-slate-800/40 transition-all"
           >
             <ArrowLeft className="w-4 h-4" />
           </Link>
-        }
-      />
-
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 lg:py-8">
-        <h1 className="text-xl font-bold text-slate-100 mb-6">Settings</h1>
+          <h1 className="text-xl font-bold text-slate-100">Settings</h1>
+        </div>
 
         <div className="space-y-4">
           {/* Account */}
           <div className="glass-card rounded-2xl p-5">
             <div className="flex items-center gap-3 mb-4">
-              <User className="w-4 h-4 text-indigo-400" />
+              <User className="w-4 h-4 text-arc-400" />
               <h2 className="text-sm font-semibold text-slate-200">Account</h2>
             </div>
             <div className="space-y-3 text-sm">
@@ -65,9 +62,9 @@ export default function SettingsPage() {
           </div>
 
           {/* Billing */}
-          <Link href="/settings/billing" className="glass-card rounded-2xl p-5 flex items-center justify-between group hover:border-indigo-500/20 transition-all block">
+          <Link href="/settings/billing" className="glass-card rounded-2xl p-5 flex items-center justify-between group hover:border-arc-500/20 transition-all block">
             <div className="flex items-center gap-3">
-              <CreditCard className="w-4 h-4 text-indigo-400" />
+              <CreditCard className="w-4 h-4 text-arc-400" />
               <div>
                 <h2 className="text-sm font-semibold text-slate-200">Billing & Plans</h2>
                 <p className="text-xs text-slate-500 mt-0.5">Manage your subscription</p>
@@ -77,9 +74,9 @@ export default function SettingsPage() {
           </Link>
 
           {/* Alerts */}
-          <Link href="/settings/alerts" className="glass-card rounded-2xl p-5 flex items-center justify-between group hover:border-indigo-500/20 transition-all block">
+          <Link href="/settings/alerts" className="glass-card rounded-2xl p-5 flex items-center justify-between group hover:border-arc-500/20 transition-all block">
             <div className="flex items-center gap-3">
-              <Bell className="w-4 h-4 text-indigo-400" />
+              <Bell className="w-4 h-4 text-arc-400" />
               <div>
                 <h2 className="text-sm font-semibold text-slate-200">Alerts</h2>
                 <p className="text-xs text-slate-500 mt-0.5">Position and price notifications</p>
@@ -89,6 +86,6 @@ export default function SettingsPage() {
           </Link>
         </div>
       </div>
-    </div>
+    </AppLayout>
   );
 }

@@ -1,10 +1,18 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import localFont from "next/font/local";
+import { Syne } from "next/font/google";
 import "./globals.css";
 import { SessionProvider } from "@/components/providers/SessionProvider";
 import { RouteProgress } from "@/components/layout/RouteProgress";
 import { Analytics } from "@vercel/analytics/next";
+
+const syne = Syne({
+  subsets: ["latin"],
+  variable: "--font-syne",
+  weight: ["700", "800"],
+  display: "swap",
+});
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -18,7 +26,7 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "LiquidArk",
+  title: "LiquidArc",
   description: "Track your DeFi portfolio across chains",
 };
 
@@ -30,7 +38,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} font-[family-name:var(--font-geist-sans)] antialiased bg-[#06080d] text-slate-200`}
+        className={`${geistSans.variable} ${geistMono.variable} ${syne.variable} font-[family-name:var(--font-geist-sans)] antialiased bg-[#06080d] text-slate-200`}
       >
         <Suspense>
           <RouteProgress />

@@ -2,34 +2,50 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─────────────────────────────────────────────────────────
+   Design tokens — Crystalline Signal
+   Primary accent: #00e5c4 (arc-400)
+   Background: #030b14 (deep navy)
+───────────────────────────────────────────────────────── */
 :root {
-  /* Primary surfaces */
-  --background: #06080d;
-  --foreground: #e2e8f0;
-  --card: #0c1019;
-  --card-border: #1a1f2e;
-  --card-hover: #111827;
+  /* Surfaces */
+  --background:   #030b14;
+  --surface-1:    #060e1f;   /* sidebar, elevated cards */
+  --surface-2:    #0b1629;   /* card hover */
+  --foreground:   #e2e8f0;
 
-  /* Accent */
-  --accent: #6366f1;
-  --accent-light: #818cf8;
-  --accent-muted: rgba(99, 102, 241, 0.12);
+  /* Card chrome */
+  --card:        #0c1525;
+  --card-border: rgba(255, 255, 255, 0.05);
+
+  /* Accent — Crystalline Signal teal */
+  --accent:       #00e5c4;
+  --accent-light: #68e9d4;
+  --accent-muted: rgba(0, 229, 196, 0.10);
 
   /* Status */
-  --gain: #34d399;
-  --gain-muted: rgba(52, 211, 153, 0.1);
-  --loss: #f87171;
-  --loss-muted: rgba(248, 113, 113, 0.1);
+  --gain:         #34d399;
+  --gain-muted:   rgba(52, 211, 153, 0.10);
+  --loss:         #f87171;
+  --loss-muted:   rgba(248, 113, 113, 0.10);
 
   /* Text hierarchy */
-  --text-primary: #f1f5f9;
+  --text-primary:   #f1f5f9;
   --text-secondary: #94a3b8;
-  --text-muted: #64748b;
-  --text-dim: #475569;
+  --text-muted:     #64748b;
+  --text-dim:       #475569;
+
+  /* Header / sidebar chrome */
+  --header-bg:    rgba(3, 11, 20, 0.88);
+  --header-border: rgba(255, 255, 255, 0.05);
+  --sidebar-bg:   linear-gradient(180deg, #060e1f 0%, #040c1a 100%);
 }
 
-body {
-  color: var(--foreground);
+/* ─────────────────────────────────────────────────────────
+   Base
+───────────────────────────────────────────────────────── */
+html, body {
+  color:      var(--foreground);
   background: var(--background);
   font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
 }
@@ -39,53 +55,132 @@ button, a, input, select {
   transition: all 0.2s ease-out;
 }
 
-/* Custom scrollbar for dark theme */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
+/* Thin teal scrollbar */
+::-webkit-scrollbar       { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: #1e293b;
-  border-radius: 3px;
+  background: rgba(0, 229, 196, 0.12);
+  border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: rgba(0, 229, 196, 0.25);
 }
 
+/* ─────────────────────────────────────────────────────────
+   Utility classes
+───────────────────────────────────────────────────────── */
 @layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+  .text-balance { text-wrap: balance; }
 }
 
-/* Fade-in animation for sections */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.animate-fade-in-up {
-  animation: fadeInUp 0.4s ease-out forwards;
-}
-
-/* Stagger delays for list items */
-.stagger-1 { animation-delay: 0.05s; }
-.stagger-2 { animation-delay: 0.1s; }
-.stagger-3 { animation-delay: 0.15s; }
-.stagger-4 { animation-delay: 0.2s; }
-
-/* Glass card effect */
+/* ─────────────────────────────────────────────────────────
+   Glass card
+───────────────────────────────────────────────────────── */
 .glass-card {
-  background: linear-gradient(135deg, rgba(15, 23, 42, 0.8), rgba(15, 23, 42, 0.4));
-  border: 1px solid rgba(30, 41, 59, 0.6);
+  background: linear-gradient(
+    135deg,
+    rgba(6, 14, 31, 0.85) 0%,
+    rgba(4, 12, 26, 0.60) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.06);
   backdrop-filter: blur(12px);
 }
+
+/* ─────────────────────────────────────────────────────────
+   Buttons
+───────────────────────────────────────────────────────── */
+
+/* Primary — bright teal, dark text */
+.btn-primary {
+  background: #00e5c4;
+  color: #020910;
+  font-weight: 700;
+}
+.btn-primary:hover:not(:disabled) {
+  background: #2cffd7;
+  box-shadow: 0 0 32px rgba(0, 229, 196, 0.40);
+}
+.btn-primary:active:not(:disabled) {
+  background: #00c4aa;
+}
+.btn-primary:disabled {
+  opacity: 0.50;
+  cursor: not-allowed;
+}
+
+/* Secondary — outlined teal */
+.btn-secondary {
+  background: transparent;
+  color: #00e5c4;
+  border: 1px solid rgba(0, 229, 196, 0.30);
+  font-weight: 600;
+}
+.btn-secondary:hover:not(:disabled) {
+  background: rgba(0, 229, 196, 0.08);
+  border-color: rgba(0, 229, 196, 0.50);
+}
+.btn-secondary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ─────────────────────────────────────────────────────────
+   Underline input (auth pages)
+───────────────────────────────────────────────────────── */
+.underline-input {
+  width: 100%;
+  padding: 0.75rem 0;
+  font-size: 0.875rem;
+  background: transparent;
+  outline: none;
+  color: #f0f4ff;
+  border-bottom: 1px solid rgba(240, 244, 255, 0.12);
+  font-family: var(--font-geist-sans);
+  transition: border-color 0.2s ease;
+}
+.underline-input:focus {
+  border-bottom: 2px solid #00e5c4;
+}
+.underline-input::placeholder {
+  color: rgba(240, 244, 255, 0.28);
+}
+
+/* ─────────────────────────────────────────────────────────
+   Auth shell (login, register, forgot-pw, reset-pw, verify)
+───────────────────────────────────────────────────────── */
+.auth-reveal {
+  animation: auth-reveal 0.5s ease-out forwards;
+}
+
+@keyframes auth-reveal {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─────────────────────────────────────────────────────────
+   Page animations
+───────────────────────────────────────────────────────── */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in-up { animation: fadeInUp 0.4s ease-out forwards; }
+
+/* Stagger helpers */
+.stagger-1 { animation-delay: 0.05s; opacity: 0; }
+.stagger-2 { animation-delay: 0.10s; opacity: 0; }
+.stagger-3 { animation-delay: 0.15s; opacity: 0; }
+.stagger-4 { animation-delay: 0.20s; opacity: 0; }
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-8px); }
+}
+.animate-float { animation: float 5s ease-in-out infinite; }
+
+/* Teal pulse for live status dot */
+@keyframes pulse-teal {
+  0%, 100% { box-shadow: 0 0 5px #00e5c4; opacity: 1; }
+  50%       { box-shadow: 0 0 10px #00e5c4; opacity: 0.6; }
+}
+.pulse-teal { animation: pulse-teal 2s ease-in-out infinite; }
