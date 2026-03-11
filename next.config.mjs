@@ -5,7 +5,7 @@ const nextConfig = {
   // causes wagmi's connector setup (and WalletConnect's internal init) to run
   // twice. Strict Mode is dev-only, so this has no effect in production.
   reactStrictMode: false,
-  output: process.env.NODE_ENV === "production" ? "standalone" : undefined,
+  output: "standalone",
 
   // Turbopack equivalent of the webpack resolve.fallback for pino-pretty
   // (optional dep of pino, used by WalletConnect — not needed in Next.js)
