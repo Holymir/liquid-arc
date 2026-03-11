@@ -1,8 +1,8 @@
-# LiquidArk — Project Plan & Claude Code Tasks
+# LiquidArc — Project Plan & Claude Code Tasks
 
 ## Vision
 
-LiquidArk is a personal crypto portfolio tracker that connects directly to your Web3 wallet (MetaMask, Rabby, Coinbase Wallet, etc.) and displays real-time portfolio value, token balances, LP positions, and P&L. The POC tracks wallets on Base chain, but the architecture supports multi-chain and multi-wallet expansion. A future phase will add automated LP position management (rebalancing, range adjustments) acting as a proxy to DEXes like Aerodrome.
+LiquidArc is a personal crypto portfolio tracker that connects directly to your Web3 wallet (MetaMask, Rabby, Coinbase Wallet, etc.) and displays real-time portfolio value, token balances, LP positions, and P&L. The POC tracks wallets on Base chain, but the architecture supports multi-chain and multi-wallet expansion. A future phase will add automated LP position management (rebalancing, range adjustments) acting as a proxy to DEXes like Aerodrome.
 
 ## Tech Stack
 
@@ -232,7 +232,7 @@ export interface DefiProtocolAdapter {
 
 ### Flow
 
-1. User visits LiquidArk → sees landing page with "Connect Wallet" button
+1. User visits LiquidArc → sees landing page with "Connect Wallet" button
 2. RainbowKit modal opens → user selects MetaMask / Rabby / WalletConnect / Coinbase Wallet
 3. On successful connection:
    - `useWalletSync` hook detects connected address + chainId
@@ -250,7 +250,7 @@ import { getDefaultConfig } from '@rainbow-me/rainbowkit';
 import { base, mainnet, arbitrum } from 'wagmi/chains';
 
 export const config = getDefaultConfig({
-  appName: 'LiquidArk',
+  appName: 'LiquidArc',
   projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID!,
   chains: [base, mainnet, arbitrum],  // Base is primary, others prepared
   ssr: true,
@@ -367,7 +367,7 @@ Implement wallet connection with RainbowKit + wagmi.
 - Implement `src/components/wallet/ConnectButton.tsx` — styled RainbowKit ConnectButton with custom theme matching the app
 - Implement `src/components/wallet/NetworkBadge.tsx` — shows the connected chain name + icon
 - Implement landing page `src/app/page.tsx`:
-  - App logo + name "LiquidArk"
+  - App logo + name "LiquidArc"
   - "Connect Wallet" button (prominent, centered)
   - Brief tagline: "Track your DeFi portfolio across chains"
   - If wallet already connected, redirect to /dashboard

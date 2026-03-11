@@ -7,7 +7,7 @@ interface SendEmailParams {
   html: string;
 }
 
-const FROM_ADDRESS = process.env.EMAIL_FROM ?? "LiquidArk <noreply@liquidark.app>";
+const FROM_ADDRESS = process.env.EMAIL_FROM ?? "LiquidArc <noreply@liquidark.app>";
 
 export async function sendEmail({ to, subject, html }: SendEmailParams): Promise<boolean> {
   const apiKey = process.env.RESEND_API_KEY;
@@ -45,7 +45,7 @@ export function verificationEmailHtml(verifyUrl: string): string {
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px;">
       <h2 style="color: #f1f5f9; font-size: 20px; margin-bottom: 16px;">Verify your email</h2>
       <p style="color: #94a3b8; font-size: 14px; line-height: 1.6;">
-        Click the button below to verify your email address and activate your LiquidArk account.
+        Click the button below to verify your email address and activate your LiquidArc account.
       </p>
       <a href="${verifyUrl}" style="display: inline-block; background: #4f46e5; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px; margin: 24px 0;">
         Verify Email

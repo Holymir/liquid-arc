@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
 
     sendEmail({
       to: email,
-      subject: "Reset your LiquidArk password",
+      subject: "Reset your LiquidArc password",
       html: passwordResetEmailHtml(resetUrl),
     }).catch((err) => console.error("[forgot-password] email failed:", err));
   }

@@ -1,4 +1,4 @@
-# LiquidArk
+# LiquidArc
 
 Personal DeFi portfolio tracker. Connects to Web3 wallets and displays real-time token balances, LP positions, and P&L. Built on Base chain with multi-chain architecture ready for Solana expansion.
 
