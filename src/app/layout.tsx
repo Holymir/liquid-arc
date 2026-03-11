@@ -4,6 +4,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { SessionProvider } from "@/components/providers/SessionProvider";
 import { RouteProgress } from "@/components/layout/RouteProgress";
+import { Analytics } from "@vercel/analytics/next";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -35,6 +36,7 @@ export default function RootLayout({
           <RouteProgress />
         </Suspense>
         <SessionProvider>{children}</SessionProvider>
+        <Analytics />
       </body>
     </html>
   );
