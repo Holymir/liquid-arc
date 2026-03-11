@@ -83,12 +83,12 @@ async function runPhase1(
   let poolDayDataMap = new Map<string, RawPoolDayData[]>();
 
   if (adapter.fetchPoolsWithDayData) {
-    const data = await adapter.fetchPoolsWithDayData({ minTvlUsd: 1000, limit: 500 });
+    const data = await adapter.fetchPoolsWithDayData({ minTvlUsd: 50000, limit: 100 });
     pools = data.pools;
     poolDayDataMap = data.dayDataByPool;
     console.log(`[ingestion] Got ${pools.length} pools with embedded day data`);
   } else {
-    pools = await adapter.fetchPools({ minTvlUsd: 1000, limit: 500 });
+    pools = await adapter.fetchPools({ minTvlUsd: 50000, limit: 100 });
   }
 
   // Upsert pools (no volatility data in phase 1)

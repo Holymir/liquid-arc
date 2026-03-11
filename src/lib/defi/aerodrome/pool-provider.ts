@@ -59,11 +59,11 @@ export const aerodromePoolProvider = new VelodromeStylePoolProvider({
   subgraphId: "GENunSHWLBXm59mBSgPzQ8metBEp9YDfdqwFr91Av1UM",
 });
 
-// Velodrome on Optimism (same schema as Aerodrome — it's the OG)
+// Velodrome V2 on Optimism (same schema as Aerodrome — it's the OG)
 export const velodromePoolProvider = new VelodromeStylePoolProvider({
   protocolId: "velodrome-optimism",
   slug: "velodrome",
   displayName: "Velodrome",
   chainId: "optimism",
-  subgraphId: "GDJiYAiSYEEMWoGpRJFsr1egCMHCjiRxLvqVVbJwwto2",
+  subgraphId: "A4Y1A82YhSLTn998BVVELC8eWzhi992k4ZitByvssxqA",
 });

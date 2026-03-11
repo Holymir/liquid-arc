@@ -20,7 +20,7 @@ const UNISWAP_V3_SUBGRAPHS: Record<string, { subgraphId: string; displayName: st
     displayName: "Uniswap V3 (Polygon)",
   },
   base: {
-    subgraphId: "43Hwfi3dJSoGpyas9VwNoDAv55yjgGrPCNzXBKiJPRPN",
+    subgraphId: "FUbEPQw1oMghy39fwWBFY5fE6MXPXZQtjncQy2cXdrNS",
     displayName: "Uniswap V3 (Base)",
   },
 };
