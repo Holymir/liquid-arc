@@ -1,7 +1,7 @@
 # Backend service for Railway — runs pool ingestion with no timeout limits
 
 FROM node:20-alpine
-RUN apk add --no-cache libc6-compat
+RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 
 COPY package.json package-lock.json ./
