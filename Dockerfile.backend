@@ -1,0 +1,17 @@
+# Backend service for Railway — runs pool ingestion with no timeout limits
+
+FROM node:20-alpine
+RUN apk add --no-cache libc6-compat
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm ci
+
+COPY prisma ./prisma
+RUN npx prisma generate
+
+COPY tsconfig.json ./
+COPY src ./src
+
+EXPOSE 3001
+CMD ["npx", "tsx", "src/backend/server.ts"]
