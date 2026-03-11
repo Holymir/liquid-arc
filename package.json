@@ -6,7 +6,10 @@
     "dev": "next dev --turbo",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "backend:dev": "npx tsx --watch src/backend/server.ts",
+    "backend:start": "npx tsx src/backend/server.ts",
+    "backend:build": "prisma generate"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
@@ -22,6 +25,7 @@
     "react-dom": "^19.2.4",
     "recharts": "^3.7.0",
     "resend": "^6.9.3",
+    "tsx": "^4.21.0",
     "viem": "^2.21.58",
     "zod": "^3.25.76"
   },

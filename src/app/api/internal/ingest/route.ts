@@ -1,14 +1,9 @@
-// POST/GET /api/internal/ingest?phase=1|2
+// POST/GET /api/internal/ingest
 //
-// Phase 1 (default): Fetch pools from subgraph, upsert pools + day data
-// Phase 2: Compute volatility & correlation from token price history
-//
-// No phase param: runs phase 1, then triggers phase 2 as a background call.
-// Protected by INGEST_SECRET header or Vercel CRON_SECRET.
+// Lightweight Vercel endpoint — triggers the Railway backend to run ingestion.
+// No longer runs ingestion directly (moved to backend to avoid 60s timeout).
 
 import { NextRequest, NextResponse } from "next/server";
-import "@/lib/defi/init";
-import { runIngestion } from "@/lib/pools/ingestion";
 
 function isAuthorized(request: NextRequest): boolean {
   const expected = process.env.INGEST_SECRET;
@@ -28,28 +23,32 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const phaseParam = request.nextUrl.searchParams.get("phase");
-  const phase = phaseParam ? parseInt(phaseParam, 10) : 1;
+  const backendUrl = process.env.BACKEND_URL;
+  if (!backendUrl) {
+    return NextResponse.json(
+      { error: "BACKEND_URL not configured. Ingestion runs on the Railway backend service." },
+      { status: 503 }
+    );
+  }
 
+  // Forward the request to the backend
   try {
-    const results = await runIngestion(phase);
+    const protocol = request.nextUrl.searchParams.get("protocol") || "";
+    const phase = request.nextUrl.searchParams.get("phase") || "";
+    const params = new URLSearchParams();
+    if (protocol) params.set("protocol", protocol);
+    if (phase) params.set("phase", phase);
 
-    // If no explicit phase was requested (cron or manual without param),
-    // fire off phase 2 as a background call so it gets its own 60s window.
-    if (!phaseParam) {
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
-      const secret = process.env.INGEST_SECRET;
-      fetch(`${baseUrl}/api/internal/ingest?phase=2`, {
-        method: "POST",
-        headers: { "x-api-key": secret ?? "" },
-      }).catch((err) => console.error("[ingest] Phase 2 trigger failed:", err));
-    }
+    const res = await fetch(`${backendUrl}/ingest?${params}`, {
+      method: "POST",
+      headers: { "x-api-key": process.env.INGEST_SECRET ?? "" },
+    });
 
-    return NextResponse.json({ ok: true, phase, results });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.error("[ingest] Fatal error:", message);
-    return NextResponse.json({ error: message }, { status: 500 });
+    const data = await res.json();
+    return NextResponse.json(data, { status: res.status });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: `Backend unreachable: ${msg}` }, { status: 502 });
   }
 }
 
