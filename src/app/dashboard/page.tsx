@@ -27,7 +27,7 @@ export default function DashboardPage() {
 
   if (status === "loading") {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: "#030b14" }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--background)" }}>
         <Loader2 className="w-6 h-6 text-arc-400 animate-spin" />
       </div>
     );

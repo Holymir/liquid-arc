@@ -4,12 +4,13 @@ import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Loader2, ArrowRight, CheckCircle, XCircle } from "lucide-react";
+import { AuthLeftPanel } from "@/components/auth/AuthLeftPanel";
 
 export default function ResetPasswordPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center" style={{ background: "#030b14" }}>
+        <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--background)" }}>
           <Loader2 className="w-5 h-5 text-arc-400 animate-spin" />
         </div>
       }
@@ -23,10 +24,10 @@ function ResetPasswordContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token") ?? "";
 
-  const [password, setPassword]   = useState("");
+  const [password, setPassword]     = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [result, setResult]       = useState<"success" | "error" | null>(null);
-  const [errorMsg, setErrorMsg]   = useState("");
+  const [result, setResult]         = useState<"success" | "error" | null>(null);
+  const [errorMsg, setErrorMsg]     = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,54 +48,39 @@ function ResetPasswordContent() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: "#030b14" }}>
-      {/* Ambient glow */}
-      <div
-        className="pointer-events-none fixed inset-0"
-        style={{
-          background:
-            "radial-gradient(ellipse 60% 50% at 50% 0%, rgba(0,229,196,0.06) 0%, transparent 70%)",
-        }}
-      />
+    <div className="min-h-screen flex" style={{ background: "var(--background)" }}>
+      <AuthLeftPanel />
 
-      {/* Top brand bar */}
-      <header className="relative z-10 flex items-center justify-between px-6 sm:px-10 py-5">
-        <Link
-          href="/"
-          className="font-extrabold text-base tracking-tight hover:opacity-75 transition-opacity"
-          style={{ color: "#f0f4ff", fontFamily: "var(--font-syne), sans-serif" }}
-        >
-          LiquidArc
-        </Link>
-        <Link
-          href="/login"
-          className="text-xs font-medium transition-colors"
-          style={{ color: "rgba(240,244,255,0.35)", fontFamily: "var(--font-geist-mono)" }}
-        >
-          Sign in →
-        </Link>
-      </header>
-
-      {/* Centered card */}
-      <main className="relative z-10 flex-1 flex items-center justify-center px-4 py-12">
+      {/* Right panel */}
+      <div className="flex-1 flex items-center justify-center px-8 py-16 bg-white">
         <div className="w-full max-w-sm auth-reveal">
+          {/* Mobile brand */}
+          <div className="lg:hidden mb-10">
+            <Link
+              href="/"
+              className="text-xl font-extrabold hover:opacity-80 transition-opacity"
+              style={{ color: "var(--text-primary)", fontFamily: "var(--font-syne), sans-serif" }}
+            >
+              LiquidArc
+            </Link>
+          </div>
 
           {/* No token */}
           {!token && (
             <div className="text-center">
               <div
                 className="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-6"
-                style={{ background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.18)" }}
+                style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.18)" }}
               >
-                <XCircle className="w-7 h-7 text-red-400" />
+                <XCircle className="w-7 h-7 text-red-500" />
               </div>
               <h1
                 className="text-2xl font-extrabold mb-2"
-                style={{ color: "#f0f4ff", fontFamily: "var(--font-syne), sans-serif" }}
+                style={{ color: "var(--text-primary)", fontFamily: "var(--font-syne), sans-serif" }}
               >
                 Invalid link.
               </h1>
-              <p className="text-sm mb-6" style={{ color: "rgba(240,244,255,0.38)" }}>
+              <p className="text-sm mb-6" style={{ color: "var(--text-muted)" }}>
                 This reset link is missing or expired.
               </p>
               <Link
@@ -112,17 +98,17 @@ function ResetPasswordContent() {
             <div className="text-center">
               <div
                 className="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-6"
-                style={{ background: "rgba(52,211,153,0.08)", border: "1px solid rgba(52,211,153,0.18)" }}
+                style={{ background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.18)" }}
               >
-                <CheckCircle className="w-7 h-7 text-emerald-400" />
+                <CheckCircle className="w-7 h-7 text-emerald-500" />
               </div>
               <h1
                 className="text-2xl font-extrabold mb-2"
-                style={{ color: "#f0f4ff", fontFamily: "var(--font-syne), sans-serif" }}
+                style={{ color: "var(--text-primary)", fontFamily: "var(--font-syne), sans-serif" }}
               >
                 Password updated.
               </h1>
-              <p className="text-sm mb-8" style={{ color: "rgba(240,244,255,0.38)" }}>
+              <p className="text-sm mb-8" style={{ color: "var(--text-muted)" }}>
                 You can now sign in with your new password.
               </p>
               <Link
@@ -141,11 +127,11 @@ function ResetPasswordContent() {
               <div className="mb-10">
                 <h1
                   className="text-[34px] font-extrabold mb-2 leading-tight"
-                  style={{ color: "#f0f4ff", fontFamily: "var(--font-syne), sans-serif" }}
+                  style={{ color: "var(--text-primary)", fontFamily: "var(--font-syne), sans-serif" }}
                 >
                   New password.
                 </h1>
-                <p className="text-sm" style={{ color: "rgba(240,244,255,0.38)" }}>
+                <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
                   Choose a strong password for your account.
                 </p>
               </div>
@@ -156,7 +142,7 @@ function ResetPasswordContent() {
                     htmlFor="rp-password"
                     className="block mb-3"
                     style={{
-                      color: "#00e5c4",
+                      color: "var(--accent)",
                       fontFamily: "var(--font-geist-mono)",
                       fontSize: "10px",
                       letterSpacing: "0.15em",
@@ -183,9 +169,9 @@ function ResetPasswordContent() {
                   <div
                     className="py-3 px-4 rounded-xl text-xs"
                     style={{
-                      background: "rgba(248,113,113,0.06)",
-                      border: "1px solid rgba(248,113,113,0.18)",
-                      color: "#f87171",
+                      background: "rgba(239,68,68,0.06)",
+                      border: "1px solid rgba(239,68,68,0.18)",
+                      color: "#ef4444",
                       fontFamily: "var(--font-geist-mono)",
                     }}
                   >
@@ -209,7 +195,7 @@ function ResetPasswordContent() {
             </>
           )}
         </div>
-      </main>
+      </div>
     </div>
   );
 }

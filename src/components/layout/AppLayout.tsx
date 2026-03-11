@@ -213,7 +213,7 @@ export function AppLayout({ children, sidebarSlot, mobileTitle }: AppLayoutProps
             style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}
           >
             <div className="flex items-center gap-2.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 pulse-teal shrink-0" />
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 pulse-live shrink-0" />
               <div>
                 <span
                   className="text-[9px] uppercase tracking-[0.16em] font-semibold block"

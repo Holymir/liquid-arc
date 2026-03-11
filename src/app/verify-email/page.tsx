@@ -9,7 +9,7 @@ export default function VerifyEmailPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center" style={{ background: "#030b14" }}>
+        <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--background)" }}>
           <Loader2 className="w-5 h-5 text-arc-400 animate-spin" />
         </div>
       }
@@ -47,41 +47,34 @@ function VerifyEmailContent() {
   }, [token]);
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: "#030b14" }}>
-      {/* Ambient glow */}
-      <div
-        className="pointer-events-none fixed inset-0"
-        style={{
-          background:
-            "radial-gradient(ellipse 60% 50% at 50% 0%, rgba(0,229,196,0.06) 0%, transparent 70%)",
-        }}
-      />
-
+    <div className="min-h-screen flex flex-col" style={{ background: "var(--background)" }}>
       {/* Top brand bar */}
-      <header className="relative z-10 flex items-center px-6 sm:px-10 py-5">
+      <header className="flex items-center px-6 sm:px-10 py-5">
         <Link
           href="/"
           className="font-extrabold text-base tracking-tight hover:opacity-75 transition-opacity"
-          style={{ color: "#f0f4ff", fontFamily: "var(--font-syne), sans-serif" }}
+          style={{ color: "var(--text-primary)", fontFamily: "var(--font-syne), sans-serif" }}
         >
           LiquidArc
         </Link>
       </header>
 
       {/* Centered state */}
-      <main className="relative z-10 flex-1 flex items-center justify-center px-4 py-12">
-        <div className="w-full max-w-sm text-center auth-reveal">
-
+      <main className="flex-1 flex items-center justify-center px-4 py-12">
+        <div
+          className="w-full max-w-sm text-center auth-reveal e-card"
+          style={{ padding: "40px 32px" }}
+        >
           {status === "loading" && (
             <>
               <Loader2 className="w-10 h-10 text-arc-400 animate-spin mx-auto mb-6" />
               <h1
                 className="text-xl font-extrabold mb-2"
-                style={{ color: "#f0f4ff", fontFamily: "var(--font-syne), sans-serif" }}
+                style={{ color: "var(--text-primary)", fontFamily: "var(--font-syne), sans-serif" }}
               >
                 Verifying your email…
               </h1>
-              <p className="text-sm" style={{ color: "rgba(240,244,255,0.38)" }}>
+              <p className="text-sm" style={{ color: "var(--text-muted)" }}>
                 Hold tight, this only takes a second.
               </p>
             </>
@@ -91,17 +84,17 @@ function VerifyEmailContent() {
             <>
               <div
                 className="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-6"
-                style={{ background: "rgba(52,211,153,0.08)", border: "1px solid rgba(52,211,153,0.18)" }}
+                style={{ background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.18)" }}
               >
-                <CheckCircle className="w-7 h-7 text-emerald-400" />
+                <CheckCircle className="w-7 h-7 text-emerald-500" />
               </div>
               <h1
                 className="text-2xl font-extrabold mb-2"
-                style={{ color: "#f0f4ff", fontFamily: "var(--font-syne), sans-serif" }}
+                style={{ color: "var(--text-primary)", fontFamily: "var(--font-syne), sans-serif" }}
               >
                 Email verified.
               </h1>
-              <p className="text-sm mb-8" style={{ color: "rgba(240,244,255,0.38)" }}>
+              <p className="text-sm mb-8" style={{ color: "var(--text-muted)" }}>
                 Your account is fully activated. Start tracking your positions.
               </p>
               <Link
@@ -118,17 +111,17 @@ function VerifyEmailContent() {
             <>
               <div
                 className="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-6"
-                style={{ background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.18)" }}
+                style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.18)" }}
               >
-                <XCircle className="w-7 h-7 text-red-400" />
+                <XCircle className="w-7 h-7 text-red-500" />
               </div>
               <h1
                 className="text-2xl font-extrabold mb-2"
-                style={{ color: "#f0f4ff", fontFamily: "var(--font-syne), sans-serif" }}
+                style={{ color: "var(--text-primary)", fontFamily: "var(--font-syne), sans-serif" }}
               >
                 Verification failed.
               </h1>
-              <p className="text-sm mb-8" style={{ color: "rgba(240,244,255,0.38)" }}>
+              <p className="text-sm mb-8" style={{ color: "var(--text-muted)" }}>
                 {errorMsg}
               </p>
               <div className="flex items-center justify-center gap-4">
@@ -141,15 +134,14 @@ function VerifyEmailContent() {
                 </Link>
                 <Link
                   href="/login"
-                  className="text-sm transition-colors"
-                  style={{ color: "rgba(240,244,255,0.38)", fontFamily: "var(--font-geist-mono)" }}
+                  className="text-sm transition-colors text-arc-400"
+                  style={{ fontFamily: "var(--font-geist-mono)" }}
                 >
                   Sign in
                 </Link>
               </div>
             </>
           )}
-
         </div>
       </main>
     </div>

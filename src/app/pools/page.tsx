@@ -289,7 +289,7 @@ export default function PoolsPage() {
               }}
             >
               <span
-                className="w-1.5 h-1.5 rounded-full pulse-teal"
+                className="w-1.5 h-1.5 rounded-full pulse-live"
                 style={{ background: "#3b82f6", display: "inline-block" }}
               />
               Live

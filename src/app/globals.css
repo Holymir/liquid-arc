@@ -136,17 +136,18 @@ input, select {
 
 /* Primary — blue, white text */
 .btn-primary {
-  background: #3b82f6;
+  background: var(--accent);
   color: #ffffff;
   font-weight: 700;
   border-radius: 10px;
 }
 .btn-primary:hover:not(:disabled) {
-  background: #2563eb;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
+  background: var(--accent-hover);
+  box-shadow: 0 0 0 3px var(--accent-muted);
 }
 .btn-primary:active:not(:disabled) {
-  background: #1d4ed8;
+  background: var(--accent-hover);
+  filter: brightness(0.9);
 }
 .btn-primary:disabled {
   opacity: 0.45;
@@ -156,13 +157,13 @@ input, select {
 /* Secondary — outlined blue */
 .btn-secondary {
   background: transparent;
-  color: #3b82f6;
-  border: 1px solid rgba(59, 130, 246, 0.35);
+  color: var(--accent);
+  border: 1px solid var(--accent-border);
   font-weight: 600;
   border-radius: 10px;
 }
 .btn-secondary:hover:not(:disabled) {
-  background: rgba(59, 130, 246, 0.06);
+  background: var(--accent-muted);
   border-color: rgba(59, 130, 246, 0.55);
 }
 .btn-secondary:disabled {
@@ -199,7 +200,7 @@ input, select {
   transition: border-color 0.2s ease;
 }
 .underline-input:focus {
-  border-bottom: 2px solid #3b82f6;
+  border-bottom: 2px solid var(--accent);
 }
 .underline-input::placeholder {
   color: var(--text-muted);
@@ -249,7 +250,7 @@ input, select {
   0%, 100% { box-shadow: 0 0 0 0 rgba(59,130,246,0.5); opacity: 1; }
   50%       { box-shadow: 0 0 0 4px rgba(59,130,246,0); opacity: 0.7; }
 }
-.pulse-teal { animation: pulse-blue 2.5s ease-in-out infinite; }
+.pulse-live { animation: pulse-blue 2.5s ease-in-out infinite; }
 
 /* ─────────────────────────────────────────────────────────
    Sidebar nav link — dark sidebar, data-active CSS pattern
@@ -268,7 +269,7 @@ input, select {
 .sidebar-nav-link[data-active] {
   background: rgba(59, 130, 246, 0.15);
   color: #93c5fd;
-  border-left-color: #3b82f6;
+  border-left-color: var(--accent);
 }
 
 /* ─────────────────────────────────────────────────────────

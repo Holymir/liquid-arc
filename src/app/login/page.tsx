@@ -79,7 +79,7 @@ export default function LoginPage() {
                 htmlFor="login-email"
                 className="block mb-3"
                 style={{
-                  color: "#00e5c4",
+                  color: "var(--accent)",
                   fontFamily: "var(--font-geist-mono)",
                   fontSize: "10px",
                   letterSpacing: "0.15em",
@@ -100,7 +100,7 @@ export default function LoginPage() {
               <div className="flex items-center justify-between mb-3">
                 <span
                   style={{
-                    color: "#00e5c4",
+                    color: "var(--accent)",
                     fontFamily: "var(--font-geist-mono)",
                     fontSize: "10px",
                     letterSpacing: "0.15em",
