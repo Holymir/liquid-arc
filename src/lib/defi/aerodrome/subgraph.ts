@@ -97,12 +97,16 @@ export async function getPositionEntryFromSubgraph(
 
 interface SubgraphPool {
   id: string;
-  token0: { id: string; symbol: string; decimals: string };
-  token1: { id: string; symbol: string; decimals: string };
+  token0: { id: string; symbol: string; decimals: string; derivedETH: string };
+  token1: { id: string; symbol: string; decimals: string; derivedETH: string };
   feeTier: string;
   tick: string | null;
   liquidity: string;
   totalValueLockedUSD: string;
+  totalValueLockedToken0: string;
+  totalValueLockedToken1: string;
+  token0Price: string;  // current pool price of token0 in terms of token1
+  token1Price: string;  // current pool price of token1 in terms of token0
   volumeUSD: string;
   feesUSD: string;
   poolDayData: {
@@ -128,7 +132,10 @@ export async function fetchPoolsFromSubgraph(
   const limit = options?.limit ?? 1000;
   const dayDataDays = options?.dayDataDays ?? 7;
 
-  const data = await querySubgraph<{ pools: SubgraphPool[] }>(`{
+  const data = await querySubgraph<{ pools: SubgraphPool[]; bundle: { ethPriceUSD: string } | null }>(`{
+    bundle(id: "1") {
+      ethPriceUSD
+    }
     pools(
       first: ${limit},
       orderBy: totalValueLockedUSD,
@@ -136,10 +143,12 @@ export async function fetchPoolsFromSubgraph(
       where: { totalValueLockedUSD_gt: "${minTvl}" }
     ) {
       id
-      token0 { id symbol decimals }
-      token1 { id symbol decimals }
+      token0 { id symbol decimals derivedETH }
+      token1 { id symbol decimals derivedETH }
       feeTier tick liquidity
-      totalValueLockedUSD volumeUSD feesUSD
+      totalValueLockedUSD totalValueLockedToken0 totalValueLockedToken1
+      token0Price token1Price
+      volumeUSD feesUSD
       poolDayData(first: ${dayDataDays}, orderBy: date, orderDirection: desc) {
         date volumeUSD feesUSD tvlUSD txCount token0Price token1Price
       }
@@ -150,16 +159,37 @@ export async function fetchPoolsFromSubgraph(
     return { pools: [], dayDataByPool: new Map() };
   }
 
+  // ETH price in USD from the subgraph bundle (used to derive token USD prices)
+  const ethPriceUsd = data.bundle ? parseFloat(data.bundle.ethPriceUSD) : 0;
+
   const pools: RawPoolData[] = [];
   const dayDataByPool = new Map<string, RawPoolDayData[]>();
 
   for (const p of data.pools) {
-    // Use most recent day data for accurate TVL (subgraph totalValueLockedUSD
-    // is cumulative and unreliable — it inflates over time)
     const day1 = p.poolDayData[0];
     const feesUsd24h = day1 ? parseFloat(day1.feesUSD) : 0;
     const volumeUsd24h = day1 ? parseFloat(day1.volumeUSD) : 0;
-    const tvlUsd = day1 ? parseFloat(day1.tvlUSD) : parseFloat(p.totalValueLockedUSD);
+
+    // Compute TVL from actual locked token amounts × current USD prices.
+    // This matches how Aerodrome/Uniswap frontends compute TVL (token amounts
+    // are accurate; the subgraph's `totalValueLockedUSD` drifts over time).
+    const lockedToken0 = parseFloat(p.totalValueLockedToken0);
+    const lockedToken1 = parseFloat(p.totalValueLockedToken1);
+    const token0DerivedETH = parseFloat(p.token0.derivedETH);
+    const token1DerivedETH = parseFloat(p.token1.derivedETH);
+
+    let tvlUsd: number;
+    if (ethPriceUsd > 0 && (token0DerivedETH > 0 || token1DerivedETH > 0)) {
+      // token USD price = derivedETH × ethPriceUSD
+      const token0Usd = token0DerivedETH * ethPriceUsd;
+      const token1Usd = token1DerivedETH * ethPriceUsd;
+      tvlUsd = lockedToken0 * token0Usd + lockedToken1 * token1Usd;
+    } else if (day1) {
+      // Fallback: use day data TVL
+      tvlUsd = parseFloat(day1.tvlUSD);
+    } else {
+      tvlUsd = parseFloat(p.totalValueLockedUSD);
+    }
 
     pools.push({
       poolAddress: p.id,

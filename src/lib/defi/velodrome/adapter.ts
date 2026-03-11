@@ -3,6 +3,7 @@
 
 import type { DefiProtocolAdapter } from "../types";
 import type { LPPositionData } from "@/types";
+import { resolveTokenMeta } from "../token-cache";
 import { createPublicClient, http, formatUnits } from "viem";
 import { optimism } from "viem/chains";
 import {
@@ -117,10 +118,11 @@ export class VelodromeAdapter implements DefiProtocolAdapter {
     for (let i = 0; i < uniqueTokens.length; i++) {
       const symR = metaResults[i * 2];
       const decR = metaResults[i * 2 + 1];
-      tokenMeta.set(uniqueTokens[i], {
+      const fetched = {
         symbol: symR.status === "success" ? (symR.result as string) : "???",
         decimals: decR.status === "success" ? (decR.result as number) : 18,
-      });
+      };
+      tokenMeta.set(uniqueTokens[i], resolveTokenMeta(uniqueTokens[i], fetched, "optimism"));
     }
 
     // 5. Build LPPositionData
@@ -130,8 +132,8 @@ export class VelodromeAdapter implements DefiProtocolAdapter {
       const tokens = poolTokens.get(p.lp);
       if (!tokens) continue;
 
-      const m0 = tokenMeta.get(tokens.token0) ?? { symbol: "???", decimals: 18 };
-      const m1 = tokenMeta.get(tokens.token1) ?? { symbol: "???", decimals: 18 };
+      const m0 = tokenMeta.get(tokens.token0) ?? resolveTokenMeta(tokens.token0, { symbol: "???", decimals: 18 }, "optimism");
+      const m1 = tokenMeta.get(tokens.token1) ?? resolveTokenMeta(tokens.token1, { symbol: "???", decimals: 18 }, "optimism");
 
       const raw0 = p.staked0 + p.amount0;
       const raw1 = p.staked1 + p.amount1;

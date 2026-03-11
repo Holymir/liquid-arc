@@ -1,6 +1,6 @@
 import type { DefiProtocolAdapter } from "../types";
 import type { LPPositionData } from "@/types";
-import { getOrDefault } from "../token-cache";
+import { resolveTokenMeta } from "../token-cache";
 import { baseClient } from "@/lib/chain/base/client";
 import {
   LP_SUGAR_ADDRESS,
@@ -144,7 +144,7 @@ export class AerodromeAdapter implements DefiProtocolAdapter {
         symbol: symR.status === "success" ? (symR.result as string) : "???",
         decimals: decR.status === "success" ? (decR.result as number) : 18,
       };
-      tokenMeta.set(uniqueTokens[i], getOrDefault(uniqueTokens[i], fetched));
+      tokenMeta.set(uniqueTokens[i], resolveTokenMeta(uniqueTokens[i], fetched, "base"));
     }
 
     // ── 5. Build LPPositionData ───────────────────────────────────────────
@@ -154,8 +154,8 @@ export class AerodromeAdapter implements DefiProtocolAdapter {
       const tokens = poolTokens.get(p.lp);
       if (!tokens) continue;
 
-      const m0 = tokenMeta.get(tokens.token0) ?? getOrDefault(tokens.token0, { symbol: "???", decimals: 18 });
-      const m1 = tokenMeta.get(tokens.token1) ?? getOrDefault(tokens.token1, { symbol: "???", decimals: 18 });
+      const m0 = tokenMeta.get(tokens.token0) ?? resolveTokenMeta(tokens.token0, { symbol: "???", decimals: 18 }, "base");
+      const m1 = tokenMeta.get(tokens.token1) ?? resolveTokenMeta(tokens.token1, { symbol: "???", decimals: 18 }, "base");
 
       // Sugar returns actual current token amounts (computed from real sqrtPrice).
       // staked0/staked1 = amounts in gauge; amount0/amount1 = amounts held directly.

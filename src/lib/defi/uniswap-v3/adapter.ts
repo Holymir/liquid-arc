@@ -4,6 +4,7 @@
 
 import type { DefiProtocolAdapter } from "../types";
 import type { LPPositionData } from "@/types";
+import { resolveTokenMeta } from "../token-cache";
 import { createPublicClient, http, formatUnits } from "viem";
 import type { PublicClient } from "viem";
 import { EVM_CHAINS } from "@/lib/chain/evm/chains";
@@ -262,10 +263,11 @@ export class UniswapV3Adapter implements DefiProtocolAdapter {
     for (let i = 0; i < uniqueTokens.length; i++) {
       const symR = metaResults[i * 2];
       const decR = metaResults[i * 2 + 1];
-      tokenMeta.set(uniqueTokens[i].toLowerCase(), {
+      const fetched = {
         symbol: symR.status === "success" ? (symR.result as string) : "???",
         decimals: decR.status === "success" ? (decR.result as number) : 18,
-      });
+      };
+      tokenMeta.set(uniqueTokens[i].toLowerCase(), resolveTokenMeta(uniqueTokens[i], fetched, this.chainId));
     }
 
     // 7. Build LPPositionData
@@ -281,8 +283,8 @@ export class UniswapV3Adapter implements DefiProtocolAdapter {
       const tokensOwed0 = data[10];
       const tokensOwed1 = data[11];
 
-      const m0 = tokenMeta.get(token0Addr.toLowerCase()) ?? { symbol: "???", decimals: 18 };
-      const m1 = tokenMeta.get(token1Addr.toLowerCase()) ?? { symbol: "???", decimals: 18 };
+      const m0 = tokenMeta.get(token0Addr.toLowerCase()) ?? resolveTokenMeta(token0Addr, { symbol: "???", decimals: 18 }, this.chainId);
+      const m1 = tokenMeta.get(token1Addr.toLowerCase()) ?? resolveTokenMeta(token1Addr, { symbol: "???", decimals: 18 }, this.chainId);
 
       const poolKey = `${token0Addr}-${token1Addr}-${fee}`;
       const poolAddress = poolAddressMap.get(poolKey) ?? "0x0000000000000000000000000000000000000000";
