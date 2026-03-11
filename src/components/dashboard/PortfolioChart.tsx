@@ -81,7 +81,7 @@ export function PortfolioChart({ address, chainId = "base" }: PortfolioChartProp
               onClick={() => setPeriod(p)}
               className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
                 period === p
-                  ? "bg-indigo-600 text-white shadow-sm"
+                  ? "bg-arc-600 text-white shadow-sm"
                   : "text-slate-400 hover:text-slate-200"
               }`}
             >

@@ -84,12 +84,12 @@ export function PositionDetail({ address, position, onClose }: PositionDetailPro
               <span className="text-slate-500 text-xs font-mono">
                 NFT #{position.nftTokenId}
               </span>
-              <span className="text-indigo-400/60 text-[10px] uppercase tracking-wider">
+              <span className="text-arc-400/60 text-[10px] uppercase tracking-wider">
                 Aerodrome CL
               </span>
               <Link
                 href={`/dashboard/positions/${position.nftTokenId}`}
-                className="inline-flex items-center gap-1 text-indigo-400 hover:text-indigo-300 text-[10px] font-medium transition-colors"
+                className="inline-flex items-center gap-1 text-arc-400 hover:text-arc-300 text-[10px] font-medium transition-colors"
               >
                 Full page <ExternalLink className="w-2.5 h-2.5" />
               </Link>
@@ -293,7 +293,7 @@ export function PositionDetail({ address, position, onClose }: PositionDetailPro
                     href={`https://basescan.org/address/${pnl.poolAddress}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-indigo-400 hover:text-indigo-300 font-mono transition-colors"
+                    className="inline-flex items-center gap-1 text-arc-400 hover:text-arc-300 font-mono transition-colors"
                   >
                     {pnl.poolAddress.slice(0, 6)}...{pnl.poolAddress.slice(-4)}
                     <ExternalLink className="w-2.5 h-2.5" />
@@ -326,7 +326,7 @@ function StrategyRow({
     <div
       className={`flex items-center justify-between py-2 px-3 rounded-lg text-sm ${
         highlight
-          ? "bg-indigo-500/8 border border-indigo-500/15"
+          ? "bg-arc-500/8 border border-arc-500/15"
           : "bg-slate-800/20 border border-slate-700/15"
       }`}
     >

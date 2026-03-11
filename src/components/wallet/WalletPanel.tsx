@@ -68,7 +68,7 @@ export function WalletPanel({
         </h2>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="flex items-center gap-1 text-indigo-400 hover:text-indigo-300 text-xs font-medium rounded-lg px-2 py-1 hover:bg-indigo-400/5 transition-all"
+          className="flex items-center gap-1 text-arc-400 hover:text-arc-300 text-xs font-medium rounded-lg px-2 py-1 hover:bg-arc-400/5 transition-all"
         >
           {showForm ? (
             <>
@@ -90,14 +90,14 @@ export function WalletPanel({
             placeholder="0x... wallet address"
             value={address}
             onChange={(e) => setAddress(e.target.value)}
-            className="w-full bg-slate-800/60 border border-slate-700/50 rounded-lg px-3 py-2 text-sm text-slate-200 font-mono placeholder:text-slate-600 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition-all"
+            className="w-full bg-slate-800/60 border border-slate-700/50 rounded-lg px-3 py-2 text-sm text-slate-200 font-mono placeholder:text-slate-600 focus:outline-none focus:border-arc-500/50 focus:ring-1 focus:ring-arc-500/20 transition-all"
           />
           <input
             type="text"
             placeholder="Label (optional)"
             value={label}
             onChange={(e) => setLabel(e.target.value)}
-            className="w-full bg-slate-800/60 border border-slate-700/50 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition-all"
+            className="w-full bg-slate-800/60 border border-slate-700/50 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-arc-500/50 focus:ring-1 focus:ring-arc-500/20 transition-all"
           />
           {error && (
             <p className="text-red-400 text-xs flex items-center gap-1.5">
@@ -108,7 +108,7 @@ export function WalletPanel({
           <button
             type="submit"
             disabled={submitting}
-            className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium py-2 rounded-lg text-sm shadow-lg shadow-indigo-600/10 transition-all"
+            className="w-full bg-arc-600 hover:bg-arc-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium py-2 rounded-lg text-sm shadow-lg shadow-arc-600/10 transition-all"
           >
             {submitting ? (
               <span className="inline-flex items-center gap-2">
@@ -149,7 +149,7 @@ export function WalletPanel({
                 onClick={() => onSelect(w)}
                 className={`group relative rounded-xl px-3 py-2.5 cursor-pointer transition-all ${
                   isSelected
-                    ? "bg-indigo-600/10 border border-indigo-500/25"
+                    ? "bg-arc-600/10 border border-arc-500/25"
                     : "hover:bg-slate-800/40 border border-transparent"
                 }`}
               >
@@ -187,7 +187,7 @@ export function WalletPanel({
         <p className="text-[10px] text-slate-600 uppercase tracking-widest mb-2 font-medium">Networks</p>
         <div className="space-y-1.5">
           <div className="flex items-center gap-2 text-xs">
-            <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
+            <span className="w-1.5 h-1.5 rounded-full bg-arc-400" />
             <span className="text-slate-400">Base</span>
             <span className="text-slate-500 ml-auto text-[11px]">Aerodrome</span>
           </div>

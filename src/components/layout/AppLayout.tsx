@@ -64,26 +64,8 @@ function NavLink({
     <Link
       href={href}
       onClick={onClick}
-      className="flex items-center gap-3 py-2.5 rounded-xl text-sm font-medium transition-all"
-      style={{
-        paddingLeft: "10px",
-        paddingRight: "12px",
-        background: active ? "rgba(0,229,196,0.08)" : "transparent",
-        color: active ? "#00e5c4" : "rgba(240,244,255,0.45)",
-        borderLeft: active ? "2px solid #00e5c4" : "2px solid transparent",
-      }}
-      onMouseEnter={(e) => {
-        if (!active) {
-          (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.04)";
-          (e.currentTarget as HTMLElement).style.color = "#f0f4ff";
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (!active) {
-          (e.currentTarget as HTMLElement).style.background = "transparent";
-          (e.currentTarget as HTMLElement).style.color = "rgba(240,244,255,0.45)";
-        }
-      }}
+      data-active={active ? "" : undefined}
+      className="sidebar-nav-link flex items-center gap-3 py-2.5 rounded-xl text-sm font-medium transition-all"
     >
       <Icon className="w-4 h-4 shrink-0" />
       <span>{label}</span>

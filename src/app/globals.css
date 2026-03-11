@@ -178,9 +178,33 @@ button, a, input, select {
 }
 .animate-float { animation: float 5s ease-in-out infinite; }
 
+/* Generic opacity pulse (used by inline animation: "pulse ...") */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
+}
+
 /* Teal pulse for live status dot */
 @keyframes pulse-teal {
   0%, 100% { box-shadow: 0 0 5px #00e5c4; opacity: 1; }
   50%       { box-shadow: 0 0 10px #00e5c4; opacity: 0.6; }
 }
 .pulse-teal { animation: pulse-teal 2s ease-in-out infinite; }
+
+/* Sidebar nav link — CSS hover instead of JS DOM mutation */
+.sidebar-nav-link {
+  padding-left: 10px;
+  padding-right: 12px;
+  background: transparent;
+  color: rgba(240, 244, 255, 0.45);
+  border-left: 2px solid transparent;
+}
+.sidebar-nav-link:not([data-active]):hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: #f0f4ff;
+}
+.sidebar-nav-link[data-active] {
+  background: rgba(0, 229, 196, 0.08);
+  color: #00e5c4;
+  border-left-color: #00e5c4;
+}
