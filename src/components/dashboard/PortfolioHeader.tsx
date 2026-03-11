@@ -40,18 +40,17 @@ function DonutChart({ lpValue, tokenValue }: { lpValue: number; tokenValue: numb
   const lpStroke = circumference * lpPct;
   const tokenStroke = circumference * (1 - lpPct);
 
-  // If one segment is 100%, draw a full circle
   if (lpPct >= 0.999) {
     return (
       <svg width="88" height="88" viewBox="0 0 88 88">
-        <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(0,229,196,0.7)" strokeWidth="10" opacity="0.6" />
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke="#3b82f6" strokeWidth="10" opacity="0.7" />
       </svg>
     );
   }
   if (lpPct <= 0.001) {
     return (
       <svg width="88" height="88" viewBox="0 0 88 88">
-        <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(148,163,184,0.25)" strokeWidth="10" opacity="0.3" />
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke="#cbd5e1" strokeWidth="10" opacity="0.6" />
       </svg>
     );
   }
@@ -64,11 +63,10 @@ function DonutChart({ lpValue, tokenValue }: { lpValue: number; tokenValue: numb
         cy={cy}
         r={r}
         fill="none"
-        stroke="rgba(148,163,184,0.25)"
+        stroke="#e2e8f0"
         strokeWidth="10"
         strokeDasharray={`${tokenStroke} ${circumference}`}
         strokeDashoffset={-lpStroke}
-        opacity="0.2"
         strokeLinecap="round"
       />
       {/* LP segment */}
@@ -77,10 +75,10 @@ function DonutChart({ lpValue, tokenValue }: { lpValue: number; tokenValue: numb
         cy={cy}
         r={r}
         fill="none"
-        stroke="rgba(0,229,196,0.7)"
+        stroke="#3b82f6"
         strokeWidth="10"
         strokeDasharray={`${lpStroke} ${circumference}`}
-        opacity="0.6"
+        opacity="0.85"
         strokeLinecap="round"
       />
     </svg>
@@ -102,23 +100,22 @@ export function PortfolioHeader({
   const tokenPct = total > 0 ? ((tokenValue / total) * 100).toFixed(1) : "0";
 
   return (
-    <div className="border border-[rgba(255,255,255,0.07)] rounded-xl overflow-hidden animate-fade-in-up">
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-[rgba(255,255,255,0.04)]">
+    <div className="e-card rounded-xl overflow-hidden animate-fade-in-up">
+      <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-[rgba(15,23,42,0.06)]">
 
         {/* ── Box 1: Total Portfolio Value ── */}
-        <div className="bg-[#0C1826] px-5 py-4 relative">
-          {/* Refresh button — top-right */}
-          <div className="absolute top-3.5 right-4 flex flex-col items-end gap-1">
+        <div className="px-5 py-5 relative bg-white">
+          <div className="absolute top-4 right-4 flex flex-col items-end gap-1">
             <button
               onClick={onRefresh}
               disabled={isLoading}
-              className="flex items-center gap-1 text-slate-600 hover:text-arc-400 disabled:opacity-40 transition-colors"
+              className="flex items-center gap-1 text-slate-400 hover:text-arc-400 disabled:opacity-40 transition-colors"
               aria-label="Refresh portfolio data"
             >
-              <RefreshCw className={`w-3 h-3 ${isLoading ? "animate-spin" : ""}`} />
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`} />
             </button>
             {lastUpdated && (
-              <span className="text-[9px] text-slate-700 tabular-nums">
+              <span className="text-[9px] tabular-nums" style={{ color: "var(--text-dim)" }}>
                 {new Date(lastUpdated).toLocaleTimeString()}
               </span>
             )}
@@ -128,14 +125,14 @@ export function PortfolioHeader({
 
           {isLoading ? (
             <div className="animate-pulse space-y-2.5">
-              <div className="w-44 h-8 bg-slate-700/30 rounded-md" />
-              <div className="w-32 h-4 bg-slate-700/20 rounded" />
+              <div className="w-44 h-8 bg-slate-100 rounded-md" />
+              <div className="w-32 h-4 bg-slate-100 rounded" />
             </div>
           ) : (
             <>
               <p
-                className="text-2xl sm:text-3xl font-bold tabular-nums tracking-tight text-[#E8F0FF] pr-6"
-                style={{ fontFamily: "var(--font-geist-mono)" }}
+                className="text-2xl sm:text-3xl font-bold tabular-nums tracking-tight pr-6"
+                style={{ color: "var(--text-primary)", fontFamily: "var(--font-geist-mono)" }}
               >
                 {formatUsd(totalUsdValue)}
               </p>
@@ -144,7 +141,7 @@ export function PortfolioHeader({
                 <div className="flex items-center gap-2 mt-2.5 flex-wrap">
                   <div
                     className={`flex items-center gap-1 ${
-                      isGain ? "text-emerald-400" : "text-red-400"
+                      isGain ? "text-emerald-600" : "text-red-500"
                     }`}
                   >
                     {isGain ? (
@@ -160,14 +157,14 @@ export function PortfolioHeader({
                   <span
                     className={`text-[10px] font-semibold px-1.5 py-0.5 rounded tabular-nums ${
                       isGain
-                        ? "bg-emerald-400/10 text-emerald-400"
-                        : "bg-red-400/10 text-red-400"
+                        ? "bg-emerald-50 text-emerald-700"
+                        : "bg-red-50 text-red-600"
                     }`}
                   >
                     {isGain ? "+" : ""}
                     {pnl.percentChange.toFixed(2)}%
                   </span>
-                  <span className="text-slate-600 text-[10px]">{pnl.period}</span>
+                  <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>{pnl.period}</span>
                 </div>
               )}
             </>
@@ -175,62 +172,61 @@ export function PortfolioHeader({
         </div>
 
         {/* ── Box 2: LP Positions ── */}
-        <div className="bg-[#0C1826] px-5 py-4 flex items-start justify-between">
+        <div className="px-5 py-5 flex items-start justify-between bg-white">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5 mb-2.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-arc-400/70 shrink-0" />
+              <span className="w-2 h-2 rounded-full bg-arc-400 shrink-0" />
               <p className="stat-label">LP Positions</p>
             </div>
 
             {isLoading ? (
               <div className="animate-pulse space-y-2">
-                <div className="w-36 h-7 bg-slate-700/30 rounded-md" />
-                <div className="w-20 h-3.5 bg-slate-700/20 rounded" />
+                <div className="w-36 h-7 bg-slate-100 rounded-md" />
+                <div className="w-20 h-3.5 bg-slate-100 rounded" />
               </div>
             ) : (
               <>
                 <p
-                  className="text-2xl font-bold tabular-nums tracking-tight text-[#E8F0FF]"
-                  style={{ fontFamily: "var(--font-geist-mono)" }}
+                  className="text-2xl font-bold tabular-nums tracking-tight"
+                  style={{ color: "var(--text-primary)", fontFamily: "var(--font-geist-mono)" }}
                 >
                   {formatUsd(lpValue)}
                 </p>
-                <p className="text-[11px] text-slate-500 tabular-nums mt-1.5">
+                <p className="text-[11px] tabular-nums mt-1.5" style={{ color: "var(--text-muted)" }}>
                   {lpPct}% of portfolio
                 </p>
               </>
             )}
           </div>
 
-          {/* Donut chart — right-aligned inside LP box */}
           {!isLoading && (
-            <div className="shrink-0 ml-3 hidden sm:block opacity-80">
+            <div className="shrink-0 ml-3 hidden sm:block">
               <DonutChart lpValue={lpValue} tokenValue={tokenValue} />
             </div>
           )}
         </div>
 
         {/* ── Box 3: Wallet Tokens ── */}
-        <div className="bg-[#0C1826] px-5 py-4">
+        <div className="px-5 py-5 bg-white">
           <div className="flex items-center gap-1.5 mb-2.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-slate-400/30 shrink-0" />
+            <span className="w-2 h-2 rounded-full bg-slate-300 shrink-0" />
             <p className="stat-label">Wallet Tokens</p>
           </div>
 
           {isLoading ? (
             <div className="animate-pulse space-y-2">
-              <div className="w-36 h-7 bg-slate-700/30 rounded-md" />
-              <div className="w-20 h-3.5 bg-slate-700/20 rounded" />
+              <div className="w-36 h-7 bg-slate-100 rounded-md" />
+              <div className="w-20 h-3.5 bg-slate-100 rounded" />
             </div>
           ) : (
             <>
               <p
-                className="text-2xl font-bold tabular-nums tracking-tight text-[#E8F0FF]"
-                style={{ fontFamily: "var(--font-geist-mono)" }}
+                className="text-2xl font-bold tabular-nums tracking-tight"
+                style={{ color: "var(--text-primary)", fontFamily: "var(--font-geist-mono)" }}
               >
                 {formatUsd(tokenValue)}
               </p>
-              <p className="text-[11px] text-slate-500 tabular-nums mt-1.5">
+              <p className="text-[11px] tabular-nums mt-1.5" style={{ color: "var(--text-muted)" }}>
                 {tokenPct}% of portfolio
               </p>
             </>

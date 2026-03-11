@@ -9,19 +9,19 @@ const config: Config = {
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",
-        // Brand accent — replaces indigo everywhere
+        // Brand accent — electric blue
         arc: {
-          "50":  "#edfcf9",
-          "100": "#d5f7f0",
-          "200": "#a7f0e3",
-          "300": "#68e9d4",
-          "400": "#00e5c4",  // primary accent
-          "500": "#00c4aa",
-          "600": "#009e8c",
-          "700": "#007f6d",
-          "800": "#005f52",
-          "900": "#003d35",
-          "950": "#001f1a",
+          "50":  "#eff6ff",
+          "100": "#dbeafe",
+          "200": "#bfdbfe",
+          "300": "#93c5fd",
+          "400": "#3b82f6",  // primary accent
+          "500": "#2563eb",
+          "600": "#1d4ed8",
+          "700": "#1e40af",
+          "800": "#1e3a8a",
+          "900": "#1e3169",
+          "950": "#172554",
         },
       },
     },

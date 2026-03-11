@@ -3,45 +3,46 @@
 @tailwind utilities;
 
 /* ─────────────────────────────────────────────────────────
-   Design tokens — Midnight Precision
-   Primary accent: #00e5c4 (arc-400 teal)
-   Background: #060D18 (deep navy)
+   Design tokens — Institutional Light
+   Primary accent: #3b82f6 (arc-400 blue)
+   Background: #eef2f7 (light cool gray)
 ───────────────────────────────────────────────────────── */
 :root {
-  /* Surfaces — layered depth system */
-  --background:   #060D18;   /* Page background */
-  --surface-1:    #0C1826;   /* Cards, sidebar */
-  --surface-2:    #111F35;   /* Elevated / hover */
-  --surface-3:    #162540;   /* Highest elevation */
-  --foreground:   #E2E8F0;
+  /* Surfaces */
+  --background:   #eef2f7;   /* Page background */
+  --surface-1:    #ffffff;   /* Cards */
+  --surface-2:    #f8fafc;   /* Hover/elevated */
+  --surface-3:    #f1f5f9;   /* Input backgrounds */
+  --foreground:   #0f172a;
 
   /* Card chrome */
-  --card:        #0C1826;
-  --card-border: rgba(255, 255, 255, 0.07);
-  --card-border-muted: rgba(255, 255, 255, 0.04);
+  --card:        #ffffff;
+  --card-border: rgba(15, 23, 42, 0.08);
+  --card-border-muted: rgba(15, 23, 42, 0.04);
 
-  /* Accent — Crystalline Signal teal */
-  --accent:       #00e5c4;
-  --accent-light: #68e9d4;
-  --accent-muted: rgba(0, 229, 196, 0.10);
-  --accent-border: rgba(0, 229, 196, 0.22);
+  /* Accent — electric blue */
+  --accent:       #3b82f6;
+  --accent-hover: #2563eb;
+  --accent-light: #eff6ff;
+  --accent-muted: rgba(59, 130, 246, 0.08);
+  --accent-border: rgba(59, 130, 246, 0.22);
 
   /* Status */
-  --gain:         #34d399;
-  --gain-muted:   rgba(52, 211, 153, 0.10);
-  --loss:         #f87171;
-  --loss-muted:   rgba(248, 113, 113, 0.10);
+  --gain:         #10b981;
+  --gain-muted:   rgba(16, 185, 129, 0.10);
+  --loss:         #ef4444;
+  --loss-muted:   rgba(239, 68, 68, 0.10);
 
   /* Text hierarchy */
-  --text-primary:   #E8F0FF;  /* Headings, prominent numbers */
-  --text-secondary: #8A9BB8;  /* Labels, secondary info */
-  --text-muted:     #4A5D75;  /* Placeholders, timestamps */
-  --text-dim:       #2E4057;  /* Dividers, very muted */
+  --text-primary:   #0f172a;  /* Headings, prominent numbers */
+  --text-secondary: #475569;  /* Labels, secondary info */
+  --text-muted:     #94a3b8;  /* Placeholders, timestamps */
+  --text-dim:       #cbd5e1;  /* Dividers, very muted */
 
   /* Header / sidebar chrome */
-  --header-bg:     rgba(6, 13, 24, 0.92);
-  --header-border: rgba(255, 255, 255, 0.06);
-  --sidebar-bg:    #091220;
+  --header-bg:     rgba(255, 255, 255, 0.95);
+  --header-border: rgba(15, 23, 42, 0.08);
+  --sidebar-bg:    #0f172a;
   --sidebar-border: rgba(255, 255, 255, 0.06);
 }
 
@@ -64,15 +65,15 @@ input, select {
   transition: border-color 0.15s ease-out, box-shadow 0.15s ease-out;
 }
 
-/* Thin teal scrollbar */
+/* Thin blue scrollbar */
 ::-webkit-scrollbar       { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: rgba(0, 229, 196, 0.10);
+  background: rgba(59, 130, 246, 0.15);
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 229, 196, 0.22);
+  background: rgba(59, 130, 246, 0.30);
 }
 
 /* ─────────────────────────────────────────────────────────
@@ -83,29 +84,32 @@ input, select {
 }
 
 /* ─────────────────────────────────────────────────────────
-   Enterprise card — solid, no glass blur
+   Enterprise card — white, crisp border, subtle shadow
 ───────────────────────────────────────────────────────── */
 .e-card {
   background: var(--surface-1);
   border: 1px solid var(--card-border);
   border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.06);
 }
 .e-card-hover:hover {
   background: var(--surface-2);
-  border-color: rgba(255, 255, 255, 0.09);
+  border-color: rgba(15, 23, 42, 0.12);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
 }
 
 /* ─────────────────────────────────────────────────────────
-   Glass card — kept for backward compat, now more solid
+   Glass card — alias for backward compat
 ───────────────────────────────────────────────────────── */
 .glass-card {
   background: var(--surface-1);
   border: 1px solid var(--card-border);
   border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
 }
 
 /* ─────────────────────────────────────────────────────────
-   Section label — teal uppercase monospace label
+   Section label — blue uppercase monospace label
 ───────────────────────────────────────────────────────── */
 .section-label {
   font-size: 10px;
@@ -130,43 +134,43 @@ input, select {
    Buttons
 ───────────────────────────────────────────────────────── */
 
-/* Primary — bright teal, dark text */
+/* Primary — blue, white text */
 .btn-primary {
-  background: #00e5c4;
-  color: #020910;
+  background: #3b82f6;
+  color: #ffffff;
   font-weight: 700;
   border-radius: 10px;
 }
 .btn-primary:hover:not(:disabled) {
-  background: #1ef0d0;
-  box-shadow: 0 0 24px rgba(0, 229, 196, 0.35);
+  background: #2563eb;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
 }
 .btn-primary:active:not(:disabled) {
-  background: #00c4aa;
+  background: #1d4ed8;
 }
 .btn-primary:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }
 
-/* Secondary — outlined teal */
+/* Secondary — outlined blue */
 .btn-secondary {
   background: transparent;
-  color: #00e5c4;
-  border: 1px solid rgba(0, 229, 196, 0.28);
+  color: #3b82f6;
+  border: 1px solid rgba(59, 130, 246, 0.35);
   font-weight: 600;
   border-radius: 10px;
 }
 .btn-secondary:hover:not(:disabled) {
-  background: rgba(0, 229, 196, 0.06);
-  border-color: rgba(0, 229, 196, 0.45);
+  background: rgba(59, 130, 246, 0.06);
+  border-color: rgba(59, 130, 246, 0.55);
 }
 .btn-secondary:disabled {
   opacity: 0.40;
   cursor: not-allowed;
 }
 
-/* Ghost — subtle for secondary actions */
+/* Ghost — subtle for secondary actions on light bg */
 .btn-ghost {
   background: transparent;
   color: var(--text-secondary);
@@ -175,9 +179,9 @@ input, select {
   border-radius: 8px;
 }
 .btn-ghost:hover:not(:disabled) {
-  background: rgba(255,255,255,0.04);
+  background: var(--surface-2);
   color: var(--text-primary);
-  border-color: rgba(255,255,255,0.10);
+  border-color: rgba(15, 23, 42, 0.14);
 }
 
 /* ─────────────────────────────────────────────────────────
@@ -190,12 +194,12 @@ input, select {
   background: transparent;
   outline: none;
   color: var(--text-primary);
-  border-bottom: 1px solid rgba(240, 244, 255, 0.10);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.15);
   font-family: var(--font-geist-sans);
   transition: border-color 0.2s ease;
 }
 .underline-input:focus {
-  border-bottom: 2px solid #00e5c4;
+  border-bottom: 2px solid #3b82f6;
 }
 .underline-input::placeholder {
   color: var(--text-muted);
@@ -240,38 +244,42 @@ input, select {
   50%       { opacity: 0.5; }
 }
 
-/* Teal glow pulse for live status dot */
-@keyframes pulse-teal {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(0,229,196,0.5); opacity: 1; }
-  50%       { box-shadow: 0 0 0 4px rgba(0,229,196,0); opacity: 0.7; }
+/* Blue glow pulse for live status dot */
+@keyframes pulse-blue {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(59,130,246,0.5); opacity: 1; }
+  50%       { box-shadow: 0 0 0 4px rgba(59,130,246,0); opacity: 0.7; }
 }
-.pulse-teal { animation: pulse-teal 2.5s ease-in-out infinite; }
+.pulse-teal { animation: pulse-blue 2.5s ease-in-out infinite; }
 
 /* ─────────────────────────────────────────────────────────
-   Sidebar nav link — data-active based hover system
+   Sidebar nav link — dark sidebar, data-active CSS pattern
 ───────────────────────────────────────────────────────── */
 .sidebar-nav-link {
-  padding: 9px 12px 9px 12px;
+  padding: 9px 12px;
   background: transparent;
-  color: rgba(138, 155, 184, 0.65);
+  color: rgba(148, 163, 184, 0.8);
   border-left: 2px solid transparent;
   border-radius: 8px;
 }
 .sidebar-nav-link:not([data-active]):hover {
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.05);
+  color: #ffffff;
 }
 .sidebar-nav-link[data-active] {
-  background: rgba(0, 229, 196, 0.08);
-  color: #00e5c4;
-  border-left-color: #00e5c4;
+  background: rgba(59, 130, 246, 0.15);
+  color: #93c5fd;
+  border-left-color: #3b82f6;
 }
 
 /* ─────────────────────────────────────────────────────────
    Table styles
 ───────────────────────────────────────────────────────── */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
 .data-table thead tr {
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid var(--card-border);
 }
 .data-table thead th {
   padding: 10px 16px;
@@ -281,13 +289,15 @@ input, select {
   text-transform: uppercase;
   color: var(--text-muted);
   font-family: var(--font-geist-mono);
+  text-align: left;
+  background: var(--surface-2);
 }
 .data-table tbody tr {
-  border-bottom: 1px solid rgba(255,255,255,0.035);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.05);
   transition: background-color 0.12s ease;
 }
 .data-table tbody tr:hover {
-  background: rgba(255,255,255,0.025);
+  background: var(--surface-2);
 }
 .data-table td {
   padding: 12px 16px;

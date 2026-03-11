@@ -5,7 +5,6 @@ import { AppHeader } from "@/components/layout/AppHeader";
 import {
   ArrowRight,
   BarChart3,
-  ChevronRight,
   Gift,
   History,
   Layers,
@@ -15,7 +14,7 @@ import {
 } from "lucide-react";
 
 // ─────────────────────────────────────────
-// LP Range Card — hero preview mockup
+// LP Range Card — dark chart widget on light bg (Bloomberg-style)
 // ─────────────────────────────────────────
 function LPRangeCard() {
   const bars = [28, 42, 35, 55, 48, 72, 65, 88, 78, 92, 85, 76, 82, 68, 95];
@@ -24,18 +23,16 @@ function LPRangeCard() {
     <div
       className="relative rounded-2xl p-6 overflow-hidden"
       style={{
-        background: "linear-gradient(145deg, #0a1628 0%, #060f1e 100%)",
-        border: "1px solid rgba(0, 229, 196, 0.2)",
-        boxShadow:
-          "0 0 60px rgba(0, 229, 196, 0.06), 0 24px 48px rgba(0,0,0,0.6)",
+        background: "linear-gradient(145deg, #0f172a 0%, #1e293b 100%)",
+        border: "1px solid rgba(255,255,255,0.06)",
+        boxShadow: "0 24px 64px rgba(15,23,42,0.25), 0 4px 16px rgba(15,23,42,0.15)",
       }}
     >
       {/* Corner glow */}
       <div
         className="absolute top-0 right-0 w-48 h-48 pointer-events-none"
         style={{
-          background:
-            "radial-gradient(circle at 100% 0%, rgba(0, 229, 196, 0.12) 0%, transparent 70%)",
+          background: "radial-gradient(circle at 100% 0%, rgba(59,130,246,0.12) 0%, transparent 70%)",
         }}
       />
 
@@ -44,60 +41,43 @@ function LPRangeCard() {
         <div>
           <div
             className="text-xs tracking-widest uppercase mb-1.5"
-            style={{
-              color: "rgba(0, 229, 196, 0.6)",
-              fontFamily: "var(--font-geist-mono)",
-            }}
+            style={{ color: "rgba(59,130,246,0.7)", fontFamily: "var(--font-geist-mono)" }}
           >
             WETH / USDC · 0.05%
           </div>
           <div
-            className="text-3xl font-bold"
-            style={{
-              color: "#f0f4ff",
-              fontFamily: "var(--font-syne), var(--font-geist-sans), sans-serif",
-            }}
+            className="text-3xl font-bold text-white"
+            style={{ fontFamily: "var(--font-syne), var(--font-geist-sans), sans-serif" }}
           >
             $3,247.82
           </div>
-          <div
-            className="text-sm mt-0.5"
-            style={{ color: "rgba(240,244,255,0.35)" }}
-          >
-            current price
-          </div>
+          <div className="text-sm mt-0.5 text-slate-500">current price</div>
         </div>
         <div className="text-right">
           <div
             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs"
             style={{
-              background: "rgba(0, 229, 196, 0.1)",
-              border: "1px solid rgba(0, 229, 196, 0.25)",
-              color: "#00e5c4",
+              background: "rgba(16,185,129,0.12)",
+              border: "1px solid rgba(16,185,129,0.25)",
+              color: "#10b981",
               fontFamily: "var(--font-geist-mono)",
             }}
           >
             <span
-              className="w-1.5 h-1.5 rounded-full bg-[#00e5c4]"
+              className="w-1.5 h-1.5 rounded-full bg-emerald-400"
               style={{ animation: "pulse 2s ease-in-out infinite" }}
             />
             IN RANGE
           </div>
           <div
-            className="text-2xl font-bold mt-2"
-            style={{
-              color: "#00e5c4",
-              fontFamily: "var(--font-syne), var(--font-geist-sans), sans-serif",
-            }}
+            className="text-2xl font-bold mt-2 text-emerald-400"
+            style={{ fontFamily: "var(--font-syne), var(--font-geist-sans), sans-serif" }}
           >
             +$1,204.17
           </div>
           <div
-            className="text-xs mt-0.5"
-            style={{
-              color: "rgba(0, 229, 196, 0.5)",
-              fontFamily: "var(--font-geist-mono)",
-            }}
+            className="text-xs mt-0.5 text-emerald-600"
+            style={{ fontFamily: "var(--font-geist-mono)" }}
           >
             +37.2% P&L
           </div>
@@ -107,38 +87,22 @@ function LPRangeCard() {
       {/* Price range bar */}
       <div className="mb-5">
         <div className="flex justify-between items-center mb-2">
-          <span
-            className="text-xs"
-            style={{
-              color: "rgba(240,244,255,0.3)",
-              fontFamily: "var(--font-geist-mono)",
-            }}
-          >
+          <span className="text-xs text-slate-600" style={{ fontFamily: "var(--font-geist-mono)" }}>
             $2,800 min
           </span>
-          <span
-            className="text-xs"
-            style={{
-              color: "rgba(240,244,255,0.3)",
-              fontFamily: "var(--font-geist-mono)",
-            }}
-          >
+          <span className="text-xs text-slate-600" style={{ fontFamily: "var(--font-geist-mono)" }}>
             $4,200 max
           </span>
         </div>
-        <div
-          className="relative h-10 rounded-xl overflow-hidden"
-          style={{ background: "#060e1c" }}
-        >
+        <div className="relative h-10 rounded-xl overflow-hidden bg-slate-800/60">
           {/* Liquidity zone */}
           <div
             className="absolute top-0 bottom-0 rounded-xl"
             style={{
               left: "12%",
               right: "15%",
-              background:
-                "linear-gradient(90deg, transparent, rgba(0,229,196,0.15) 20%, rgba(0,229,196,0.3) 50%, rgba(0,229,196,0.15) 80%, transparent)",
-              border: "1px solid rgba(0, 229, 196, 0.3)",
+              background: "linear-gradient(90deg, transparent, rgba(59,130,246,0.2) 20%, rgba(59,130,246,0.35) 50%, rgba(59,130,246,0.2) 80%, transparent)",
+              border: "1px solid rgba(59,130,246,0.3)",
             }}
           />
           {/* Current price cursor */}
@@ -146,18 +110,17 @@ function LPRangeCard() {
             className="absolute top-1 bottom-1 w-px"
             style={{
               left: "47%",
-              background: "#00e5c4",
-              boxShadow: "0 0 8px #00e5c4, 0 0 16px rgba(0,229,196,0.5)",
+              background: "#3b82f6",
+              boxShadow: "0 0 8px #3b82f6, 0 0 16px rgba(59,130,246,0.5)",
             }}
           />
           {/* Price label */}
           <div
-            className="absolute top-1.5 px-1.5 py-0.5 rounded-md"
+            className="absolute top-1.5 px-1.5 py-0.5 rounded-md text-blue-400"
             style={{
               left: "49%",
-              background: "rgba(0, 229, 196, 0.15)",
-              border: "1px solid rgba(0, 229, 196, 0.3)",
-              color: "#00e5c4",
+              background: "rgba(59,130,246,0.15)",
+              border: "1px solid rgba(59,130,246,0.3)",
               fontFamily: "var(--font-geist-mono)",
               fontSize: "9px",
             }}
@@ -170,32 +133,20 @@ function LPRangeCard() {
       {/* Stats row */}
       <div className="grid grid-cols-3 gap-2.5 mb-5">
         {[
-          { label: "Fee APR", value: "42.7%", color: "#00e5c4" },
-          { label: "Volume 24h", value: "$284k", color: "#f0f4ff" },
-          { label: "IL", value: "-1.2%", color: "#ff6b8a" },
+          { label: "Fee APR", value: "42.7%", color: "#3b82f6" },
+          { label: "Volume 24h", value: "$284k", color: "#e2e8f0" },
+          { label: "IL", value: "-1.2%", color: "#f87171" },
         ].map(({ label, value, color }) => (
           <div
             key={label}
             className="rounded-lg p-3"
-            style={{
-              background: "rgba(255,255,255,0.03)",
-              border: "1px solid rgba(255,255,255,0.06)",
-            }}
+            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}
           >
-            <div
-              className="uppercase tracking-wide mb-1"
-              style={{
-                color: "rgba(240,244,255,0.3)",
-                fontFamily: "var(--font-geist-mono)",
-                fontSize: "9px",
-              }}
-            >
+            <div className="uppercase tracking-wide mb-1 text-slate-600"
+              style={{ fontFamily: "var(--font-geist-mono)", fontSize: "9px" }}>
               {label}
             </div>
-            <div
-              className="text-sm font-bold"
-              style={{ color, fontFamily: "var(--font-geist-mono)" }}
-            >
+            <div className="text-sm font-bold" style={{ color, fontFamily: "var(--font-geist-mono)" }}>
               {value}
             </div>
           </div>
@@ -205,19 +156,10 @@ function LPRangeCard() {
       {/* Mini bar chart */}
       <div
         className="rounded-xl p-3"
-        style={{
-          background: "rgba(255,255,255,0.02)",
-          border: "1px solid rgba(255,255,255,0.04)",
-        }}
+        style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.04)" }}
       >
-        <div
-          className="uppercase tracking-wide mb-2.5"
-          style={{
-            color: "rgba(240,244,255,0.2)",
-            fontFamily: "var(--font-geist-mono)",
-            fontSize: "9px",
-          }}
-        >
+        <div className="uppercase tracking-wide mb-2.5 text-slate-700"
+          style={{ fontFamily: "var(--font-geist-mono)", fontSize: "9px" }}>
           7-day fee collection
         </div>
         <div className="flex items-end gap-0.5 h-10">
@@ -227,12 +169,7 @@ function LPRangeCard() {
               className="flex-1 rounded-sm"
               style={{
                 height: `${h}%`,
-                background:
-                  i >= 12
-                    ? "rgba(0, 229, 196, 0.75)"
-                    : i >= 8
-                    ? "rgba(0, 229, 196, 0.4)"
-                    : "rgba(0, 229, 196, 0.18)",
+                background: i >= 12 ? "rgba(59,130,246,0.75)" : i >= 8 ? "rgba(59,130,246,0.4)" : "rgba(59,130,246,0.18)",
               }}
             />
           ))}
@@ -250,37 +187,43 @@ const features = [
     icon: BarChart3,
     title: "Real-time P&L",
     desc: "Instant profit & loss across all positions. See exactly what each LP is earning, in dollars.",
-    accent: "#00e5c4",
+    accent: "#3b82f6",
+    bg: "#eff6ff",
   },
   {
     icon: Layers,
     title: "Range Visualization",
     desc: "Visualize your concentrated liquidity range relative to the current price at a glance.",
-    accent: "#3b82f6",
+    accent: "#8b5cf6",
+    bg: "#f5f3ff",
   },
   {
     icon: TrendingUp,
     title: "Impermanent Loss",
     desc: "Track IL in real-time and compare against fee income to understand your true yield.",
-    accent: "#a78bfa",
+    accent: "#10b981",
+    bg: "#f0fdf4",
   },
   {
     icon: Gift,
     title: "Claimable Rewards",
     desc: "Never miss a reward. All pending emissions and fees aggregated across every position.",
     accent: "#f59e0b",
+    bg: "#fffbeb",
   },
   {
     icon: Wallet,
     title: "Multi-Wallet",
     desc: "Add multiple wallets and track your entire DeFi footprint from a single dashboard.",
-    accent: "#34d399",
+    accent: "#06b6d4",
+    bg: "#ecfeff",
   },
   {
     icon: History,
     title: "Portfolio History",
     desc: "Time-travel through your portfolio. Snapshots, performance charts, and event history.",
-    accent: "#f87171",
+    accent: "#ef4444",
+    bg: "#fef2f2",
   },
 ];
 
@@ -307,48 +250,40 @@ const steps = [
 // ─────────────────────────────────────────
 export default function Home() {
   return (
-    <div
-      className="min-h-screen overflow-x-hidden"
-      style={{ background: "#060D18" }}
-    >
+    <div className="min-h-screen overflow-x-hidden" style={{ background: "var(--background)" }}>
       <AppHeader />
 
       {/* ── Hero ─────────────────────────────────────── */}
-      <section className="relative min-h-[calc(100vh-72px)] flex items-center">
-        {/* Dot grid background */}
+      <section className="relative min-h-[calc(100vh-56px)] flex items-center overflow-hidden">
+        {/* Grid background */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
-            backgroundImage:
-              "radial-gradient(circle, rgba(0,229,196,0.09) 1px, transparent 1px)",
-            backgroundSize: "44px 44px",
-            maskImage:
-              "radial-gradient(ellipse 90% 70% at 50% 30%, black 30%, transparent 100%)",
+            backgroundImage: "linear-gradient(rgba(15,23,42,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(15,23,42,0.04) 1px, transparent 1px)",
+            backgroundSize: "48px 48px",
           }}
         />
-        {/* Ambient glows */}
+        {/* Blue gradient corner */}
         <div
           className="absolute pointer-events-none"
           style={{
-            top: "-10%",
-            right: "-5%",
-            width: "65vw",
-            height: "65vw",
+            top: "-15%",
+            right: "-10%",
+            width: "55vw",
+            height: "55vw",
             borderRadius: "50%",
-            background:
-              "radial-gradient(circle at 30% 40%, rgba(0,229,196,0.05) 0%, transparent 65%)",
+            background: "radial-gradient(circle, rgba(59,130,246,0.08) 0%, transparent 65%)",
           }}
         />
         <div
           className="absolute pointer-events-none"
           style={{
-            bottom: "5%",
-            left: "-8%",
-            width: "40vw",
-            height: "40vw",
+            bottom: "0",
+            left: "-5%",
+            width: "35vw",
+            height: "35vw",
             borderRadius: "50%",
-            background:
-              "radial-gradient(circle, rgba(59,130,246,0.06) 0%, transparent 65%)",
+            background: "radial-gradient(circle, rgba(139,92,246,0.06) 0%, transparent 65%)",
           }}
         />
 
@@ -361,26 +296,17 @@ export default function Home() {
               <div
                 className="inline-flex items-center gap-2.5 rounded-full px-4 py-2 mb-10"
                 style={{
-                  background: "rgba(0,229,196,0.06)",
-                  border: "1px solid rgba(0,229,196,0.2)",
-                  boxShadow: "0 0 20px rgba(0,229,196,0.04)",
+                  background: "rgba(59,130,246,0.08)",
+                  border: "1px solid rgba(59,130,246,0.18)",
                 }}
               >
                 <span
-                  className="w-2 h-2 rounded-full shrink-0"
-                  style={{
-                    background: "#00e5c4",
-                    boxShadow: "0 0 8px #00e5c4, 0 0 16px rgba(0,229,196,0.5)",
-                    animation: "pulse 2s ease-in-out infinite",
-                  }}
+                  className="w-2 h-2 rounded-full shrink-0 bg-emerald-500"
+                  style={{ animation: "pulse 2s ease-in-out infinite" }}
                 />
                 <span
-                  className="text-xs tracking-widest uppercase"
-                  style={{
-                    color: "#00e5c4",
-                    fontFamily: "var(--font-geist-mono)",
-                    letterSpacing: "0.12em",
-                  }}
+                  className="text-xs tracking-widest uppercase text-arc-500"
+                  style={{ fontFamily: "var(--font-geist-mono)", letterSpacing: "0.12em" }}
                 >
                   Live on Base &middot; Aerodrome
                 </span>
@@ -391,30 +317,20 @@ export default function Home() {
                 className="font-extrabold leading-[1.0] tracking-tight mb-8"
                 style={{
                   fontSize: "clamp(3rem, 6vw, 5rem)",
-                  color: "#f0f4ff",
-                  fontFamily:
-                    "var(--font-syne), var(--font-geist-sans), sans-serif",
+                  color: "var(--text-primary)",
+                  fontFamily: "var(--font-syne), var(--font-geist-sans), sans-serif",
                 }}
               >
                 Your LP,
                 <br />
-                <span
-                  style={{
-                    color: "#00e5c4",
-                    textShadow:
-                      "0 0 60px rgba(0,229,196,0.45), 0 0 120px rgba(0,229,196,0.2)",
-                  }}
-                >
+                <span className="text-arc-400">
                   Crystal
                 </span>
                 <br />
                 Clear.
               </h1>
 
-              <p
-                className="text-lg leading-relaxed mb-10 max-w-[460px]"
-                style={{ color: "rgba(240,244,255,0.48)" }}
-              >
+              <p className="text-lg leading-relaxed mb-10 max-w-[460px]" style={{ color: "var(--text-secondary)" }}>
                 Real-time analytics for concentrated liquidity positions. Track
                 P&L, monitor impermanent loss, and claim rewards — starting with
                 Aerodrome on Base.
@@ -424,13 +340,10 @@ export default function Home() {
               <div className="flex flex-wrap items-center gap-5 mb-12">
                 <Link
                   href="/register"
-                  className="inline-flex items-center gap-2.5 px-7 py-3.5 rounded-xl font-bold text-sm transition-all duration-200 hover:scale-[1.03] active:scale-[0.98]"
+                  className="inline-flex items-center gap-2.5 px-7 py-3.5 rounded-xl font-bold text-sm text-white transition-all duration-200 hover:scale-[1.03] active:scale-[0.98]"
                   style={{
-                    background: "#00e5c4",
-                    color: "#020910",
-                    boxShadow:
-                      "0 0 32px rgba(0,229,196,0.45), 0 4px 16px rgba(0,0,0,0.4)",
-                    fontFamily: "var(--font-geist-sans), sans-serif",
+                    background: "var(--accent)",
+                    boxShadow: "0 4px 20px var(--accent-muted), 0 1px 4px rgba(15,23,42,0.1)",
                   }}
                 >
                   Start Tracking Free
@@ -438,28 +351,25 @@ export default function Home() {
                 </Link>
                 <Link
                   href="/pools"
-                  className="inline-flex items-center gap-1.5 text-sm font-medium transition-all duration-200 hover:opacity-100 group"
-                  style={{ color: "rgba(240,244,255,0.4)" }}
+                  className="inline-flex items-center gap-1.5 text-sm font-medium transition-all duration-200 group"
+                  style={{ color: "var(--text-muted)" }}
                 >
                   Explore Pools
-                  <span
-                    className="inline-block transition-transform duration-200 group-hover:translate-x-0.5"
-                    style={{ color: "#00e5c4" }}
-                  >
+                  <span className="inline-block transition-transform duration-200 group-hover:translate-x-0.5 text-arc-400">
                     &rarr;
                   </span>
                 </Link>
               </div>
 
-              {/* Stats row — 4 bold stats */}
+              {/* Stats row */}
               <div
-                className="flex flex-wrap gap-px"
+                className="grid grid-cols-4 overflow-hidden"
                 style={{
-                  background: "rgba(255,255,255,0.05)",
+                  border: "1px solid var(--card-border)",
                   borderRadius: "14px",
-                  overflow: "hidden",
-                  border: "1px solid rgba(255,255,255,0.06)",
                   maxWidth: "480px",
+                  background: "var(--surface-1)",
+                  boxShadow: "0 1px 3px rgba(15,23,42,0.06)",
                 }}
               >
                 {[
@@ -470,19 +380,16 @@ export default function Home() {
                 ].map(({ v, l }, i) => (
                   <div
                     key={l}
-                    className="flex-1 flex flex-col items-center justify-center py-4 px-3 min-w-[80px]"
+                    className="flex flex-col items-center justify-center py-4 px-3"
                     style={{
-                      background: "#060D18",
-                      borderRight:
-                        i < 3 ? "1px solid rgba(255,255,255,0.05)" : "none",
+                      borderRight: i < 3 ? "1px solid var(--card-border)" : "none",
                     }}
                   >
                     <div
                       className="text-xl font-bold leading-none mb-1"
                       style={{
-                        color: "#f0f4ff",
-                        fontFamily:
-                          "var(--font-syne), var(--font-geist-sans), sans-serif",
+                        color: "var(--text-primary)",
+                        fontFamily: "var(--font-syne), var(--font-geist-sans), sans-serif",
                       }}
                     >
                       {v}
@@ -490,7 +397,7 @@ export default function Home() {
                     <div
                       className="text-center"
                       style={{
-                        color: "rgba(240,244,255,0.28)",
+                        color: "var(--text-muted)",
                         fontFamily: "var(--font-geist-mono)",
                         fontSize: "9px",
                         letterSpacing: "0.1em",
@@ -506,43 +413,29 @@ export default function Home() {
 
             {/* ── Dashboard preview ── */}
             <div className="relative hidden lg:block">
-              <div
-                className="absolute -inset-8 pointer-events-none"
-                style={{
-                  background:
-                    "radial-gradient(circle at 50% 50%, rgba(0,229,196,0.07) 0%, transparent 70%)",
-                }}
-              />
               <LPRangeCard />
 
               {/* Floating reward badge */}
               <div
                 className="absolute -bottom-6 -left-6 flex items-center gap-3 rounded-xl px-4 py-3 animate-float"
                 style={{
-                  background: "linear-gradient(135deg, #0a1628, #060f1e)",
-                  border: "1px solid rgba(245,158,11,0.25)",
-                  boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+                  background: "var(--surface-1)",
+                  border: "1px solid rgba(245,158,11,0.2)",
+                  boxShadow: "0 8px 32px rgba(15,23,42,0.12)",
                 }}
               >
-                <div
-                  className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-                  style={{ background: "rgba(245,158,11,0.12)" }}
-                >
-                  <Gift className="w-4 h-4 text-amber-400" />
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-amber-50">
+                  <Gift className="w-4 h-4 text-amber-500" />
                 </div>
                 <div>
                   <div
-                    className="uppercase tracking-wide"
-                    style={{
-                      color: "rgba(240,244,255,0.35)",
-                      fontFamily: "var(--font-geist-mono)",
-                      fontSize: "9px",
-                    }}
+                    className="uppercase tracking-wide text-slate-400"
+                    style={{ fontFamily: "var(--font-geist-mono)", fontSize: "9px" }}
                   >
                     Claimable Rewards
                   </div>
                   <div
-                    className="text-sm font-bold text-amber-400"
+                    className="text-sm font-bold text-amber-600"
                     style={{ fontFamily: "var(--font-geist-mono)" }}
                   >
                     $847.30 AERO
@@ -555,15 +448,11 @@ export default function Home() {
           {/* Protocol strip */}
           <div
             className="mt-16 pt-8 flex items-center gap-2.5 flex-wrap"
-            style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}
+            style={{ borderTop: "1px solid var(--card-border)" }}
           >
             <span
               className="text-xs tracking-widest uppercase mr-3"
-              style={{
-                color: "rgba(240,244,255,0.2)",
-                fontFamily: "var(--font-geist-mono)",
-                letterSpacing: "0.12em",
-              }}
+              style={{ color: "var(--text-muted)", fontFamily: "var(--font-geist-mono)", letterSpacing: "0.12em" }}
             >
               Supported
             </span>
@@ -577,26 +466,17 @@ export default function Home() {
                 key={name}
                 className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs"
                 style={{
-                  background: live
-                    ? "rgba(0,229,196,0.05)"
-                    : "rgba(255,255,255,0.025)",
-                  border: live
-                    ? "1px solid rgba(0,229,196,0.18)"
-                    : "1px solid rgba(255,255,255,0.05)",
+                  background: live ? "rgba(59,130,246,0.06)" : "var(--surface-1)",
+                  border: live ? "1px solid rgba(59,130,246,0.2)" : "1px solid var(--card-border)",
                   fontFamily: "var(--font-geist-mono)",
-                  color: live ? "#e0fdf7" : "rgba(240,244,255,0.25)",
+                  color: live ? "#2563eb" : "var(--text-muted)",
                 }}
               >
                 {name}
                 {live && (
                   <span
-                    className="px-1.5 py-0.5 rounded-full uppercase tracking-wide"
-                    style={{
-                      background: "rgba(0,229,196,0.15)",
-                      color: "#00e5c4",
-                      fontSize: "8px",
-                      letterSpacing: "0.08em",
-                    }}
+                    className="px-1.5 py-0.5 rounded-full uppercase tracking-wide text-emerald-700"
+                    style={{ background: "rgba(16,185,129,0.1)", fontSize: "8px" }}
                   >
                     live
                   </span>
@@ -608,22 +488,13 @@ export default function Home() {
       </section>
 
       {/* ── Features ─────────────────────────────────── */}
-      <section
-        className="py-28 px-6 lg:px-8"
-        style={{
-          background: "linear-gradient(180deg, #060D18 0%, #0C1826 100%)",
-        }}
-      >
+      <section className="py-28 px-6 lg:px-8 bg-white">
         <div className="max-w-6xl mx-auto">
           {/* Section header */}
           <div className="mb-20">
             <p
-              className="text-xs tracking-widest uppercase mb-5"
-              style={{
-                color: "#00e5c4",
-                fontFamily: "var(--font-geist-mono)",
-                letterSpacing: "0.16em",
-              }}
+              className="text-xs tracking-widest uppercase mb-5 text-arc-500"
+              style={{ fontFamily: "var(--font-geist-mono)", letterSpacing: "0.16em" }}
             >
               Capabilities
             </p>
@@ -632,115 +503,58 @@ export default function Home() {
                 className="font-bold leading-tight"
                 style={{
                   fontSize: "clamp(2rem, 4vw, 3rem)",
-                  color: "#f0f4ff",
-                  fontFamily:
-                    "var(--font-syne), var(--font-geist-sans), sans-serif",
+                  color: "var(--text-primary)",
+                  fontFamily: "var(--font-syne), var(--font-geist-sans), sans-serif",
                   maxWidth: "480px",
                 }}
               >
                 Everything your LP needs.
               </h2>
-              <p
-                className="text-sm max-w-xs"
-                style={{ color: "rgba(240,244,255,0.35)" }}
-              >
+              <p className="text-sm max-w-xs" style={{ color: "var(--text-muted)" }}>
                 Six analytical lenses. One unified dashboard. Zero guesswork.
               </p>
             </div>
           </div>
 
-          {/* Numbered 2-column feature list */}
-          <div className="grid sm:grid-cols-2 gap-px"
-            style={{
-              background: "rgba(255,255,255,0.04)",
-              borderRadius: "16px",
-              overflow: "hidden",
-              border: "1px solid rgba(255,255,255,0.05)",
-            }}
-          >
-            {features.map(({ icon: Icon, title, desc, accent }, idx) => {
-              const num = String(idx + 1).padStart(2, "0");
-              return (
+          {/* Feature cards grid */}
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {features.map(({ icon: Icon, title, desc, accent, bg }) => (
+              <div
+                key={title}
+                className="group rounded-xl p-6 transition-all duration-300 border hover:shadow-md cursor-default"
+                style={{
+                  background: "var(--surface-1)",
+                  border: "1px solid var(--card-border)",
+                }}
+              >
                 <div
-                  key={title}
-                  className="group relative flex gap-5 p-7 transition-all duration-300 cursor-default"
-                  style={{
-                    background: "#060D18",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = `linear-gradient(135deg, ${accent}06 0%, #060D18 100%)`;
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "#060D18";
-                  }}
+                  className="w-10 h-10 rounded-xl flex items-center justify-center mb-4"
+                  style={{ background: bg }}
                 >
-                  {/* Number */}
-                  <div
-                    className="shrink-0 mt-0.5"
-                    style={{
-                      fontFamily: "var(--font-geist-mono)",
-                      fontSize: "11px",
-                      color: "#00e5c4",
-                      letterSpacing: "0.04em",
-                      lineHeight: 1,
-                      paddingTop: "2px",
-                    }}
-                  >
-                    {num}
-                  </div>
-
-                  {/* Icon */}
-                  <div
-                    className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center mt-0.5 transition-all duration-300"
-                    style={{
-                      background: `${accent}10`,
-                      border: `1px solid ${accent}18`,
-                    }}
-                  >
-                    <Icon className="w-4 h-4" style={{ color: accent }} />
-                  </div>
-
-                  {/* Text */}
-                  <div className="min-w-0">
-                    <h3
-                      className="text-sm font-semibold mb-1.5"
-                      style={{
-                        color: "#f0f4ff",
-                        fontFamily:
-                          "var(--font-syne), var(--font-geist-sans), sans-serif",
-                      }}
-                    >
-                      {title}
-                    </h3>
-                    <p
-                      className="text-sm leading-relaxed"
-                      style={{ color: "rgba(240,244,255,0.38)" }}
-                    >
-                      {desc}
-                    </p>
-                  </div>
+                  <Icon className="w-5 h-5" style={{ color: accent }} />
                 </div>
-              );
-            })}
+                <h3
+                  className="text-sm font-semibold mb-2"
+                  style={{ color: "var(--text-primary)", fontFamily: "var(--font-syne), sans-serif" }}
+                >
+                  {title}
+                </h3>
+                <p className="text-sm leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+                  {desc}
+                </p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
       {/* ── How it Works ─────────────────────────────── */}
-      <section
-        className="py-28 px-6 lg:px-8"
-        style={{ background: "#060D18" }}
-      >
+      <section className="py-28 px-6 lg:px-8" style={{ background: "var(--background)" }}>
         <div className="max-w-5xl mx-auto">
-          {/* Section header */}
           <div className="mb-20">
             <p
-              className="text-xs tracking-widest uppercase mb-5"
-              style={{
-                color: "#00e5c4",
-                fontFamily: "var(--font-geist-mono)",
-                letterSpacing: "0.16em",
-              }}
+              className="text-xs tracking-widest uppercase mb-5 text-arc-500"
+              style={{ fontFamily: "var(--font-geist-mono)", letterSpacing: "0.16em" }}
             >
               Getting Started
             </p>
@@ -748,18 +562,16 @@ export default function Home() {
               className="font-bold"
               style={{
                 fontSize: "clamp(2rem, 4vw, 3rem)",
-                color: "#f0f4ff",
-                fontFamily:
-                  "var(--font-syne), var(--font-geist-sans), sans-serif",
+                color: "var(--text-primary)",
+                fontFamily: "var(--font-syne), var(--font-geist-sans), sans-serif",
               }}
             >
               Up and running in minutes.
             </h2>
           </div>
 
-          {/* Steps — horizontal row */}
           <div className="relative grid sm:grid-cols-3 gap-0">
-            {/* Refined connector line */}
+            {/* Connector line */}
             <div
               className="absolute hidden sm:block pointer-events-none"
               style={{
@@ -767,11 +579,9 @@ export default function Home() {
                 left: "calc(16.66% + 22px)",
                 right: "calc(16.66% + 22px)",
                 height: "1px",
-                background:
-                  "linear-gradient(90deg, rgba(0,229,196,0.35) 0%, rgba(0,229,196,0.12) 50%, rgba(0,229,196,0.35) 100%)",
+                background: "linear-gradient(90deg, rgba(59,130,246,0.3) 0%, rgba(59,130,246,0.1) 50%, rgba(59,130,246,0.3) 100%)",
               }}
             />
-            {/* Connector dots */}
             <div
               className="absolute hidden sm:block pointer-events-none"
               style={{
@@ -780,7 +590,7 @@ export default function Home() {
                 width: "5px",
                 height: "5px",
                 borderRadius: "50%",
-                background: "rgba(0,229,196,0.3)",
+                background: "rgba(59,130,246,0.4)",
               }}
             />
 
@@ -788,25 +598,14 @@ export default function Home() {
               <div
                 key={n}
                 className="relative flex flex-col items-center sm:items-start text-center sm:text-left px-6 sm:px-8"
-                style={{
-                  borderLeft: i > 0 ? "none" : undefined,
-                }}
               >
                 {/* Step number badge */}
                 <div
                   className="relative w-11 h-11 rounded-full flex items-center justify-center mb-8 shrink-0"
                   style={{
-                    background:
-                      i === 0
-                        ? "rgba(0,229,196,0.12)"
-                        : "rgba(255,255,255,0.04)",
-                    border: `1px solid ${
-                      i === 0
-                        ? "rgba(0,229,196,0.4)"
-                        : "rgba(255,255,255,0.08)"
-                    }`,
-                    boxShadow:
-                      i === 0 ? "0 0 20px rgba(0,229,196,0.12)" : "none",
+                    background: i === 0 ? "rgba(59,130,246,0.1)" : "var(--surface-1)",
+                    border: `1px solid ${i === 0 ? "rgba(59,130,246,0.35)" : "var(--card-border)"}`,
+                    boxShadow: i === 0 ? "0 0 20px rgba(59,130,246,0.15)" : "0 1px 3px rgba(15,23,42,0.06)",
                   }}
                 >
                   <span
@@ -814,7 +613,7 @@ export default function Home() {
                       fontFamily: "var(--font-geist-mono)",
                       fontSize: "12px",
                       fontWeight: 700,
-                      color: i === 0 ? "#00e5c4" : "rgba(240,244,255,0.22)",
+                      color: i === 0 ? "#3b82f6" : "var(--text-dim)",
                       letterSpacing: "0.04em",
                     }}
                   >
@@ -824,18 +623,11 @@ export default function Home() {
 
                 <h3
                   className="text-lg font-bold mb-3 leading-snug"
-                  style={{
-                    color: "#f0f4ff",
-                    fontFamily:
-                      "var(--font-syne), var(--font-geist-sans), sans-serif",
-                  }}
+                  style={{ color: "var(--text-primary)", fontFamily: "var(--font-syne), var(--font-geist-sans), sans-serif" }}
                 >
                   {title}
                 </h3>
-                <p
-                  className="text-sm leading-relaxed"
-                  style={{ color: "rgba(240,244,255,0.38)" }}
-                >
+                <p className="text-sm leading-relaxed" style={{ color: "var(--text-secondary)" }}>
                   {desc}
                 </p>
               </div>
@@ -845,88 +637,54 @@ export default function Home() {
       </section>
 
       {/* ── CTA ──────────────────────────────────────── */}
-      <section className="py-24 px-6 lg:px-8">
+      <section className="py-24 px-6 lg:px-8 bg-white">
         <div className="max-w-4xl mx-auto">
           <div
             className="relative rounded-2xl overflow-hidden"
             style={{
-              background: "linear-gradient(160deg, #0C1826 0%, #060D18 100%)",
-              border: "1px solid rgba(255,255,255,0.07)",
-              borderTop: "1px solid rgba(0,229,196,0.45)",
-              boxShadow:
-                "0 0 0 1px rgba(0,0,0,0.4), 0 32px 64px rgba(0,0,0,0.5)",
+              background: "#0f172a",
+              border: "1px solid rgba(255,255,255,0.06)",
+              borderTop: "2px solid #3b82f6",
+              boxShadow: "0 32px 64px rgba(15,23,42,0.2)",
             }}
           >
-            {/* Top-edge teal accent glow */}
+            {/* Blue glow */}
             <div
               className="absolute top-0 left-0 right-0 pointer-events-none"
               style={{
                 height: "120px",
-                background:
-                  "linear-gradient(180deg, rgba(0,229,196,0.08) 0%, transparent 100%)",
-              }}
-            />
-            {/* Corner ambient */}
-            <div
-              className="absolute -top-px -right-px pointer-events-none"
-              style={{
-                width: "320px",
-                height: "320px",
-                background:
-                  "radial-gradient(circle at 100% 0%, rgba(0,229,196,0.06) 0%, transparent 65%)",
+                background: "linear-gradient(180deg, rgba(59,130,246,0.1) 0%, transparent 100%)",
               }}
             />
 
             <div className="relative z-10 px-10 py-14 sm:px-16 sm:py-16 text-center">
-              {/* Section label badge */}
+              {/* Badge */}
               <div
                 className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full mb-10"
-                style={{
-                  background: "rgba(0,229,196,0.07)",
-                  border: "1px solid rgba(0,229,196,0.2)",
-                }}
+                style={{ background: "rgba(59,130,246,0.12)", border: "1px solid rgba(59,130,246,0.25)" }}
               >
-                <Zap
-                  className="w-3 h-3"
-                  style={{ color: "#00e5c4" }}
-                />
+                <Zap className="w-3 h-3 text-arc-400" />
                 <span
-                  className="text-xs tracking-widest uppercase"
-                  style={{
-                    color: "#00e5c4",
-                    fontFamily: "var(--font-geist-mono)",
-                    letterSpacing: "0.14em",
-                  }}
+                  className="text-xs tracking-widest uppercase text-arc-400"
+                  style={{ fontFamily: "var(--font-geist-mono)", letterSpacing: "0.14em" }}
                 >
                   Free to get started
                 </span>
               </div>
 
               <h2
-                className="font-bold mb-5 leading-tight"
+                className="font-bold mb-5 leading-tight text-white"
                 style={{
                   fontSize: "clamp(2rem, 4vw, 3rem)",
-                  color: "#f0f4ff",
-                  fontFamily:
-                    "var(--font-syne), var(--font-geist-sans), sans-serif",
+                  fontFamily: "var(--font-syne), var(--font-geist-sans), sans-serif",
                 }}
               >
                 Take control of your
                 <br />
-                <span
-                  style={{
-                    color: "#00e5c4",
-                    textShadow: "0 0 40px rgba(0,229,196,0.35)",
-                  }}
-                >
-                  liquidity positions.
-                </span>
+                  <span className="text-arc-400">liquidity positions.</span>
               </h2>
 
-              <p
-                className="text-lg mb-12 max-w-md mx-auto leading-relaxed"
-                style={{ color: "rgba(240,244,255,0.42)" }}
-              >
+              <p className="text-lg mb-12 max-w-md mx-auto leading-relaxed text-slate-400">
                 Join liquidity providers who track their DeFi positions with
                 LiquidArc. No credit card required.
               </p>
@@ -934,13 +692,10 @@ export default function Home() {
               <div className="flex flex-wrap justify-center gap-4">
                 <Link
                   href="/register"
-                  className="inline-flex items-center gap-2.5 px-8 py-4 rounded-xl font-bold text-sm transition-all duration-200 hover:scale-[1.03] active:scale-[0.97]"
+                  className="inline-flex items-center gap-2.5 px-8 py-4 rounded-xl font-bold text-sm text-white transition-all duration-200 hover:scale-[1.03] active:scale-[0.97]"
                   style={{
-                    background: "#00e5c4",
-                    color: "#020910",
-                    boxShadow:
-                      "0 0 36px rgba(0,229,196,0.45), 0 4px 16px rgba(0,0,0,0.4)",
-                    fontFamily: "var(--font-geist-sans), sans-serif",
+                    background: "var(--accent)",
+                    boxShadow: "0 0 36px var(--accent-muted), 0 4px 16px rgba(0,0,0,0.3)",
                   }}
                 >
                   Create Free Account
@@ -948,12 +703,8 @@ export default function Home() {
                 </Link>
                 <Link
                   href="/pools"
-                  className="inline-flex items-center gap-2 px-8 py-4 rounded-xl text-sm font-medium transition-all duration-200 hover:border-white/20 hover:text-white/70"
-                  style={{
-                    border: "1px solid rgba(255,255,255,0.1)",
-                    color: "rgba(240,244,255,0.45)",
-                    background: "transparent",
-                  }}
+                  className="inline-flex items-center gap-2 px-8 py-4 rounded-xl text-sm font-medium transition-all duration-200 text-slate-400 hover:text-slate-200"
+                  style={{ border: "1px solid rgba(255,255,255,0.1)", background: "transparent" }}
                 >
                   Explore Pools First
                 </Link>
@@ -965,43 +716,25 @@ export default function Home() {
 
       {/* ── Footer ───────────────────────────────────── */}
       <footer
-        className="py-8 px-6 lg:px-8"
-        style={{
-          borderTop: "1px solid rgba(255,255,255,0.05)",
-          background: "#060D18",
-        }}
+        className="py-10 px-6 lg:px-8"
+        style={{ borderTop: "1px solid var(--card-border)", background: "var(--surface-1)" }}
       >
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-5">
-          {/* Left: Logo + tagline */}
+          {/* Logo + tagline */}
           <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
             <span
               className="text-base font-bold"
-              style={{
-                color: "#f0f4ff",
-                fontFamily:
-                  "var(--font-syne), var(--font-geist-sans), sans-serif",
-              }}
+              style={{ color: "var(--text-primary)", fontFamily: "var(--font-syne), sans-serif" }}
             >
               LiquidArc
             </span>
-            <span
-              className="hidden sm:block text-xs"
-              style={{ color: "rgba(240,244,255,0.12)" }}
-            >
-              /
-            </span>
-            <span
-              className="text-xs"
-              style={{
-                color: "rgba(240,244,255,0.22)",
-                fontFamily: "var(--font-geist-mono)",
-              }}
-            >
+            <span className="hidden sm:block text-xs text-slate-300">/</span>
+            <span className="text-xs" style={{ color: "var(--text-muted)", fontFamily: "var(--font-geist-mono)" }}>
               Built on Base &middot; More chains coming
             </span>
           </div>
 
-          {/* Center: Nav links */}
+          {/* Nav links */}
           <div className="flex items-center gap-8">
             {[
               { href: "/pools", label: "Pools" },
@@ -1011,25 +744,16 @@ export default function Home() {
               <Link
                 key={href}
                 href={href}
-                className="text-xs transition-all duration-150 hover:text-white"
-                style={{
-                  color: "rgba(240,244,255,0.28)",
-                  fontFamily: "var(--font-geist-mono)",
-                }}
+                className="text-xs transition-colors hover:text-arc-500"
+                style={{ color: "var(--text-muted)", fontFamily: "var(--font-geist-mono)" }}
               >
                 {label}
               </Link>
             ))}
           </div>
 
-          {/* Right: Copyright */}
-          <div
-            className="text-xs"
-            style={{
-              color: "rgba(240,244,255,0.16)",
-              fontFamily: "var(--font-geist-mono)",
-            }}
-          >
+          {/* Copyright */}
+          <div className="text-xs" style={{ color: "var(--text-dim)", fontFamily: "var(--font-geist-mono)" }}>
             &copy; {new Date().getFullYear()} LiquidArc
           </div>
         </div>

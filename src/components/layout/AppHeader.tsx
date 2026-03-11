@@ -20,14 +20,25 @@ export function AppHeader({ leftSlot, rightSlot, hideConnect }: AppHeaderProps) 
   const pathname = usePathname();
 
   return (
-    <header className="sticky top-0 z-30" style={{ background: "rgba(3,11,20,0.88)", backdropFilter: "blur(14px)", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+    <header
+      className="sticky top-0 z-30"
+      style={{
+        background: "rgba(255,255,255,0.95)",
+        backdropFilter: "blur(12px)",
+        borderBottom: "1px solid rgba(15,23,42,0.08)",
+        boxShadow: "0 1px 3px rgba(15,23,42,0.06)",
+      }}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           {leftSlot}
 
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-arc-600/20 border border-arc-500/25 flex items-center justify-center">
+            <div
+              className="w-7 h-7 rounded-lg flex items-center justify-center"
+              style={{ background: "var(--accent-muted)", border: "1px solid var(--accent-border)" }}
+            >
               <svg
                 viewBox="0 0 24 24"
                 fill="none"
@@ -42,7 +53,10 @@ export function AppHeader({ leftSlot, rightSlot, hideConnect }: AppHeaderProps) 
                 />
               </svg>
             </div>
-            <span className="text-slate-100 font-bold text-sm tracking-tight hidden sm:block">
+            <span
+              className="font-bold text-sm tracking-tight hidden sm:block"
+              style={{ color: "var(--text-primary)", fontFamily: "var(--font-syne), sans-serif" }}
+            >
               LiquidArc
             </span>
           </Link>
@@ -57,9 +71,10 @@ export function AppHeader({ leftSlot, rightSlot, hideConnect }: AppHeaderProps) 
                   href={href}
                   className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg transition-all ${
                     isActive
-                      ? "text-slate-100 bg-slate-800/60"
-                      : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/30"
+                      ? "text-arc-400 bg-arc-50"
+                      : "hover:text-arc-500 hover:bg-slate-50"
                   }`}
+                  style={{ color: isActive ? undefined : "var(--text-secondary)" }}
                 >
                   <Icon className="w-3.5 h-3.5" />
                   {label}
@@ -79,8 +94,9 @@ export function AppHeader({ leftSlot, rightSlot, hideConnect }: AppHeaderProps) 
                   key={href}
                   href={href}
                   className={`p-2 rounded-lg transition-all ${
-                    isActive ? "text-slate-100 bg-slate-800/60" : "text-slate-500 hover:text-slate-300"
+                    isActive ? "text-arc-400 bg-arc-50" : "hover:bg-slate-100"
                   }`}
+                  style={{ color: isActive ? undefined : "var(--text-muted)" }}
                 >
                   <Icon className="w-4 h-4" />
                 </Link>

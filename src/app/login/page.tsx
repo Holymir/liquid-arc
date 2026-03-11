@@ -25,7 +25,7 @@ export default function LoginPage() {
 
   if (status === "loading") {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: "#030b14" }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--background)" }}>
         <Loader2 className="w-5 h-5 animate-spin text-arc-400" />
       </div>
     );
@@ -44,18 +44,18 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex" style={{ background: "#030b14" }}>
+    <div className="min-h-screen flex" style={{ background: "var(--background)" }}>
       <AuthLeftPanel />
 
       {/* Right panel */}
-      <div className="flex-1 flex items-center justify-center px-8 py-16">
+      <div className="flex-1 flex items-center justify-center px-8 py-16 bg-white">
         <div className="w-full max-w-sm auth-reveal">
           {/* Mobile brand */}
           <div className="lg:hidden mb-10">
             <Link
               href="/"
               className="text-xl font-extrabold hover:opacity-80 transition-opacity"
-              style={{ color: "#f0f4ff", fontFamily: "var(--font-syne), sans-serif" }}
+              style={{ color: "var(--text-primary)", fontFamily: "var(--font-syne), sans-serif" }}
             >
               LiquidArc
             </Link>
@@ -64,11 +64,11 @@ export default function LoginPage() {
           <div className="mb-10">
             <h1
               className="text-[34px] font-extrabold mb-2 leading-tight"
-              style={{ color: "#f0f4ff", fontFamily: "var(--font-syne), sans-serif" }}
+              style={{ color: "var(--text-primary)", fontFamily: "var(--font-syne), sans-serif" }}
             >
               Welcome back.
             </h1>
-            <p className="text-sm" style={{ color: "rgba(240,244,255,0.38)" }}>
+            <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
               Sign in to your account to continue.
             </p>
           </div>
@@ -112,7 +112,7 @@ export default function LoginPage() {
                 <Link
                   href="/forgot-password"
                   className="transition-opacity hover:opacity-80"
-                  style={{ color: "rgba(240,244,255,0.3)", fontFamily: "var(--font-geist-mono)", fontSize: "10px" }}
+                  style={{ color: "var(--text-muted)", fontFamily: "var(--font-geist-mono)", fontSize: "10px" }}
                 >
                   Forgot?
                 </Link>
@@ -154,7 +154,7 @@ export default function LoginPage() {
 
           <p
             className="mt-8 text-xs text-center"
-            style={{ color: "rgba(240,244,255,0.28)", fontFamily: "var(--font-geist-mono)" }}
+            style={{ color: "var(--text-muted)", fontFamily: "var(--font-geist-mono)" }}
           >
             No account?{" "}
             <Link href="/register" className="transition-opacity hover:opacity-80 text-arc-400">

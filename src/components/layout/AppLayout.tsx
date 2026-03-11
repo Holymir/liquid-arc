@@ -23,7 +23,7 @@ function LogoMark({ size = "md" }: { size?: "sm" | "md" }) {
   return (
     <div
       className={`${dim} rounded-lg flex items-center justify-center shrink-0`}
-      style={{ background: "rgba(0,229,196,0.12)", border: "1px solid rgba(0,229,196,0.22)" }}
+      style={{ background: "var(--accent-muted)", border: "1px solid var(--accent-border)" }}
     >
       <svg
         viewBox="0 0 24 24" fill="none"
@@ -38,7 +38,7 @@ function LogoMark({ size = "md" }: { size?: "sm" | "md" }) {
 }
 
 // ─────────────────────────────────────────
-// Nav link
+// Nav link — CSS-only hover via data-active
 // ─────────────────────────────────────────
 function NavLink({
   href, label, icon: Icon, active, onClick,
@@ -52,7 +52,7 @@ function NavLink({
       data-active={active ? "" : undefined}
       className="sidebar-nav-link flex items-center gap-3 text-sm font-medium transition-colors"
     >
-      <Icon className={`w-4 h-4 shrink-0 ${active ? "text-arc-400" : "text-slate-600"}`} />
+      <Icon className={`w-4 h-4 shrink-0 ${active ? "text-arc-400" : "text-slate-500"}`} />
       <span>{label}</span>
     </Link>
   );
@@ -81,15 +81,17 @@ export function AppLayout({ children, sidebarSlot, mobileTitle }: AppLayoutProps
         className="sticky top-0 z-30 h-14 flex items-center justify-between px-4 sm:px-6 shrink-0"
         style={{
           background: "var(--header-bg)",
-          backdropFilter: "blur(16px)",
+          backdropFilter: "blur(12px)",
           borderBottom: "1px solid var(--header-border)",
+          boxShadow: "0 1px 0 rgba(15,23,42,0.06)",
         }}
       >
         {/* Left — hamburger + mobile brand */}
         <div className="flex items-center gap-3">
           <button
             onClick={() => setSidebarOpen((v) => !v)}
-            className="lg:hidden p-1.5 rounded-lg text-slate-600 hover:text-slate-300 hover:bg-white/5 transition-colors"
+            className="lg:hidden p-1.5 rounded-lg hover:bg-black/5 transition-colors"
+            style={{ color: "var(--text-secondary)" }}
             aria-label="Toggle navigation"
           >
             <Menu className="w-5 h-5" />
@@ -116,7 +118,7 @@ export function AppLayout({ children, sidebarSlot, mobileTitle }: AppLayoutProps
         {/* Mobile backdrop */}
         {sidebarOpen && (
           <div
-            className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm lg:hidden"
+            className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden"
             onClick={close}
           />
         )}
@@ -135,26 +137,26 @@ export function AppLayout({ children, sidebarSlot, mobileTitle }: AppLayoutProps
             borderRight: "1px solid var(--sidebar-border)",
           }}
         >
-          {/* Desktop brand header — teal top accent */}
+          {/* Desktop brand header */}
           <Link
             href="/"
             className="hidden lg:flex items-center gap-3 h-16 px-5 shrink-0 hover:opacity-80 transition-opacity"
             style={{
               borderBottom: "1px solid rgba(255,255,255,0.05)",
-              borderTop: "2px solid rgba(0,229,196,0.5)",
+              borderTop: "2px solid var(--accent)",
             }}
           >
             <LogoMark />
             <div>
               <span
-                className="block font-bold text-sm tracking-tight leading-none"
-                style={{ color: "var(--text-primary)", fontFamily: "var(--font-syne), sans-serif" }}
+                className="block font-bold text-sm tracking-tight leading-none text-white"
+                style={{ fontFamily: "var(--font-syne), sans-serif" }}
               >
                 LiquidArc
               </span>
               <span
                 className="block text-[9px] tracking-widest uppercase mt-0.5"
-                style={{ color: "rgba(0,229,196,0.5)", fontFamily: "var(--font-geist-mono)" }}
+                style={{ color: "rgba(59,130,246,0.55)", fontFamily: "var(--font-geist-mono)" }}
               >
                 Portfolio
               </span>
@@ -168,12 +170,12 @@ export function AppLayout({ children, sidebarSlot, mobileTitle }: AppLayoutProps
           >
             <Link href="/" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
               <LogoMark size="sm" />
-              <span className="font-bold text-sm"
-                style={{ color: "var(--text-primary)", fontFamily: "var(--font-syne), sans-serif" }}>
+              <span className="font-bold text-sm text-white"
+                style={{ fontFamily: "var(--font-syne), sans-serif" }}>
                 LiquidArc
               </span>
             </Link>
-            <button onClick={close} className="p-1.5 rounded-lg text-slate-600 hover:text-slate-300 transition-colors">
+            <button onClick={close} className="p-1.5 rounded-lg text-slate-500 hover:text-slate-300 transition-colors">
               <X className="w-4 h-4" />
             </button>
           </div>
@@ -181,7 +183,7 @@ export function AppLayout({ children, sidebarSlot, mobileTitle }: AppLayoutProps
           {/* Nav links */}
           <nav className="px-3 pt-6 pb-2 flex flex-col gap-0.5">
             <p className="px-3 mb-2 text-[9px] uppercase tracking-[0.18em] font-semibold"
-              style={{ color: "var(--text-dim)", fontFamily: "var(--font-geist-mono)" }}>
+              style={{ color: "rgba(100,116,139,0.7)", fontFamily: "var(--font-geist-mono)" }}>
               Navigation
             </p>
             {NAV_LINKS.map(({ href, label, icon }) => {
@@ -211,17 +213,17 @@ export function AppLayout({ children, sidebarSlot, mobileTitle }: AppLayoutProps
             style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}
           >
             <div className="flex items-center gap-2.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-arc-400 pulse-teal shrink-0" />
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 pulse-teal shrink-0" />
               <div>
                 <span
                   className="text-[9px] uppercase tracking-[0.16em] font-semibold block"
-                  style={{ color: "rgba(0,229,196,0.7)", fontFamily: "var(--font-geist-mono)" }}
+                  style={{ color: "rgba(52,211,153,0.8)", fontFamily: "var(--font-geist-mono)" }}
                 >
                   Live · Base
                 </span>
                 <span
                   className="text-[9px] block mt-0.5"
-                  style={{ color: "var(--text-dim)", fontFamily: "var(--font-geist-mono)" }}
+                  style={{ color: "rgba(100,116,139,0.7)", fontFamily: "var(--font-geist-mono)" }}
                 >
                   Aerodrome
                 </span>

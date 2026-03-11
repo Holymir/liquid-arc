@@ -270,9 +270,9 @@ export default function PoolsPage() {
               <span
                 className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold tabular-nums"
                 style={{
-                  background: "rgba(255,255,255,0.05)",
+                  background: "rgba(15,23,42,0.05)",
                   color: "var(--text-secondary)",
-                  border: "1px solid rgba(255,255,255,0.07)",
+                  border: "1px solid rgba(15,23,42,0.07)",
                 }}
               >
                 {pagination.total.toLocaleString()}
@@ -283,14 +283,14 @@ export default function PoolsPage() {
             <span
               className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold"
               style={{
-                background: "rgba(0,229,196,0.08)",
-                color: "#00e5c4",
-                border: "1px solid rgba(0,229,196,0.18)",
+                background: "rgba(59,130,246,0.08)",
+                color: "#3b82f6",
+                border: "1px solid rgba(59,130,246,0.18)",
               }}
             >
               <span
                 className="w-1.5 h-1.5 rounded-full pulse-teal"
-                style={{ background: "#00e5c4", display: "inline-block" }}
+                style={{ background: "#3b82f6", display: "inline-block" }}
               />
               Live
             </span>
@@ -317,16 +317,16 @@ export default function PoolsPage() {
               className="w-full pl-9 pr-3 py-2 rounded-lg text-sm focus:outline-none transition-all"
               style={{
                 background: "var(--surface-1)",
-                border: "1px solid rgba(255,255,255,0.07)",
+                border: "1px solid rgba(15,23,42,0.07)",
                 color: "var(--text-primary)",
               }}
               onFocus={(e) => {
-                e.currentTarget.style.borderColor = "rgba(0,229,196,0.35)";
+                e.currentTarget.style.borderColor = "rgba(59,130,246,0.35)";
                 e.currentTarget.style.boxShadow =
-                  "0 0 0 3px rgba(0,229,196,0.07)";
+                  "0 0 0 3px rgba(59,130,246,0.07)";
               }}
               onBlur={(e) => {
-                e.currentTarget.style.borderColor = "rgba(255,255,255,0.07)";
+                e.currentTarget.style.borderColor = "rgba(15,23,42,0.07)";
                 e.currentTarget.style.boxShadow = "none";
               }}
             />
@@ -339,13 +339,13 @@ export default function PoolsPage() {
             style={
               filtersOpen || activeFilterCount > 0
                 ? {
-                    background: "rgba(0,229,196,0.08)",
-                    border: "1px solid rgba(0,229,196,0.28)",
-                    color: "#00e5c4",
+                    background: "rgba(59,130,246,0.08)",
+                    border: "1px solid rgba(59,130,246,0.28)",
+                    color: "#3b82f6",
                   }
                 : {
                     background: "var(--surface-1)",
-                    border: "1px solid rgba(255,255,255,0.07)",
+                    border: "1px solid rgba(15,23,42,0.07)",
                     color: "var(--text-secondary)",
                   }
             }
@@ -356,8 +356,8 @@ export default function PoolsPage() {
               <span
                 className="inline-flex items-center justify-center w-4 h-4 rounded-full text-[9px] font-bold"
                 style={{
-                  background: "rgba(0,229,196,0.18)",
-                  color: "#00e5c4",
+                  background: "rgba(59,130,246,0.18)",
+                  color: "#3b82f6",
                 }}
               >
                 {activeFilterCount}
@@ -394,12 +394,12 @@ export default function PoolsPage() {
               hideEmpty
                 ? {
                     background: "var(--surface-1)",
-                    border: "1px solid rgba(255,255,255,0.09)",
+                    border: "1px solid rgba(15,23,42,0.08)",
                     color: "var(--text-secondary)",
                   }
                 : {
                     background: "transparent",
-                    border: "1px solid rgba(255,255,255,0.05)",
+                    border: "1px solid rgba(15,23,42,0.05)",
                     color: "var(--text-muted)",
                   }
             }
@@ -434,7 +434,7 @@ export default function PoolsPage() {
             className="sm:hidden rounded-lg px-3 py-2 text-sm focus:outline-none transition-all"
             style={{
               background: "var(--surface-1)",
-              border: "1px solid rgba(255,255,255,0.07)",
+              border: "1px solid rgba(15,23,42,0.07)",
               color: "var(--text-secondary)",
             }}
           >
@@ -477,16 +477,16 @@ export default function PoolsPage() {
                         } py-1.5 rounded-lg text-xs font-mono tabular-nums focus:outline-none transition-all`}
                         style={{
                           background: "var(--surface-2)",
-                          border: "1px solid rgba(255,255,255,0.07)",
+                          border: "1px solid rgba(15,23,42,0.07)",
                           color: "var(--text-primary)",
                         }}
                         onFocus={(e) => {
                           e.currentTarget.style.borderColor =
-                            "rgba(0,229,196,0.30)";
+                            "rgba(59,130,246,0.30)";
                         }}
                         onBlur={(e) => {
                           e.currentTarget.style.borderColor =
-                            "rgba(255,255,255,0.07)";
+                            "rgba(15,23,42,0.07)";
                         }}
                       />
                       {col.suffix && (
@@ -526,16 +526,16 @@ export default function PoolsPage() {
                         } py-1.5 rounded-lg text-xs font-mono tabular-nums focus:outline-none transition-all`}
                         style={{
                           background: "var(--surface-2)",
-                          border: "1px solid rgba(255,255,255,0.07)",
+                          border: "1px solid rgba(15,23,42,0.07)",
                           color: "var(--text-primary)",
                         }}
                         onFocus={(e) => {
                           e.currentTarget.style.borderColor =
-                            "rgba(0,229,196,0.30)";
+                            "rgba(59,130,246,0.30)";
                         }}
                         onBlur={(e) => {
                           e.currentTarget.style.borderColor =
-                            "rgba(255,255,255,0.07)";
+                            "rgba(15,23,42,0.07)";
                         }}
                       />
                       {col.suffix && (
@@ -620,7 +620,7 @@ export default function PoolsPage() {
                       <td colSpan={10}>
                         <div
                           className="h-5 rounded animate-pulse"
-                          style={{ background: "rgba(255,255,255,0.04)" }}
+                          style={{ background: "rgba(15,23,42,0.04)" }}
                         />
                       </td>
                     </tr>
@@ -656,8 +656,8 @@ export default function PoolsPage() {
                             <span
                               className="text-[10px] rounded-md px-1.5 py-0.5 font-mono"
                               style={{
-                                background: "rgba(255,255,255,0.04)",
-                                border: "1px solid rgba(255,255,255,0.07)",
+                                background: "rgba(15,23,42,0.04)",
+                                border: "1px solid rgba(15,23,42,0.07)",
                                 color: "var(--text-muted)",
                               }}
                             >
@@ -756,7 +756,7 @@ export default function PoolsPage() {
           {pagination.totalPages > 1 && (
             <div
               className="flex items-center justify-between px-4 py-3"
-              style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
+              style={{ borderTop: "1px solid rgba(15,23,42,0.06)" }}
             >
               <button
                 disabled={page <= 1 || refetching}

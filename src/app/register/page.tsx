@@ -25,7 +25,7 @@ export default function RegisterPage() {
 
   if (status === "loading") {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: "#030b14" }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--background)" }}>
         <Loader2 className="w-5 h-5 animate-spin text-arc-400" />
       </div>
     );
@@ -44,16 +44,16 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex" style={{ background: "#030b14" }}>
+    <div className="min-h-screen flex" style={{ background: "var(--background)" }}>
       <AuthLeftPanel />
 
-      <div className="flex-1 flex items-center justify-center px-8 py-16">
+      <div className="flex-1 flex items-center justify-center px-8 py-16 bg-white">
         <div className="w-full max-w-sm auth-reveal">
           <div className="lg:hidden mb-10">
             <Link
               href="/"
               className="text-xl font-extrabold hover:opacity-80 transition-opacity"
-              style={{ color: "#f0f4ff", fontFamily: "var(--font-syne), sans-serif" }}
+              style={{ color: "var(--text-primary)", fontFamily: "var(--font-syne), sans-serif" }}
             >
               LiquidArc
             </Link>
@@ -61,10 +61,10 @@ export default function RegisterPage() {
 
           <div className="mb-10">
             <h1 className="text-[34px] font-extrabold mb-2 leading-tight"
-              style={{ color: "#f0f4ff", fontFamily: "var(--font-syne), sans-serif" }}>
+              style={{ color: "var(--text-primary)", fontFamily: "var(--font-syne), sans-serif" }}>
               Create account.
             </h1>
-            <p className="text-sm" style={{ color: "rgba(240,244,255,0.38)" }}>
+            <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
               Start tracking your DeFi positions for free.
             </p>
           </div>
@@ -72,7 +72,7 @@ export default function RegisterPage() {
           <form onSubmit={handleSubmit} autoComplete="on" className="space-y-8">
             <div>
               <label htmlFor="register-email" className="block mb-3" style={{
-                color: "#00e5c4", fontFamily: "var(--font-geist-mono)",
+                color: "var(--accent)", fontFamily: "var(--font-geist-mono)",
                 fontSize: "10px", letterSpacing: "0.15em", textTransform: "uppercase",
               }}>Email</label>
               <input
@@ -85,7 +85,7 @@ export default function RegisterPage() {
 
             <div>
               <label htmlFor="register-password" className="block mb-3" style={{
-                color: "#00e5c4", fontFamily: "var(--font-geist-mono)",
+                color: "var(--accent)", fontFamily: "var(--font-geist-mono)",
                 fontSize: "10px", letterSpacing: "0.15em", textTransform: "uppercase",
               }}>Password</label>
               <input
@@ -115,7 +115,7 @@ export default function RegisterPage() {
           </form>
 
           <p className="mt-8 text-xs text-center"
-            style={{ color: "rgba(240,244,255,0.28)", fontFamily: "var(--font-geist-mono)" }}>
+            style={{ color: "var(--text-muted)", fontFamily: "var(--font-geist-mono)" }}>
             Already have an account?{" "}
             <Link href="/login" className="transition-opacity hover:opacity-80 text-arc-400">
               Sign in

@@ -26,12 +26,12 @@ function LPArcVisual() {
         </filter>
       </defs>
 
-      <circle cx="140" cy="140" r="120" stroke="rgba(255,255,255,0.04)" strokeWidth="1" />
-      <circle cx="140" cy="140" r="90"  stroke="rgba(255,255,255,0.04)" strokeWidth="1" />
-      <circle cx="140" cy="140" r="60"  stroke="rgba(255,255,255,0.04)" strokeWidth="1" />
-      <circle cx="140" cy="140" r="30"  stroke="rgba(255,255,255,0.04)" strokeWidth="1" />
-      <line x1="140" y1="20"  x2="140" y2="260" stroke="rgba(255,255,255,0.025)" strokeWidth="1" />
-      <line x1="20"  y1="140" x2="260" y2="140" stroke="rgba(255,255,255,0.025)" strokeWidth="1" />
+      <circle cx="140" cy="140" r="120" stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
+      <circle cx="140" cy="140" r="90"  stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
+      <circle cx="140" cy="140" r="60"  stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
+      <circle cx="140" cy="140" r="30"  stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
+      <line x1="140" y1="20"  x2="140" y2="260" stroke="rgba(255,255,255,0.04)" strokeWidth="1" />
+      <line x1="20"  y1="140" x2="260" y2="140" stroke="rgba(255,255,255,0.04)" strokeWidth="1" />
 
       {[0, 45, 90, 135, 180, 225, 270, 315].map((deg) => {
         const rad = (deg * Math.PI) / 180;
@@ -40,41 +40,41 @@ function LPArcVisual() {
             key={deg}
             x1={140 + 115 * Math.cos(rad)} y1={140 + 115 * Math.sin(rad)}
             x2={140 + 122 * Math.cos(rad)} y2={140 + 122 * Math.sin(rad)}
-            stroke="rgba(255,255,255,0.08)" strokeWidth="1"
+            stroke="rgba(255,255,255,0.10)" strokeWidth="1"
           />
         );
       })}
 
       <circle cx="140" cy="140" r="90"
-        stroke="rgba(0,229,196,0.18)" strokeWidth="20"
+        stroke="rgba(59,130,246,0.2)" strokeWidth="20"
         strokeDasharray="219.8 345.7" strokeLinecap="round"
         transform="rotate(200 140 140)" filter="url(#auth-arc-glow)"
       />
       <circle cx="140" cy="140" r="90"
-        stroke="rgba(0,229,196,0.07)" strokeWidth="14"
+        stroke="rgba(59,130,246,0.08)" strokeWidth="14"
         strokeDasharray="219.8 345.7" strokeLinecap="round"
         transform="rotate(200 140 140)"
       />
       <circle cx="140" cy="140" r="90"
-        stroke="#00e5c4" strokeWidth="1.5"
+        stroke="#3b82f6" strokeWidth="1.5"
         strokeDasharray="219.8 345.7" strokeLinecap="round"
         transform="rotate(200 140 140)"
       />
 
-      <circle cx="55.4"  cy="109.2" r="2.5" fill="rgba(0,229,196,0.4)" />
-      <circle cx="224.6" cy="109.2" r="2.5" fill="rgba(0,229,196,0.4)" />
+      <circle cx="55.4"  cy="109.2" r="2.5" fill="rgba(59,130,246,0.5)" />
+      <circle cx="224.6" cy="109.2" r="2.5" fill="rgba(59,130,246,0.5)" />
       <line x1="140" y1="140" x2="118" y2="53"
-        stroke="rgba(0,229,196,0.15)" strokeWidth="1" strokeDasharray="3 4" />
-      <circle cx="118" cy="53" r="5" fill="#00e5c4" filter="url(#auth-dot-glow)" />
-      <circle cx="118" cy="53" r="3" fill="#aff8ee" />
+        stroke="rgba(59,130,246,0.2)" strokeWidth="1" strokeDasharray="3 4" />
+      <circle cx="118" cy="53" r="5" fill="#3b82f6" filter="url(#auth-dot-glow)" />
+      <circle cx="118" cy="53" r="3" fill="#93c5fd" />
 
       <text x="140" y="163" textAnchor="middle"
-        fill="rgba(0,229,196,0.75)" fontSize="8" fontFamily="monospace" letterSpacing="4">
+        fill="rgba(59,130,246,0.8)" fontSize="8" fontFamily="monospace" letterSpacing="4">
         IN RANGE
       </text>
-      <text x="46"  y="127" textAnchor="middle" fill="rgba(240,244,255,0.22)" fontSize="7.5" fontFamily="monospace">$2,800</text>
-      <text x="234" y="127" textAnchor="middle" fill="rgba(240,244,255,0.22)" fontSize="7.5" fontFamily="monospace">$4,200</text>
-      <text x="108" y="41"  textAnchor="middle" fill="rgba(0,229,196,0.65)"   fontSize="7.5" fontFamily="monospace">$3,247</text>
+      <text x="46"  y="127" textAnchor="middle" fill="rgba(255,255,255,0.25)" fontSize="7.5" fontFamily="monospace">$2,800</text>
+      <text x="234" y="127" textAnchor="middle" fill="rgba(255,255,255,0.25)" fontSize="7.5" fontFamily="monospace">$4,200</text>
+      <text x="108" y="41"  textAnchor="middle" fill="rgba(59,130,246,0.8)"   fontSize="7.5" fontFamily="monospace">$3,247</text>
     </svg>
   );
 }
@@ -86,23 +86,22 @@ export function AuthLeftPanel() {
       style={{
         width: "44%",
         minWidth: "400px",
-        background: "linear-gradient(160deg, #020810 0%, #040d1c 100%)",
+        background: "linear-gradient(160deg, #0f172a 0%, #1e293b 100%)",
         borderRight: "1px solid rgba(255,255,255,0.05)",
       }}
     >
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          background:
-            "radial-gradient(ellipse 70% 55% at 50% 50%, rgba(0,229,196,0.05) 0%, transparent 70%)",
+          background: "radial-gradient(ellipse 70% 55% at 50% 50%, rgba(59,130,246,0.07) 0%, transparent 70%)",
         }}
       />
 
       <div className="relative z-10">
         <Link
           href="/"
-          className="text-xl font-extrabold tracking-tight hover:opacity-80 transition-opacity"
-          style={{ color: "#f0f4ff", fontFamily: "var(--font-syne), sans-serif" }}
+          className="text-xl font-extrabold tracking-tight hover:opacity-80 transition-opacity text-white"
+          style={{ fontFamily: "var(--font-syne), sans-serif" }}
         >
           LiquidArc
         </Link>
@@ -111,14 +110,14 @@ export function AuthLeftPanel() {
       <div className="relative z-10 flex flex-col items-center text-center">
         <LPArcVisual />
         <h2
-          className="text-[26px] font-extrabold leading-tight mt-6 mb-3"
-          style={{ color: "#f0f4ff", fontFamily: "var(--font-syne), sans-serif" }}
+          className="text-[26px] font-extrabold leading-tight mt-6 mb-3 text-white"
+          style={{ fontFamily: "var(--font-syne), sans-serif" }}
         >
           Liquidity intelligence,
           <br />
-          <span style={{ color: "#00e5c4" }}>finally precise.</span>
+          <span className="text-arc-400">finally precise.</span>
         </h2>
-        <p className="text-sm leading-relaxed max-w-xs" style={{ color: "rgba(240,244,255,0.38)" }}>
+        <p className="text-sm leading-relaxed max-w-xs text-slate-500">
           Track LP positions, monitor impermanent loss, and never miss a claimable reward.
         </p>
       </div>
@@ -130,10 +129,10 @@ export function AuthLeftPanel() {
           "Claimable rewards aggregation",
         ].map((f) => (
           <div key={f} className="flex items-center gap-3">
-            <span className="w-1 h-1 rounded-full shrink-0" style={{ background: "#00e5c4" }} />
+            <span className="w-1 h-1 rounded-full shrink-0 bg-arc-400" />
             <span
-              className="text-xs"
-              style={{ color: "rgba(240,244,255,0.32)", fontFamily: "var(--font-geist-mono)" }}
+              className="text-xs text-slate-600"
+              style={{ fontFamily: "var(--font-geist-mono)" }}
             >
               {f}
             </span>

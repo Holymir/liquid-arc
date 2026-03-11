@@ -75,7 +75,8 @@ export default function BillingPage() {
           <div className="flex items-center gap-3 mb-3">
             <Link
               href="/settings"
-              className="p-1.5 rounded-lg text-slate-500 hover:text-slate-200 hover:bg-white/[0.04] transition-all"
+              className="p-1.5 rounded-lg transition-all hover:bg-slate-100"
+              style={{ color: "var(--text-muted)" }}
             >
               <ArrowLeft className="w-4 h-4" />
             </Link>
@@ -89,9 +90,9 @@ export default function BillingPage() {
             <span
               className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold capitalize"
               style={{
-                background: "rgba(0,229,196,0.10)",
-                color: "#00e5c4",
-                border: "1px solid rgba(0,229,196,0.22)",
+                background: "rgba(59,130,246,0.10)",
+                color: "#3b82f6",
+                border: "1px solid rgba(59,130,246,0.22)",
               }}
             >
               {user.tier}
@@ -113,7 +114,7 @@ export default function BillingPage() {
                 style={{
                   borderRadius: "20px",
                   padding: "28px",
-                  borderTop: plan.popular ? "2px solid #00e5c4" : undefined,
+                  borderTop: plan.popular ? "2px solid var(--accent)" : undefined,
                   background: plan.popular
                     ? "var(--surface-2)"
                     : "var(--surface-1)",
@@ -126,9 +127,9 @@ export default function BillingPage() {
                     <span
                       className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider"
                       style={{
-                        background: "rgba(0,229,196,0.10)",
-                        color: "#00e5c4",
-                        border: "1px solid rgba(0,229,196,0.22)",
+                        background: "rgba(59,130,246,0.10)",
+                        color: "#3b82f6",
+                        border: "1px solid rgba(59,130,246,0.22)",
                       }}
                     >
                       Current plan
@@ -139,7 +140,7 @@ export default function BillingPage() {
                 {/* Popular badge */}
                 {plan.popular && !isCurrent && (
                   <div className="mb-4 flex items-center gap-1.5">
-                    <Zap className="w-3 h-3" style={{ color: "#00e5c4" }} />
+                    <Zap className="w-3 h-3 text-arc-400" />
                     <span className="section-label">Most Popular</span>
                   </div>
                 )}
@@ -180,7 +181,7 @@ export default function BillingPage() {
                   className="mb-6"
                   style={{
                     height: "1px",
-                    background: "rgba(255,255,255,0.06)",
+                    background: "var(--card-border)",
                   }}
                 />
 
@@ -191,13 +192,10 @@ export default function BillingPage() {
                       <span
                         className="shrink-0 mt-0.5 flex items-center justify-center w-4 h-4 rounded-full"
                         style={{
-                          background: "rgba(0,229,196,0.10)",
+                          background: "rgba(59,130,246,0.10)",
                         }}
                       >
-                        <Check
-                          className="w-2.5 h-2.5"
-                          style={{ color: "#00e5c4" }}
-                        />
+                        <Check className="w-2.5 h-2.5 text-arc-400" />
                       </span>
                       <span style={{ color: "var(--text-secondary)" }}>{f}</span>
                     </li>
@@ -210,9 +208,9 @@ export default function BillingPage() {
                     disabled
                     className="w-full py-2.5 text-sm font-semibold rounded-xl"
                     style={{
-                      background: "rgba(255,255,255,0.04)",
+                      background: "var(--surface-2)",
                       color: "var(--text-muted)",
-                      border: "1px solid rgba(255,255,255,0.07)",
+                      border: "1px solid var(--card-border)",
                       cursor: "not-allowed",
                       opacity: 0.7,
                     }}
