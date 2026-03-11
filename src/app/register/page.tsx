@@ -40,7 +40,7 @@ export default function RegisterPage() {
     const err = await register(email, password);
     setSubmitting(false);
     if (err) setError(err);
-    else router.push("/dashboard");
+    // Navigation is handled by the useEffect watching status → "authenticated"
   };
 
   return (

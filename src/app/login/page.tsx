@@ -40,7 +40,7 @@ export default function LoginPage() {
     const err = await login(email, password);
     setSubmitting(false);
     if (err) setError(err);
-    else router.push("/dashboard");
+    // Navigation is handled by the useEffect watching status → "authenticated"
   };
 
   return (

@@ -1,11 +1,9 @@
-// Token metadata cache with well-known token fallback.
+// Token metadata cache.
 //
 // Resolution order:
-//   1. In-memory cache (successful previous fetches)
-//   2. Well-known tokens from chain config (never fails for popular tokens)
-//   3. RPC-fetched value (may be "???" on failure)
-
-import { EVM_CHAINS } from "@/lib/chain/evm/chains";
+//   1. RPC-fetched value (if successful, cache and return)
+//   2. In-memory cache (previous successful fetch, used if current RPC fails)
+//   3. Return "???" — no static name fallbacks to avoid showing wrong names
 
 interface TokenMeta {
   symbol: string;
@@ -25,46 +23,15 @@ export function setCachedTokenMeta(address: string, meta: TokenMeta): void {
   cache.set(address.toLowerCase(), meta);
 }
 
-// ── Well-known token lookup (built from chain configs) ───────────────────────
-
-// chainId → (lowercased address → TokenMeta)
-const wellKnownByChain = new Map<string, Map<string, TokenMeta>>();
-// global fallback: lowercased address → TokenMeta (for all chains)
-const wellKnownGlobal = new Map<string, TokenMeta>();
-
-for (const [chainId, config] of Object.entries(EVM_CHAINS)) {
-  const chainMap = new Map<string, TokenMeta>();
-  for (const token of config.knownTokens) {
-    const meta = { symbol: token.symbol, decimals: token.decimals };
-    chainMap.set(token.address.toLowerCase(), meta);
-    wellKnownGlobal.set(token.address.toLowerCase(), meta);
-  }
-  wellKnownByChain.set(chainId, chainMap);
-}
-
-/** Look up well-known token metadata by chain (falls back to global) */
-export function getWellKnownToken(address: string, chainId?: string): TokenMeta | undefined {
-  const addr = address.toLowerCase();
-  if (chainId) {
-    const chainMap = wellKnownByChain.get(chainId);
-    const found = chainMap?.get(addr);
-    if (found) return found;
-  }
-  return wellKnownGlobal.get(addr);
-}
-
 // ── Main resolution function ─────────────────────────────────────────────────
 
 /**
- * Resolve token metadata with fallback chain:
- *   cached → well-known → fetched value
- *
- * Caches successful results. Never caches "???".
+ * Resolve token metadata from a fresh RPC fetch, falling back to a previously
+ * cached successful result. Never falls back to a static name list.
  */
 export function resolveTokenMeta(
   address: string,
   fetched: TokenMeta,
-  chainId?: string
 ): TokenMeta {
   // 1. If fetched is good, cache and return it
   if (fetched.symbol !== "???" && fetched.symbol !== "UNKNOWN") {
@@ -72,18 +39,11 @@ export function resolveTokenMeta(
     return fetched;
   }
 
-  // 2. Check in-memory cache
+  // 2. Check in-memory cache (a previous successful fetch)
   const cached = getCachedTokenMeta(address);
   if (cached) return cached;
 
-  // 3. Check well-known tokens
-  const wellKnown = getWellKnownToken(address, chainId);
-  if (wellKnown) {
-    setCachedTokenMeta(address, wellKnown);
-    return wellKnown;
-  }
-
-  // 4. Return the "???" fallback
+  // 3. Nothing reliable — return "???"
   return fetched;
 }
 

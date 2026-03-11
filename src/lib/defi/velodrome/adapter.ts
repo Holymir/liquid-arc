@@ -122,7 +122,7 @@ export class VelodromeAdapter implements DefiProtocolAdapter {
         symbol: symR.status === "success" ? (symR.result as string) : "???",
         decimals: decR.status === "success" ? (decR.result as number) : 18,
       };
-      tokenMeta.set(uniqueTokens[i], resolveTokenMeta(uniqueTokens[i], fetched, "optimism"));
+      tokenMeta.set(uniqueTokens[i], resolveTokenMeta(uniqueTokens[i], fetched));
     }
 
     // 5. Build LPPositionData
@@ -132,8 +132,8 @@ export class VelodromeAdapter implements DefiProtocolAdapter {
       const tokens = poolTokens.get(p.lp);
       if (!tokens) continue;
 
-      const m0 = tokenMeta.get(tokens.token0) ?? resolveTokenMeta(tokens.token0, { symbol: "???", decimals: 18 }, "optimism");
-      const m1 = tokenMeta.get(tokens.token1) ?? resolveTokenMeta(tokens.token1, { symbol: "???", decimals: 18 }, "optimism");
+      const m0 = tokenMeta.get(tokens.token0) ?? resolveTokenMeta(tokens.token0, { symbol: "???", decimals: 18 });
+      const m1 = tokenMeta.get(tokens.token1) ?? resolveTokenMeta(tokens.token1, { symbol: "???", decimals: 18 });
 
       const raw0 = p.staked0 + p.amount0;
       const raw1 = p.staked1 + p.amount1;
