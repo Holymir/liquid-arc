@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BarChart3,
+  BookOpen,
   LayoutDashboard,
   Menu,
   X,
@@ -16,8 +17,8 @@ import { ConnectButton } from "@/components/wallet/ConnectButton";
 // ─────────────────────────────────────────
 const NAV_LINKS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/pools",     label: "Pools",     icon: BarChart3 },
-  // Future: Knowledge, Markets, Protocols, Tools
+  { href: "/pools",      label: "Pools",     icon: BarChart3 },
+  { href: "/knowledge",  label: "Knowledge", icon: BookOpen },
 ];
 
 // ─────────────────────────────────────────

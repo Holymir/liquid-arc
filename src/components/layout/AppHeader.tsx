@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, LayoutDashboard } from "lucide-react";
+import { BarChart3, BookOpen, LayoutDashboard } from "lucide-react";
 import { ConnectButton } from "@/components/wallet/ConnectButton";
 
 interface AppHeaderProps {
@@ -14,7 +14,7 @@ interface AppHeaderProps {
 const navLinks = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/pools", label: "Pools", icon: BarChart3 },
-  // Future: Knowledge, Markets, Protocols, Tools
+  { href: "/knowledge", label: "Knowledge", icon: BookOpen },
 ];
 
 export function AppHeader({ leftSlot, rightSlot, hideConnect }: AppHeaderProps) {
