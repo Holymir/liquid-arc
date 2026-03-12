@@ -1,5 +1,19 @@
 {
   "permissions": {
-    "allow": ["Bash(*)", "Edit(*)", "Write(*)", "Read(*)", "Glob(*)", "Grep(*)"]
+    "allow": [
+      "Bash(*)",
+      "Edit(*)",
+      "Write(*)",
+      "Read(*)",
+      "Glob(*)",
+      "Grep(*)",
+      "WebFetch(domain:dlmm-api.meteora.ag)",
+      "WebSearch",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:api-v3.raydium.io)",
+      "WebFetch(domain:dev.orca.so)",
+      "WebFetch(domain:dev.jup.ag)",
+      "WebFetch(domain:deepwiki.com)"
+    ]
   }
 }

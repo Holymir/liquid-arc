@@ -21,8 +21,8 @@ export async function GET(
   }
 
   const { address, nftTokenId } = await params;
-  const chainId = request.nextUrl.searchParams.get("chainId") ?? "base";
-  const normalizedAddress = address.toLowerCase();
+  const isSolana = !address.startsWith("0x");
+  const normalizedAddress = isSolana ? address : address.toLowerCase();
 
   // Verify wallet ownership
   const wallet = await prisma.wallet.findFirst({
@@ -31,8 +31,10 @@ export async function GET(
       userId: session.userId,
       isActive: true,
     },
-    select: { id: true },
+    select: { id: true, chainId: true },
   });
+
+  const chainId = request.nextUrl.searchParams.get("chainId") ?? wallet?.chainId ?? "base";
 
   if (!wallet) {
     return NextResponse.json({ error: "Wallet not found" }, { status: 403 });
@@ -60,8 +62,9 @@ export async function GET(
       position.token1Address,
     ]);
 
-    const currentToken0Price = prices.get(position.token0Address.toLowerCase()) ?? 0;
-    const currentToken1Price = prices.get(position.token1Address.toLowerCase()) ?? 0;
+    const norm = (a: string) => isSolana ? a : a.toLowerCase();
+    const currentToken0Price = prices.get(norm(position.token0Address)) ?? 0;
+    const currentToken1Price = prices.get(norm(position.token1Address)) ?? 0;
 
     // Calculate P&L
     const pnl = await calculatePositionPnL(

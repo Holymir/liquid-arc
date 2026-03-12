@@ -46,8 +46,9 @@ async function saveOnePositionSnapshot(
   pos: EnrichedPosition,
   prices: Map<string, number>
 ): Promise<void> {
-  const price0 = prices.get(pos.token0Address.toLowerCase()) ?? 0;
-  const price1 = prices.get(pos.token1Address.toLowerCase()) ?? 0;
+  // Try exact key first (Solana uses case-sensitive base58), then lowercase (EVM)
+  const price0 = prices.get(pos.token0Address) ?? prices.get(pos.token0Address.toLowerCase()) ?? 0;
+  const price1 = prices.get(pos.token1Address) ?? prices.get(pos.token1Address.toLowerCase()) ?? 0;
 
   // Check if we already have an entry snapshot for this position
   const existingEntry = await prisma.positionSnapshot.findFirst({
@@ -162,8 +163,8 @@ async function createEntrySnapshot(
 
     // On-chain amounts available but historical prices failed
     // Use on-chain amounts with current prices (better than pure first-seen)
-    const price0Fallback = currentPrices.get(pos.token0Address.toLowerCase()) ?? 0;
-    const price1Fallback = currentPrices.get(pos.token1Address.toLowerCase()) ?? 0;
+    const price0Fallback = currentPrices.get(pos.token0Address) ?? currentPrices.get(pos.token0Address.toLowerCase()) ?? 0;
+    const price1Fallback = currentPrices.get(pos.token1Address) ?? currentPrices.get(pos.token1Address.toLowerCase()) ?? 0;
     const positionUsd = entry.amount0 * price0Fallback + entry.amount1 * price1Fallback;
 
     await prisma.positionSnapshot.create({
@@ -198,8 +199,8 @@ async function createEntrySnapshot(
   }
 
   // No on-chain data — fall back to first-seen snapshot
-  const price0 = currentPrices.get(pos.token0Address.toLowerCase()) ?? 0;
-  const price1 = currentPrices.get(pos.token1Address.toLowerCase()) ?? 0;
+  const price0 = currentPrices.get(pos.token0Address) ?? currentPrices.get(pos.token0Address.toLowerCase()) ?? 0;
+  const price1 = currentPrices.get(pos.token1Address) ?? currentPrices.get(pos.token1Address.toLowerCase()) ?? 0;
 
   await prisma.positionSnapshot.create({
     data: {
@@ -255,8 +256,8 @@ async function upgradeToOnChainEntry(
     entry.timestamp
   );
 
-  const p0 = price0 ?? currentPrices.get(pos.token0Address.toLowerCase()) ?? 0;
-  const p1 = price1 ?? currentPrices.get(pos.token1Address.toLowerCase()) ?? 0;
+  const p0 = price0 ?? currentPrices.get(pos.token0Address) ?? currentPrices.get(pos.token0Address.toLowerCase()) ?? 0;
+  const p1 = price1 ?? currentPrices.get(pos.token1Address) ?? currentPrices.get(pos.token1Address.toLowerCase()) ?? 0;
   const positionUsd = entry.amount0 * p0 + entry.amount1 * p1;
 
   // Replace the first-seen entry with on-chain data

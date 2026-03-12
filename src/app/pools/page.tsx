@@ -508,7 +508,9 @@ export default function PoolsPage() {
                           <span className={`w-1.5 h-1.5 rounded-full ${
                             pool.protocol === "aerodrome" ? "bg-blue-400" :
                             pool.protocol === "velodrome" ? "bg-red-400" :
-                            pool.protocol === "uniswap-v3" ? "bg-pink-400" : "bg-slate-400"
+                            pool.protocol === "uniswap-v3" ? "bg-pink-400" :
+                            pool.protocol === "raydium" ? "bg-cyan-400" :
+                            pool.protocol === "orca" ? "bg-amber-400" : "bg-slate-400"
                           }`} />
                           {pool.protocolName}
                         </span>

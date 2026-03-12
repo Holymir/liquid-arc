@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { requireAuth } from "@/lib/auth/session";
-import { addWalletSchema } from "@/lib/validation/schemas";
+import { addWalletSchema, detectChainType } from "@/lib/validation/schemas";
 import { getTierLimits } from "@/lib/auth/tier";
 
 export async function GET() {
@@ -20,7 +20,7 @@ export async function GET() {
   // Deduplicate by address
   const byAddress = new Map<string, (typeof wallets)[0]>();
   for (const w of wallets) {
-    const key = w.address.toLowerCase();
+    const key = w.chainType === "svm" ? w.address : w.address.toLowerCase();
     const existing = byAddress.get(key);
     if (!existing || w.chainId === "base") {
       byAddress.set(key, {
@@ -50,7 +50,10 @@ export async function POST(request: NextRequest) {
   }
 
   const { address, label } = parsed.data;
-  const normalized = address.toLowerCase();
+  const chainType = detectChainType(address);
+  // EVM addresses are case-insensitive; Solana addresses are case-sensitive (base58)
+  const normalized = chainType === "evm" ? address.toLowerCase() : address;
+  const chainId = chainType === "evm" ? "base" : "solana";
 
   // Check tier-based wallet limit
   const user = await prisma.user.findUnique({
@@ -71,12 +74,12 @@ export async function POST(request: NextRequest) {
   }
 
   const wallet = await prisma.wallet.upsert({
-    where: { address_chainId: { address: normalized, chainId: "base" } },
+    where: { address_chainId: { address: normalized, chainId } },
     update: { isActive: true, label: label ?? undefined, userId: session.userId },
     create: {
       address: normalized,
-      chainId: "base",
-      chainType: "evm",
+      chainId,
+      chainType,
       label: label ?? null,
       userId: session.userId,
     },
@@ -100,8 +103,11 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: "address is required" }, { status: 400 });
   }
 
+  const isSolana = !address.startsWith("0x");
+  const normalized = isSolana ? address : address.toLowerCase();
+
   await prisma.wallet.updateMany({
-    where: { address: address.toLowerCase(), userId: session.userId },
+    where: { address: normalized, userId: session.userId },
     data: { isActive: false },
   });
 

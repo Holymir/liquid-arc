@@ -3,13 +3,9 @@
 
 import type { ChainAdapter } from "../types";
 import type { TokenBalanceData } from "@/types";
-import {
-  Connection,
-  PublicKey,
-  LAMPORTS_PER_SOL,
-} from "@solana/web3.js";
-
-const RPC_URL = process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
+import { PublicKey } from "@solana/web3.js";
+import { getTokenAccountsForWallet, getSolanaConnection } from "./token-accounts";
+import { resolveTokenMeta } from "./token-list";
 
 // Known Solana tokens with metadata
 export const SOLANA_TOKENS = {
@@ -62,15 +58,11 @@ const tokenMetaByAddress = Object.fromEntries(
 export class SolanaChainAdapter implements ChainAdapter {
   readonly chainId = "solana";
   readonly chainType = "svm" as const;
-  private connection: Connection;
-
-  constructor() {
-    this.connection = new Connection(RPC_URL, "confirmed");
-  }
 
   async getNativeBalance(address: string): Promise<bigint> {
+    const connection = getSolanaConnection();
     const pubkey = new PublicKey(address);
-    const lamports = await this.connection.getBalance(pubkey);
+    const lamports = await connection.getBalance(pubkey);
     return BigInt(lamports);
   }
 
@@ -78,36 +70,31 @@ export class SolanaChainAdapter implements ChainAdapter {
     address: string,
     _tokenAddresses: string[]
   ): Promise<TokenBalanceData[]> {
-    const pubkey = new PublicKey(address);
-
-    // Fetch all SPL token accounts for this wallet in one RPC call
-    const tokenAccounts = await this.connection.getParsedTokenAccountsByOwner(
-      pubkey,
-      { programId: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA") }
-    );
+    // Uses shared cache — same RPC call is reused by all Solana DeFi adapters
+    const { accounts } = await getTokenAccountsForWallet(address);
 
     const balances: TokenBalanceData[] = [];
 
-    for (const { account } of tokenAccounts.value) {
-      const parsed = account.data.parsed;
-      if (parsed.type !== "account") continue;
+    for (const acct of accounts) {
+      if (acct.amount === "0") continue;
 
-      const info = parsed.info;
-      const mint: string = info.mint;
-      const amount: string = info.tokenAmount.amount;
-      const decimals: number = info.tokenAmount.decimals;
-      const uiAmount: number | null = info.tokenAmount.uiAmount;
+      // Skip NFT-like tokens (position NFTs, etc.)
+      if (acct.amount === "1" && acct.decimals === 0) continue;
 
-      if (amount === "0") continue;
+      const knownMeta = tokenMetaByAddress[acct.mint];
+      let symbol = knownMeta?.symbol;
 
-      const knownMeta = tokenMetaByAddress[mint];
+      if (!symbol) {
+        const resolved = await resolveTokenMeta(acct.mint);
+        symbol = resolved?.symbol ?? acct.mint.slice(0, 6) + "...";
+      }
 
       balances.push({
-        tokenAddress: mint,
-        symbol: knownMeta?.symbol ?? "???",
-        decimals,
-        balance: BigInt(amount),
-        formattedBalance: uiAmount?.toString() ?? "0",
+        tokenAddress: acct.mint,
+        symbol,
+        decimals: acct.decimals,
+        balance: BigInt(acct.amount),
+        formattedBalance: acct.uiAmount?.toString() ?? "0",
       });
     }
 

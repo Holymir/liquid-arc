@@ -79,9 +79,9 @@ export function Dashboard({ address, chainId = "base" }: DashboardProps) {
             {address.slice(0, 6)}...{address.slice(-4)}
           </span>
           <div className="flex items-center gap-1.5 ml-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-arc-400/70" />
-            <span className="text-arc-400/60 text-[10px] uppercase tracking-wider font-medium">
-              Base &middot; Aerodrome
+            <span className={`w-1.5 h-1.5 rounded-full ${chainId === "solana" ? "bg-violet-400/70" : "bg-arc-400/70"}`} />
+            <span className={`${chainId === "solana" ? "text-violet-400/60" : "text-arc-400/60"} text-[10px] uppercase tracking-wider font-medium`}>
+              {chainId === "solana" ? "Solana · Raydium · Orca" : "Base · Aerodrome"}
             </span>
           </div>
         </div>

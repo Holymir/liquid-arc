@@ -1,13 +1,20 @@
 import { getTokenPrices } from "./coingecko";
+import { getJupiterPrices } from "./jupiter";
 import { getDexScreenerPrice } from "./dexscreener";
 import { cacheGet, cacheSet } from "@/lib/cache";
 
 const PRICE_CACHE_TTL = 30; // seconds
 
+/** Normalize address for cache key — preserve case for Solana (base58) */
+function normalizeAddr(chainId: string, addr: string): string {
+  return chainId === "solana" ? addr : addr.toLowerCase();
+}
+
 export class PricingService {
   /**
    * Fetches USD prices for a list of token addresses on a given chain.
-   * Primary source: CoinGecko. Falls back to DexScreener for misses.
+   * Solana: Jupiter (primary) → DexScreener (fallback)
+   * EVM:    CoinGecko (primary) → DexScreener (fallback)
    * Results are cached for 30 seconds.
    */
   async getPrices(
@@ -16,15 +23,18 @@ export class PricingService {
   ): Promise<Map<string, number>> {
     if (tokenAddresses.length === 0) return new Map();
 
+    // Deduplicate addresses
+    const unique = [...new Set(tokenAddresses.map((a) => normalizeAddr(chainId, a)))];
+
     const result = new Map<string, number>();
     const uncached: string[] = [];
 
     // Check cache first
-    for (const addr of tokenAddresses) {
-      const key = `price:${chainId}:${addr.toLowerCase()}`;
+    for (const addr of unique) {
+      const key = `price:${chainId}:${addr}`;
       const cached = cacheGet<number>(key);
       if (cached !== undefined) {
-        result.set(addr.toLowerCase(), cached);
+        result.set(addr, cached);
       } else {
         uncached.push(addr);
       }
@@ -32,19 +42,22 @@ export class PricingService {
 
     if (uncached.length === 0) return result;
 
-    // Fetch uncached prices
-    const prices = await getTokenPrices(chainId, uncached);
+    // Fetch uncached prices — use Jupiter for Solana, CoinGecko for EVM
+    let prices: Map<string, number>;
+    if (chainId === "solana") {
+      prices = await getJupiterPrices(uncached);
+    } else {
+      prices = await getTokenPrices(chainId, uncached);
+    }
 
-    // Find addresses not covered by CoinGecko
-    const misses = uncached.filter(
-      (addr) => !prices.has(addr.toLowerCase())
-    );
+    // Find addresses not covered by primary source
+    const misses = uncached.filter((addr) => !prices.has(addr));
 
     if (misses.length > 0) {
       const fallbackResults = await Promise.allSettled(
         misses.map(async (addr) => {
           const price = await getDexScreenerPrice(addr);
-          return { addr: addr.toLowerCase(), price };
+          return { addr, price };
         })
       );
 

@@ -17,15 +17,17 @@ export async function GET(
   }
 
   const { address } = await params;
-  const chainId = request.nextUrl.searchParams.get("chainId") ?? "base";
   const period = (request.nextUrl.searchParams.get("period") ?? "7d") as
     | "24h"
     | "7d"
     | "30d";
 
+  const isSolana = !address.startsWith("0x");
+  const normalizedAddress = isSolana ? address : address.toLowerCase();
+
   const wallet = await prisma.wallet.findFirst({
     where: {
-      address: address.toLowerCase(),
+      address: normalizedAddress,
       userId: session.userId,
       isActive: true,
     },

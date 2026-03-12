@@ -6,16 +6,16 @@
 
 import type { DefiProtocolAdapter } from "../types";
 import type { LPPositionData } from "@/types";
-import { Connection, PublicKey } from "@solana/web3.js";
-
-const RPC_URL = process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
+import { PublicKey } from "@solana/web3.js";
+import { getTokenAccountsForWallet, getSolanaConnection } from "@/lib/chain/solana/token-accounts";
+import { resolveTokenMeta } from "@/lib/chain/solana/token-list";
 
 // Raydium CLMM program ID
 const RAYDIUM_CLMM_PROGRAM = new PublicKey(
   "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK"
 );
 
-// Known Solana token symbols
+// Known Solana token symbols (fast path, no network needed)
 const KNOWN_SYMBOLS: Record<string, string> = {
   So11111111111111111111111111111111111111112: "SOL",
   EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v: "USDC",
@@ -26,32 +26,15 @@ const KNOWN_SYMBOLS: Record<string, string> = {
   DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263: "BONK",
 };
 
-const tokenMetaCache = new Map<string, { symbol: string; decimals: number }>();
-
-async function getTokenMeta(
-  connection: Connection,
-  mint: string
-): Promise<{ symbol: string; decimals: number }> {
-  const cached = tokenMetaCache.get(mint);
-  if (cached) return cached;
-
-  try {
-    const mintInfo = await connection.getParsedAccountInfo(new PublicKey(mint));
-    if (mintInfo.value?.data && "parsed" in mintInfo.value.data) {
-      const decimals = mintInfo.value.data.parsed.info?.decimals ?? 9;
-      const symbol = KNOWN_SYMBOLS[mint] ?? mint.slice(0, 4) + "...";
-      const meta = { symbol, decimals };
-      tokenMetaCache.set(mint, meta);
-      return meta;
-    }
-  } catch {
-    // fallback
+async function resolveSymbol(mint: string): Promise<{ symbol: string; decimals: number }> {
+  if (KNOWN_SYMBOLS[mint]) {
+    // Still need decimals from on-chain
+    const meta = await resolveTokenMeta(mint);
+    return { symbol: KNOWN_SYMBOLS[mint], decimals: meta?.decimals ?? 9 };
   }
-
-  const symbol = KNOWN_SYMBOLS[mint] ?? mint.slice(0, 4) + "...";
-  const fallback = { symbol, decimals: 9 };
-  tokenMetaCache.set(mint, fallback);
-  return fallback;
+  const meta = await resolveTokenMeta(mint);
+  if (meta) return { symbol: meta.symbol, decimals: meta.decimals };
+  return { symbol: mint.slice(0, 4) + "...", decimals: 9 };
 }
 
 export class RaydiumCLMMAdapter implements DefiProtocolAdapter {
@@ -60,47 +43,12 @@ export class RaydiumCLMMAdapter implements DefiProtocolAdapter {
   readonly slug = "raydium";
   readonly displayName = "Raydium";
   readonly chainId = "solana";
-  private connection: Connection;
-
-  constructor() {
-    this.connection = new Connection(RPC_URL, "confirmed");
-  }
 
   async getLPPositions(address: string): Promise<LPPositionData[]> {
-    const wallet = new PublicKey(address);
+    const connection = getSolanaConnection();
 
-    // Raydium CLMM PersonalPosition account layout:
-    // - discriminator: 8 bytes
-    // - nft_mint: 32 bytes (offset 8)
-    // - pool_id: 32 bytes (offset 40)
-    // - tick_lower_index: i32 (offset 72)
-    // - tick_upper_index: i32 (offset 76)
-    // - liquidity: u128 (offset 80, 16 bytes)
-    // - fee_growth_inside_0_last: u128 (offset 96)
-    // - fee_growth_inside_1_last: u128 (offset 112)
-    // - token_fees_owed_0: u64 (offset 128)
-    // - token_fees_owed_1: u64 (offset 136)
-    //
-    // PersonalPosition size: ~236 bytes
-
-    // First find all NFTs the user holds
-    const tokenAccounts = await this.connection.getParsedTokenAccountsByOwner(
-      wallet,
-      { programId: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA") }
-    );
-
-    const nftMints = new Set<string>();
-    for (const { account } of tokenAccounts.value) {
-      const parsed = account.data.parsed;
-      if (parsed.type !== "account") continue;
-      const info = parsed.info;
-      if (
-        info.tokenAmount.amount === "1" &&
-        info.tokenAmount.decimals === 0
-      ) {
-        nftMints.add(info.mint);
-      }
-    }
+    // Use shared token accounts cache (no extra RPC call)
+    const { nftMints } = await getTokenAccountsForWallet(address);
 
     if (nftMints.size === 0) return [];
 
@@ -118,10 +66,17 @@ export class RaydiumCLMMAdapter implements DefiProtocolAdapter {
     // Batch-fetch all position accounts
     const positionPubkeys = positionPDAs.map((p) => p.pda);
     const positionInfos =
-      await this.connection.getMultipleAccountsInfo(positionPubkeys);
+      await connection.getMultipleAccountsInfo(positionPubkeys);
 
     console.log(
       `[raydium] Checking ${positionPDAs.length} potential CLMM positions for ${address}`
+    );
+
+    const validCount = positionInfos.filter(
+      (info) => info && info.owner.equals(RAYDIUM_CLMM_PROGRAM)
+    ).length;
+    console.log(
+      `[raydium] PDA resolution: ${validCount}/${positionPDAs.length} resolved to valid Raydium positions`
     );
 
     const positions: LPPositionData[] = [];
@@ -132,52 +87,74 @@ export class RaydiumCLMMAdapter implements DefiProtocolAdapter {
 
       try {
         const data = info.data;
-        if (data.length < 144) continue;
+        if (data.length < 145) continue;
 
-        // Parse position data
-        const poolId = new PublicKey(data.subarray(40, 72));
-        const tickLower = data.readInt32LE(72);
-        const tickUpper = data.readInt32LE(76);
+        // PersonalPositionState layout (from Raydium CLMM IDL):
+        // 0-7:     discriminator (8 bytes)
+        // 8:       bump (1 byte)
+        // 9-40:    nft_mint (32 bytes)
+        // 41-72:   pool_id (32 bytes)
+        // 73-76:   tick_lower_index (i32)
+        // 77-80:   tick_upper_index (i32)
+        // 81-96:   liquidity (u128)
+        // 97-112:  fee_growth_inside_0_last_x64 (u128)
+        // 113-128: fee_growth_inside_1_last_x64 (u128)
+        // 129-136: token_fees_owed_0 (u64)
+        // 137-144: token_fees_owed_1 (u64)
 
-        // liquidity: u128 at offset 80
-        const liquidityLow = data.readBigUInt64LE(80);
-        const liquidityHigh = data.readBigUInt64LE(88);
-        const liquidity = liquidityHigh * (1n << 64n) + liquidityLow;
+        const poolId = new PublicKey(data.subarray(41, 73));
+        const tickLower = data.readInt32LE(73);
+        const tickUpper = data.readInt32LE(77);
+
+        // liquidity: u128 at offset 81
+        const liquidityLow = data.readBigUInt64LE(81);
+        const liquidityHigh = data.readBigUInt64LE(89);
+        const liquidity = (liquidityHigh << 64n) | liquidityLow;
 
         if (liquidity === 0n) continue;
 
         // Fees owed
-        const feesOwed0 = data.readBigUInt64LE(128);
-        const feesOwed1 = data.readBigUInt64LE(136);
+        const feesOwed0 = data.readBigUInt64LE(129);
+        const feesOwed1 = data.readBigUInt64LE(137);
 
         // Fetch pool account for token mints + current tick
-        const poolInfo = await this.connection.getAccountInfo(poolId);
+        const poolInfo = await connection.getAccountInfo(poolId);
         if (!poolInfo) continue;
 
         const poolData = poolInfo.data;
 
-        // Raydium CLMM PoolState layout (simplified):
-        // offset 8+1+2+16+16 = 43: token_mint_0 (32)
-        // offset 75: token_mint_1 (32)
-        // offset 253: tick_current (i32)
-        // Note: exact offsets may vary by program version — these are approximate.
-        // offset 8: bump (1)
-        // offset 9: amm_config (32)
-        // offset 41: owner (32)
-        // offset 73: token_mint_0 (32)
-        // offset 105: token_mint_1 (32)
-        // ...
-        // offset 245: tick_current (i32)
+        // PoolState layout (from Raydium CLMM IDL, #[repr(C, packed)]):
+        // 0-7:     discriminator (8 bytes)
+        // 8:       bump (1 byte)
+        // 9-40:    amm_config (32 bytes)
+        // 41-72:   owner (32 bytes)
+        // 73-104:  token_mint_0 (32 bytes)
+        // 105-136: token_mint_1 (32 bytes)
+        // 137-168: token_vault_0 (32 bytes)
+        // 169-200: token_vault_1 (32 bytes)
+        // 201-232: observation_key (32 bytes)
+        // 233:     mint_decimals_0 (u8)
+        // 234:     mint_decimals_1 (u8)
+        // 235-236: tick_spacing (u16)
+        // 237-252: liquidity (u128)
+        // 253-268: sqrt_price_x64 (u128)
+        // 269-272: tick_current (i32)
 
         const tokenMint0 = new PublicKey(poolData.subarray(73, 105));
         const tokenMint1 = new PublicKey(poolData.subarray(105, 137));
-        const currentTick = poolData.readInt32LE(245);
+        const mintDecimals0 = poolData.readUInt8(233);
+        const mintDecimals1 = poolData.readUInt8(234);
+        const currentTick = poolData.readInt32LE(269);
 
         const addr0 = tokenMint0.toBase58();
         const addr1 = tokenMint1.toBase58();
 
-        const meta0 = await getTokenMeta(this.connection, addr0);
-        const meta1 = await getTokenMeta(this.connection, addr1);
+        const meta0 = await resolveSymbol(addr0);
+        const meta1 = await resolveSymbol(addr1);
+
+        // Use decimals from the pool account (authoritative)
+        const dec0 = mintDecimals0 || meta0.decimals;
+        const dec1 = mintDecimals1 || meta1.decimals;
 
         // Compute token amounts using CL math
         const sqrtPriceLower = Math.sqrt(1.0001 ** tickLower);
@@ -197,11 +174,11 @@ export class RaydiumCLMMAdapter implements DefiProtocolAdapter {
           amount1 = liq * (sqrtPriceCurrent - sqrtPriceLower);
         }
 
-        amount0 = amount0 / 10 ** meta0.decimals;
-        amount1 = amount1 / 10 ** meta1.decimals;
+        amount0 = amount0 / 10 ** dec0;
+        amount1 = amount1 / 10 ** dec1;
 
-        const fees0 = Number(feesOwed0) / 10 ** meta0.decimals;
-        const fees1 = Number(feesOwed1) / 10 ** meta1.decimals;
+        const fees0 = Number(feesOwed0) / 10 ** dec0;
+        const fees1 = Number(feesOwed1) / 10 ** dec1;
 
         positions.push({
           nftTokenId: positionPDAs[i].mint,
@@ -209,10 +186,10 @@ export class RaydiumCLMMAdapter implements DefiProtocolAdapter {
           poolAddress: poolId.toBase58(),
           token0Address: addr0,
           token0Symbol: meta0.symbol,
-          token0Decimals: meta0.decimals,
+          token0Decimals: dec0,
           token1Address: addr1,
           token1Symbol: meta1.symbol,
-          token1Decimals: meta1.decimals,
+          token1Decimals: dec1,
           liquidity,
           tickLower,
           tickUpper,

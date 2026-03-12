@@ -10,12 +10,15 @@ const CHAINS = [
   { slug: "ethereum", label: "Ethereum", dotColor: "bg-blue-400" },
   { slug: "arbitrum", label: "Arbitrum", dotColor: "bg-sky-400" },
   { slug: "polygon",  label: "Polygon",  dotColor: "bg-purple-400" },
+  { slug: "solana",   label: "Solana",   dotColor: "bg-violet-400" },
 ];
 
 const PROTOCOLS = [
   { slug: "aerodrome",  label: "Aerodrome",  dotColor: "bg-blue-400" },
   { slug: "velodrome",  label: "Velodrome",  dotColor: "bg-red-400" },
   { slug: "uniswap-v3", label: "Uniswap V3", dotColor: "bg-pink-400" },
+  { slug: "raydium",    label: "Raydium",    dotColor: "bg-cyan-400" },
+  { slug: "orca",       label: "Orca",       dotColor: "bg-amber-400" },
 ];
 
 interface PoolsSidebarProps {

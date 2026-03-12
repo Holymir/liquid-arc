@@ -2,13 +2,15 @@
 
 import { useState, useEffect, useCallback } from "react";
 
-function isEvmAddress(addr: string): boolean {
-  return /^0x[a-fA-F0-9]{40}$/.test(addr);
+function isValidWalletAddress(addr: string): boolean {
+  return /^0x[a-fA-F0-9]{40}$/.test(addr) || /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(addr);
 }
 
 export interface TrackedWallet {
   id: string;
   address: string;
+  chainId: string;
+  chainType: string;
   label: string | null;
 }
 
@@ -44,7 +46,7 @@ export function useTrackedWallets(): UseTrackedWalletsResult {
 
   const addWallet = useCallback(
     async (address: string, label?: string): Promise<boolean> => {
-      if (!isEvmAddress(address)) return false;
+      if (!isValidWalletAddress(address)) return false;
 
       try {
         const res = await fetch("/api/wallets", {
@@ -67,8 +69,12 @@ export function useTrackedWallets(): UseTrackedWalletsResult {
   const removeWallet = useCallback(
     async (address: string) => {
       try {
-        await fetch(`/api/wallets?address=${address.toLowerCase()}`, { method: "DELETE" });
-        setWallets((prev) => prev.filter((w) => w.address.toLowerCase() !== address.toLowerCase()));
+        const isSolana = !address.startsWith("0x");
+        const encoded = encodeURIComponent(isSolana ? address : address.toLowerCase());
+        await fetch(`/api/wallets?address=${encoded}`, { method: "DELETE" });
+        setWallets((prev) => prev.filter((w) =>
+          isSolana ? w.address !== address : w.address.toLowerCase() !== address.toLowerCase()
+        ));
       } catch {
         // silent
       }

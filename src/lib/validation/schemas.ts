@@ -25,17 +25,27 @@ export const loginSchema = z.object({
     .min(1, "Password is required"),
 });
 
+const evmAddressRegex = /^0x[a-fA-F0-9]{40}$/;
+const solanaAddressRegex = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+
 export const addWalletSchema = z.object({
   address: z
     .string()
     .trim()
-    .regex(/^0x[a-fA-F0-9]{40}$/, "Invalid EVM address"),
+    .refine(
+      (addr) => evmAddressRegex.test(addr) || solanaAddressRegex.test(addr),
+      "Invalid wallet address (EVM or Solana)"
+    ),
   label: z
     .string()
     .trim()
     .max(50, "Label is too long")
     .optional(),
 });
+
+export function detectChainType(address: string): "evm" | "svm" {
+  return evmAddressRegex.test(address) ? "evm" : "svm";
+}
 
 export const forgotPasswordSchema = z.object({
   email: z

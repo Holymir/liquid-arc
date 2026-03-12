@@ -18,5 +18,6 @@ export function chainIdToType(chainId: string): ChainType {
 }
 
 export function truncateAddress(address: string, chars = 4): string {
-  return `${address.slice(0, chars + 2)}...${address.slice(-chars)}`;
+  const prefix = address.startsWith("0x") ? chars + 2 : chars;
+  return `${address.slice(0, prefix)}...${address.slice(-chars)}`;
 }

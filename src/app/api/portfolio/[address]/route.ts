@@ -19,8 +19,9 @@ export async function GET(
   }
 
   const { address } = await params;
-  const chainId = request.nextUrl.searchParams.get("chainId") ?? "base";
-  const normalizedAddress = address.toLowerCase();
+  const chainIdParam = request.nextUrl.searchParams.get("chainId");
+  const isSolana = !address.startsWith("0x");
+  const normalizedAddress = isSolana ? address : address.toLowerCase();
 
   // Verify the user owns this wallet
   const wallet = await prisma.wallet.findFirst({
@@ -29,12 +30,14 @@ export async function GET(
       userId: session.userId,
       isActive: true,
     },
-    select: { id: true },
+    select: { id: true, chainId: true },
   });
 
   if (!wallet) {
     return NextResponse.json({ error: "Wallet not found" }, { status: 403 });
   }
+
+  const chainId = chainIdParam ?? wallet.chainId;
 
   try {
     const portfolio = await getPortfolio(address, chainId);

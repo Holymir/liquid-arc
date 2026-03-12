@@ -53,7 +53,8 @@ export async function getPortfolio(
   chainId: string
 ): Promise<PortfolioResponse> {
   const adapter = getChainAdapter(chainId);
-  const normalizedAddress = address.toLowerCase();
+  const isSolana = chainId === "solana";
+  const normalizedAddress = isSolana ? address : address.toLowerCase();
   const defaultTokens = getDefaultTokenAddresses(chainId);
 
   // 1. Fetch native balance + token balances + LP positions from all protocols in parallel.
@@ -105,8 +106,10 @@ export async function getPortfolio(
   }
 
   // 2. Collect all token addresses that need pricing
+  const nativeInfo = getNativeTokenInfo(chainId);
   const emissionsToken = EMISSIONS_TOKENS[chainId];
   const allTokenAddresses = [
+    nativeInfo.wrappedAddress, // needed to price the native balance
     ...tokenBalances.map((t) => t.tokenAddress),
     ...lpPositions.flatMap((p) => [p.token0Address, p.token1Address]),
     ...(emissionsToken ? [emissionsToken] : []),
@@ -115,15 +118,17 @@ export async function getPortfolio(
   // 3. Fetch prices
   const prices = await pricingService.getPrices(chainId, allTokenAddresses);
 
+  // Helper: normalize address for price map lookup (preserve case for Solana)
+  const norm = (addr: string) => isSolana ? addr : addr.toLowerCase();
+
   // 4. Build native balance token entry
-  const nativeInfo = getNativeTokenInfo(chainId);
   const nativeEntry: TokenBalanceData = {
     tokenAddress: NATIVE_TOKEN_ADDRESS,
     symbol: nativeInfo.symbol,
     decimals: nativeInfo.decimals,
     balance: nativeBalance,
     formattedBalance: formatUnits(nativeBalance, nativeInfo.decimals),
-    usdValue: (prices.get(nativeInfo.wrappedAddress.toLowerCase()) ?? 0) *
+    usdValue: (prices.get(norm(nativeInfo.wrappedAddress)) ?? 0) *
       parseFloat(formatUnits(nativeBalance, nativeInfo.decimals)),
   };
 
@@ -132,19 +137,19 @@ export async function getPortfolio(
     nativeEntry,
     ...tokenBalances.map((t) => ({
       ...t,
-      usdValue: (prices.get(t.tokenAddress.toLowerCase()) ?? 0) *
+      usdValue: (prices.get(norm(t.tokenAddress)) ?? 0) *
         parseFloat(t.formattedBalance),
     })),
-  ].filter((t) => parseFloat(t.formattedBalance) > 0);
+  ].filter((t) => (t.usdValue ?? 0) >= 0.01);
 
   // 6. Enrich LP positions with USD values (principal + fees + emissions)
   const emissionsPrice = emissionsToken
-    ? (prices.get(emissionsToken.toLowerCase()) ?? 0)
+    ? (prices.get(norm(emissionsToken)) ?? 0)
     : 0;
 
   const enrichedLPs: LPPositionData[] = lpPositions.map((lp) => {
-    const price0 = prices.get(lp.token0Address.toLowerCase()) ?? 0;
-    const price1 = prices.get(lp.token1Address.toLowerCase()) ?? 0;
+    const price0 = prices.get(norm(lp.token0Address)) ?? 0;
+    const price1 = prices.get(norm(lp.token1Address)) ?? 0;
 
     const token0Usd = (lp.token0Amount ?? 0) * price0;
     const token1Usd = (lp.token1Amount ?? 0) * price1;

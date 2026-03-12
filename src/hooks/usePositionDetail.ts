@@ -13,7 +13,7 @@ interface UsePositionDetailResult {
 export function usePositionDetail(
   address?: string,
   nftTokenId?: string | null,
-  chainId = "base"
+  chainId?: string
 ): UsePositionDetailResult {
   const [data, setData] = useState<PositionPnL | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -34,8 +34,9 @@ export function usePositionDetail(
     setError(null);
 
     try {
+      const qs = chainId ? `?chainId=${chainId}` : "";
       const res = await fetch(
-        `/api/portfolio/${address}/positions/${nftTokenId}?chainId=${chainId}`,
+        `/api/portfolio/${address}/positions/${nftTokenId}${qs}`,
         { signal: controller.signal }
       );
 

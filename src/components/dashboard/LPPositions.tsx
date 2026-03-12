@@ -260,7 +260,7 @@ export function LPPositions({ address, positions, isLoading }: LPPositionsProps)
           </div>
           <p className="text-slate-300 text-sm font-medium">No active LP positions</p>
           <p className="text-slate-500 text-xs mt-1">
-            Aerodrome CL positions on Base will appear here
+            Concentrated liquidity positions will appear here
           </p>
         </div>
       ) : (

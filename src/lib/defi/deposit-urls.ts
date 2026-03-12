@@ -14,6 +14,7 @@ const BLOCK_EXPLORERS: Record<string, string> = {
   polygon: "https://polygonscan.com/address",
   base: "https://basescan.org/address",
   optimism: "https://optimistic.etherscan.io/address",
+  solana: "https://solscan.io/account",
 };
 
 export function getDepositUrl(pool: {
@@ -38,6 +39,14 @@ export function getDepositUrl(pool: {
     const chain = CHAIN_NAMES[pool.chainId] ?? "mainnet";
     const fee = pool.feeTier ?? 3000;
     return `https://app.uniswap.org/add/${pool.token0.address}/${pool.token1.address}/${fee}?chain=${chain}`;
+  }
+
+  if (slug === "raydium") {
+    return `https://raydium.io/clmm/create-position/?pool_id=${pool.poolAddress}`;
+  }
+
+  if (slug === "orca") {
+    return `https://www.orca.so/pools/${pool.poolAddress}`;
   }
 
   // Fallback: block explorer

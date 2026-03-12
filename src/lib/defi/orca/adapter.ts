@@ -6,16 +6,16 @@
 
 import type { DefiProtocolAdapter } from "../types";
 import type { LPPositionData } from "@/types";
-import { Connection, PublicKey } from "@solana/web3.js";
-
-const RPC_URL = process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
+import { PublicKey } from "@solana/web3.js";
+import { getTokenAccountsForWallet, getSolanaConnection } from "@/lib/chain/solana/token-accounts";
+import { resolveTokenMeta } from "@/lib/chain/solana/token-list";
 
 // Orca Whirlpool program ID
 const WHIRLPOOL_PROGRAM = new PublicKey(
   "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc"
 );
 
-// Known Solana token symbols
+// Known Solana token symbols (fast path)
 const KNOWN_SYMBOLS: Record<string, string> = {
   So11111111111111111111111111111111111111112: "SOL",
   EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v: "USDC",
@@ -27,33 +27,13 @@ const KNOWN_SYMBOLS: Record<string, string> = {
   DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263: "BONK",
 };
 
-// Token metadata cache
-const tokenMetaCache = new Map<string, { symbol: string; decimals: number }>();
-
-async function getTokenMeta(
-  connection: Connection,
-  mint: string
-): Promise<{ symbol: string; decimals: number }> {
-  const cached = tokenMetaCache.get(mint);
-  if (cached) return cached;
-
-  try {
-    const mintInfo = await connection.getParsedAccountInfo(new PublicKey(mint));
-    if (mintInfo.value?.data && "parsed" in mintInfo.value.data) {
-      const decimals = mintInfo.value.data.parsed.info?.decimals ?? 9;
-      const symbol = KNOWN_SYMBOLS[mint] ?? mint.slice(0, 4) + "...";
-      const meta = { symbol, decimals };
-      tokenMetaCache.set(mint, meta);
-      return meta;
-    }
-  } catch {
-    // fallback
-  }
-
+async function resolveSymbol(mint: string): Promise<{ symbol: string; decimals: number }> {
+  // Try Jupiter token list first (covers most tokens, like Phantom does)
+  const meta = await resolveTokenMeta(mint);
+  if (meta) return { symbol: meta.symbol, decimals: meta.decimals };
+  // Fallback to known symbols
   const symbol = KNOWN_SYMBOLS[mint] ?? mint.slice(0, 4) + "...";
-  const fallback = { symbol, decimals: 9 };
-  tokenMetaCache.set(mint, fallback);
-  return fallback;
+  return { symbol, decimals: 9 };
 }
 
 export class OrcaWhirlpoolAdapter implements DefiProtocolAdapter {
@@ -62,47 +42,12 @@ export class OrcaWhirlpoolAdapter implements DefiProtocolAdapter {
   readonly slug = "orca";
   readonly displayName = "Orca";
   readonly chainId = "solana";
-  private connection: Connection;
-
-  constructor() {
-    this.connection = new Connection(RPC_URL, "confirmed");
-  }
 
   async getLPPositions(address: string): Promise<LPPositionData[]> {
-    const wallet = new PublicKey(address);
+    const connection = getSolanaConnection();
 
-    // Orca Whirlpool Position account layout:
-    // - discriminator: 8 bytes
-    // - whirlpool: 32 bytes (offset 8)
-    // - position_mint: 32 bytes (offset 40)
-    // - liquidity: u128 (offset 72, 16 bytes)
-    // - tick_lower_index: i32 (offset 88, 4 bytes)
-    // - tick_upper_index: i32 (offset 92, 4 bytes)
-    // - fee_owed_a: u64 (offset 128, 8 bytes)
-    // - fee_owed_b: u64 (offset 136, 8 bytes)
-    //
-    // Position size: 216 bytes
-
-    // Find position accounts where the position_mint is a token the user owns.
-    // First, get all token accounts the user holds (these include position NFTs).
-    const tokenAccounts = await this.connection.getParsedTokenAccountsByOwner(
-      wallet,
-      { programId: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA") }
-    );
-
-    // Filter to NFT-like accounts (amount = 1, decimals = 0)
-    const nftMints = new Set<string>();
-    for (const { account } of tokenAccounts.value) {
-      const parsed = account.data.parsed;
-      if (parsed.type !== "account") continue;
-      const info = parsed.info;
-      if (
-        info.tokenAmount.amount === "1" &&
-        info.tokenAmount.decimals === 0
-      ) {
-        nftMints.add(info.mint);
-      }
-    }
+    // Use shared token accounts cache (no extra RPC call)
+    const { nftMints } = await getTokenAccountsForWallet(address);
 
     if (nftMints.size === 0) return [];
 
@@ -120,10 +65,17 @@ export class OrcaWhirlpoolAdapter implements DefiProtocolAdapter {
     // Batch-fetch all position accounts
     const positionPubkeys = positionPDAs.map((p) => p.pda);
     const positionInfos =
-      await this.connection.getMultipleAccountsInfo(positionPubkeys);
+      await connection.getMultipleAccountsInfo(positionPubkeys);
 
     console.log(
       `[orca] Checking ${positionPDAs.length} potential Whirlpool positions for ${address}`
+    );
+
+    const validCount = positionInfos.filter(
+      (info) => info && info.owner.equals(WHIRLPOOL_PROGRAM)
+    ).length;
+    console.log(
+      `[orca] PDA resolution: ${validCount}/${positionPDAs.length} resolved to valid Whirlpool positions`
     );
 
     const positions: LPPositionData[] = [];
@@ -136,50 +88,70 @@ export class OrcaWhirlpoolAdapter implements DefiProtocolAdapter {
         const data = info.data;
         if (data.length < 144) continue;
 
-        // Parse position data
+        // Position layout (from Orca Whirlpool IDL):
+        // 0-7:     discriminator (8 bytes)
+        // 8-39:    whirlpool (Pubkey, 32 bytes)
+        // 40-71:   position_mint (Pubkey, 32 bytes)
+        // 72-87:   liquidity (u128, 16 bytes)
+        // 88-91:   tick_lower_index (i32, 4 bytes)
+        // 92-95:   tick_upper_index (i32, 4 bytes)
+        // 96-111:  fee_growth_checkpoint_a (u128, 16 bytes)
+        // 112-119: fee_owed_a (u64, 8 bytes)
+        // 120-135: fee_growth_checkpoint_b (u128, 16 bytes)
+        // 136-143: fee_owed_b (u64, 8 bytes)
+        // 144-215: reward_infos (PositionRewardInfo[3], 72 bytes)
+
         const whirlpoolAddr = new PublicKey(data.subarray(8, 40));
+
         // liquidity: u128 at offset 72
         const liquidityLow = data.readBigUInt64LE(72);
         const liquidityHigh = data.readBigUInt64LE(80);
-        const liquidity = liquidityHigh * (1n << 64n) + liquidityLow;
+        const liquidity = (liquidityHigh << 64n) | liquidityLow;
 
         const tickLower = data.readInt32LE(88);
         const tickUpper = data.readInt32LE(92);
 
         if (liquidity === 0n) continue;
 
-        // Parse fee owed
-        const feeOwedA = data.readBigUInt64LE(128);
+        // Parse fees owed
+        const feeOwedA = data.readBigUInt64LE(112);
         const feeOwedB = data.readBigUInt64LE(136);
 
         // Fetch whirlpool account for token mints + current tick
-        const whirlpoolInfo = await this.connection.getAccountInfo(whirlpoolAddr);
+        const whirlpoolInfo = await connection.getAccountInfo(whirlpoolAddr);
         if (!whirlpoolInfo) continue;
 
         const wpData = whirlpoolInfo.data;
-        // Whirlpool layout:
-        // offset 8: whirlpools_config (32)
-        // offset 40: whirlpool_bump (1)
-        // offset 41: tick_spacing (2)
-        // offset 43: tick_spacing_seed (2)
-        // offset 45: fee_rate (2)
-        // offset 47: protocol_fee_rate (2)
-        // offset 49: liquidity (u128, 16)
-        // offset 65: sqrt_price (u128, 16)
-        // offset 81: tick_current_index (i32, 4)
-        // ...
-        // offset 101: token_mint_a (32)
-        // offset 133: token_mint_b (32)
+
+        // Whirlpool layout (from Orca Whirlpool IDL):
+        // 0-7:     discriminator (8 bytes)
+        // 8-39:    whirlpools_config (Pubkey, 32 bytes)
+        // 40:      whirlpool_bump (u8, 1 byte)
+        // 41-42:   tick_spacing (u16, 2 bytes)
+        // 43-44:   fee_tier_index_seed (u8[2], 2 bytes)
+        // 45-46:   fee_rate (u16, 2 bytes)
+        // 47-48:   protocol_fee_rate (u16, 2 bytes)
+        // 49-64:   liquidity (u128, 16 bytes)
+        // 65-80:   sqrt_price (u128, 16 bytes)
+        // 81-84:   tick_current_index (i32, 4 bytes)
+        // 85-92:   protocol_fee_owed_a (u64, 8 bytes)
+        // 93-100:  protocol_fee_owed_b (u64, 8 bytes)
+        // 101-132: token_mint_a (Pubkey, 32 bytes)
+        // 133-164: token_vault_a (Pubkey, 32 bytes)
+        // 165-180: fee_growth_global_a (u128, 16 bytes)
+        // 181-212: token_mint_b (Pubkey, 32 bytes)
+        // 213-244: token_vault_b (Pubkey, 32 bytes)
+        // 245-260: fee_growth_global_b (u128, 16 bytes)
 
         const currentTick = wpData.readInt32LE(81);
         const tokenMintA = new PublicKey(wpData.subarray(101, 133));
-        const tokenMintB = new PublicKey(wpData.subarray(133, 165));
+        const tokenMintB = new PublicKey(wpData.subarray(181, 213));
 
         const addrA = tokenMintA.toBase58();
         const addrB = tokenMintB.toBase58();
 
-        const metaA = await getTokenMeta(this.connection, addrA);
-        const metaB = await getTokenMeta(this.connection, addrB);
+        const metaA = await resolveSymbol(addrA);
+        const metaB = await resolveSymbol(addrB);
 
         // Compute approximate token amounts using CL math
         const sqrtPriceLower = Math.sqrt(1.0001 ** tickLower);

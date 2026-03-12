@@ -5,8 +5,8 @@ import { truncateAddress } from "@/lib/chain/utils";
 import type { TrackedWallet } from "@/hooks/useTrackedWallets";
 import { Plus, X, Wallet } from "lucide-react";
 
-function isEvmAddress(addr: string): boolean {
-  return /^0x[a-fA-F0-9]{40}$/.test(addr);
+function isValidWalletAddress(addr: string): boolean {
+  return /^0x[a-fA-F0-9]{40}$/.test(addr) || /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(addr);
 }
 
 interface WalletPanelProps {
@@ -37,12 +37,13 @@ export function WalletPanel({
     setError("");
 
     const trimmed = address.trim();
-    if (!isEvmAddress(trimmed)) {
-      setError("Invalid EVM address");
+    if (!isValidWalletAddress(trimmed)) {
+      setError("Invalid wallet address");
       return;
     }
 
-    if (wallets.some((w) => w.address.toLowerCase() === trimmed.toLowerCase())) {
+    const isSolana = !trimmed.startsWith("0x");
+    if (wallets.some((w) => isSolana ? w.address === trimmed : w.address.toLowerCase() === trimmed.toLowerCase())) {
       setError("Wallet already tracked");
       return;
     }
@@ -87,7 +88,7 @@ export function WalletPanel({
         <form onSubmit={handleSubmit} className="mb-4 space-y-2.5">
           <input
             type="text"
-            placeholder="0x... wallet address"
+            placeholder="0x... or Solana address"
             value={address}
             onChange={(e) => setAddress(e.target.value)}
             className="w-full bg-slate-800/60 border border-slate-700/50 rounded-lg px-3 py-2 text-sm text-slate-200 font-mono placeholder:text-slate-600 focus:outline-none focus:border-arc-500/50 focus:ring-1 focus:ring-arc-500/20 transition-all"
@@ -190,6 +191,11 @@ export function WalletPanel({
             <span className="w-1.5 h-1.5 rounded-full bg-arc-400" />
             <span className="text-slate-400">Base</span>
             <span className="text-slate-500 ml-auto text-[11px]">Aerodrome</span>
+          </div>
+          <div className="flex items-center gap-2 text-xs">
+            <span className="w-1.5 h-1.5 rounded-full bg-violet-400" />
+            <span className="text-slate-400">Solana</span>
+            <span className="text-slate-500 ml-auto text-[11px]">Raydium &middot; Orca</span>
           </div>
           <div className="flex items-center gap-2 text-xs">
             <span className="w-1.5 h-1.5 rounded-full bg-slate-600" />

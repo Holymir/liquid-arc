@@ -14,6 +14,26 @@ export async function saveSnapshotData(
   });
   if (recent) return;
 
+  // Sanity check: if the new value dropped >80% vs the last snapshot,
+  // it's likely a data glitch (pricing API down, LP fetch failed, etc.) — skip saving.
+  if (portfolio.totalUsdValue > 0) {
+    const lastSnapshot = await prisma.portfolioSnapshot.findFirst({
+      where: { walletId },
+      orderBy: { snapshotAt: "desc" },
+      select: { totalUsdValue: true },
+    });
+    if (
+      lastSnapshot &&
+      lastSnapshot.totalUsdValue > 100 &&
+      portfolio.totalUsdValue < lastSnapshot.totalUsdValue * 0.2
+    ) {
+      console.warn(
+        `[snapshot] Skipping suspicious snapshot: $${portfolio.totalUsdValue.toFixed(2)} vs previous $${lastSnapshot.totalUsdValue.toFixed(2)} (>80% drop)`
+      );
+      return;
+    }
+  }
+
   const tokenBreakdown: Record<string, number> = {};
   for (const t of portfolio.tokenBalances) {
     if (t.usdValue && t.usdValue > 0) tokenBreakdown[t.symbol] = t.usdValue;
