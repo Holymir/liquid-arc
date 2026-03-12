@@ -9,7 +9,9 @@
     "lint": "next lint",
     "backend:dev": "npx tsx --watch src/backend/server.ts",
     "backend:start": "npx tsx src/backend/server.ts",
-    "backend:build": "prisma generate"
+    "backend:build": "prisma generate",
+    "cleanup:pools": "npx tsx scripts/cleanup-pools.ts",
+    "cleanup:pools:apply": "npx tsx scripts/cleanup-pools.ts --apply"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
