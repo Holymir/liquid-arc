@@ -19,7 +19,13 @@ export async function middleware(req: NextRequest) {
   // ── Rate limiting ─────────────────────────────────────────────────────
   const ip = getClientIp(req);
 
-  if (pathname.startsWith("/api/auth/login") || pathname.startsWith("/api/auth/register")) {
+  if (
+    pathname.startsWith("/api/auth/login") ||
+    pathname.startsWith("/api/auth/register") ||
+    pathname.startsWith("/api/auth/forgot-password") ||
+    pathname.startsWith("/api/auth/reset-password") ||
+    pathname.startsWith("/api/auth/verify-email")
+  ) {
     const rl = checkRateLimit(`auth:${ip}`, RATE_LIMITS.auth);
     if (!rl.allowed) {
       return NextResponse.json(
@@ -82,6 +88,10 @@ export const config = {
     "/api/export/:path*",
     "/api/auth/login",
     "/api/auth/register",
+    "/api/auth/forgot-password",
+    "/api/auth/reset-password",
+    "/api/auth/verify-email",
     "/api/pools/:path*",
+    "/knowledge/:path*",
   ],
 };

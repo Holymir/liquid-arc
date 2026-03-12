@@ -86,7 +86,7 @@ export async function GET(
     const message = error instanceof Error ? error.message : String(error);
     console.error("[position-detail] error:", message);
     return NextResponse.json(
-      { error: "Failed to load position detail", detail: message },
+      { error: "Failed to load position detail" },
       { status: 500 }
     );
   }
