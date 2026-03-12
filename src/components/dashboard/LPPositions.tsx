@@ -74,11 +74,6 @@ function PositionCard({
 
         {/* Value + P&L — right side */}
         <div className="flex items-center gap-3 ml-auto shrink-0">
-          {totalClaimable > 0 && (
-            <span className="text-emerald-400 text-[11px] font-semibold tabular-nums hidden sm:block">
-              +{formatUsd(totalClaimable)}
-            </span>
-          )}
           {pnl && (
             <span
               className={`text-[11px] font-semibold tabular-nums px-1.5 py-0.5 rounded ${

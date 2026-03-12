@@ -8,7 +8,7 @@ import { useTrackedWallets } from "@/hooks/useTrackedWallets";
 import { usePositionDetail } from "@/hooks/usePositionDetail";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PriceRangeChart } from "@/components/dashboard/PriceRangeChart";
-import { ArrowLeft, RefreshCw, ExternalLink, Info } from "lucide-react";
+import { ArrowLeft, RefreshCw, ExternalLink, TrendingUp, TrendingDown, ArrowRight } from "lucide-react";
 
 function formatUsd(value: number): string {
   return new Intl.NumberFormat("en-US", {
@@ -24,38 +24,29 @@ function formatPercent(value: number): string {
   return `${sign}${value.toFixed(2)}%`;
 }
 
-function PnlValue({ value, className = "" }: { value: number; className?: string }) {
-  const color = value >= 0 ? "text-emerald-400" : "text-red-400";
-  return (
-    <span className={`${color} ${className} tabular-nums`}>
-      {value >= 0 ? "+" : ""}
-      {formatUsd(value)}
-    </span>
-  );
+function formatToken(value: number): string {
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(2)}M`;
+  if (value >= 1_000) return `${(value / 1_000).toFixed(2)}K`;
+  if (value >= 1) return value.toLocaleString("en-US", { maximumFractionDigits: 4 });
+  if (value >= 0.0001) return value.toLocaleString("en-US", { maximumFractionDigits: 6 });
+  return value.toExponential(2);
 }
 
-function StatRow({
-  label,
-  value,
-  sub,
-  highlight,
-}: {
-  label: string;
-  value: React.ReactNode;
-  sub?: React.ReactNode;
-  highlight?: boolean;
-}) {
+function PnlBadge({ value, percent, size = "md" }: { value: number; percent?: number; size?: "sm" | "md" | "lg" }) {
+  const positive = value >= 0;
+  const textSize = size === "lg" ? "text-3xl" : size === "md" ? "text-xl" : "text-sm";
+  const badgeSize = size === "lg" ? "text-sm px-2.5 py-1" : size === "md" ? "text-xs px-2 py-0.5" : "text-[10px] px-1.5 py-0.5";
+
   return (
-    <div
-      className={`flex items-start justify-between py-3 ${
-        highlight ? "bg-slate-800/20 -mx-4 px-4 rounded-lg" : ""
-      }`}
-    >
-      <span className="text-slate-400 text-sm">{label}</span>
-      <div className="text-right">
-        <div className="text-sm font-medium text-slate-200">{value}</div>
-        {sub && <div className="text-[11px] text-slate-500 mt-0.5">{sub}</div>}
-      </div>
+    <div className="flex items-end gap-2.5">
+      <span className={`${positive ? "text-emerald-400" : "text-red-400"} ${textSize} font-bold tabular-nums`}>
+        {positive ? "+" : ""}{formatUsd(value)}
+      </span>
+      {percent !== undefined && (
+        <span className={`${positive ? "bg-emerald-400/10 text-emerald-400" : "bg-red-400/10 text-red-400"} ${badgeSize} rounded-md font-semibold tabular-nums mb-0.5`}>
+          {formatPercent(percent)}
+        </span>
+      )}
     </div>
   );
 }
@@ -100,13 +91,21 @@ function StrategyRow({
   );
 }
 
+/** Extract protocol display name from the protocol string */
+function protocolLabel(protocol: string): string {
+  if (protocol.includes("aerodrome")) return "Aerodrome CL";
+  if (protocol.includes("velodrome")) return "Velodrome CL";
+  if (protocol.includes("uniswap")) return "Uniswap V3";
+  // Fallback: capitalize first letter
+  return protocol.charAt(0).toUpperCase() + protocol.slice(1);
+}
+
 export default function PositionPage() {
   const { nftTokenId } = useParams<{ nftTokenId: string }>();
   const { status } = useSession();
   const { wallets } = useTrackedWallets();
   const router = useRouter();
 
-  // Use the first tracked wallet address for position lookup
   const address = wallets[0]?.address;
 
   useEffect(() => {
@@ -122,7 +121,7 @@ export default function PositionPage() {
 
   return (
     <AppLayout>
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-xs text-slate-500 mb-6">
           <Link
@@ -163,7 +162,7 @@ export default function PositionPage() {
             </div>
           </div>
         ) : pnl ? (
-          <div className="space-y-6">
+          <div className="space-y-5">
             {/* Position Header */}
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
               <div>
@@ -175,7 +174,7 @@ export default function PositionPage() {
                     NFT #{pnl.nftTokenId}
                   </span>
                   <span className="text-arc-400/60 text-[10px] uppercase tracking-wider font-medium">
-                    Aerodrome CL
+                    {protocolLabel(pnl.poolAddress)}
                   </span>
                   <span
                     className={`px-1.5 py-0.5 rounded-md text-[10px] font-medium ${
@@ -198,61 +197,65 @@ export default function PositionPage() {
               </button>
             </div>
 
-            {/* Hero P&L Card */}
-            <div className="glass-card rounded-2xl p-6 sm:p-8">
-              <div className="grid sm:grid-cols-3 gap-6">
+            {/* Hero KPIs — 4 column grid */}
+            <div className="glass-card rounded-2xl p-6">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-5">
+                {/* Position Value */}
                 <div>
-                  <p className="text-slate-500 text-xs uppercase tracking-widest font-medium mb-1.5">
+                  <p className="text-slate-500 text-[10px] uppercase tracking-widest font-medium mb-1.5">
                     Position Value
                   </p>
-                  <p className="text-slate-100 font-bold text-3xl tabular-nums">
+                  <p className="text-slate-100 font-bold text-2xl tabular-nums">
                     {formatUsd(pnl.currentPositionUsd)}
                   </p>
-                  <p className="text-slate-600 text-xs mt-1">
-                    Entry: {formatUsd(pnl.entryValueUsd)}
+                  <p className="text-slate-600 text-[11px] mt-1">
+                    Entry {formatUsd(pnl.entryValueUsd)}
                   </p>
-                  {(pnl.feesEarnedUsd > 0 || pnl.emissionsEarnedUsd > 0) && (
-                    <p className="text-emerald-400/70 text-xs mt-0.5">
-                      + {formatUsd(pnl.feesEarnedUsd + pnl.emissionsEarnedUsd)} rewards
-                    </p>
-                  )}
                 </div>
 
+                {/* Total P&L */}
                 <div>
-                  <p className="text-slate-500 text-xs uppercase tracking-widest font-medium mb-1.5">
+                  <p className="text-slate-500 text-[10px] uppercase tracking-widest font-medium mb-1.5">
                     Total P&L
                   </p>
-                  <div className="flex items-end gap-3">
-                    <PnlValue value={pnl.totalPnl} className="text-3xl font-bold" />
-                    <span
-                      className={`text-sm font-semibold px-2.5 py-1 rounded-md mb-0.5 ${
-                        pnl.totalPnl >= 0
-                          ? "bg-emerald-400/10 text-emerald-400"
-                          : "bg-red-400/10 text-red-400"
-                      }`}
-                    >
-                      {formatPercent(pnl.totalPnlPercent)}
-                    </span>
-                  </div>
-                  <p className="text-slate-600 text-xs mt-1">
+                  <PnlBadge value={pnl.totalPnl} percent={pnl.totalPnlPercent} size="md" />
+                  <p className="text-slate-600 text-[11px] mt-1">
                     Since {new Date(pnl.entryDate).toLocaleDateString("en-US", {
                       month: "short",
                       day: "numeric",
-                      year: "numeric",
                     })}
                   </p>
                 </div>
 
+                {/* APR */}
                 <div>
-                  <p className="text-slate-500 text-xs uppercase tracking-widest font-medium mb-1.5">
-                    Estimated APR
+                  <p className="text-slate-500 text-[10px] uppercase tracking-widest font-medium mb-1.5">
+                    Est. APR
                   </p>
-                  <p className="text-arc-400 font-bold text-3xl tabular-nums">
+                  <p className="text-arc-400 font-bold text-2xl tabular-nums">
                     {pnl.apr.toFixed(1)}%
                   </p>
-                  <p className="text-slate-600 text-xs mt-1">
-                    Fees + emissions annualized
+                  <p className="text-slate-600 text-[11px] mt-1">
+                    Fees + emissions
                   </p>
+                </div>
+
+                {/* Rewards */}
+                <div>
+                  <p className="text-slate-500 text-[10px] uppercase tracking-widest font-medium mb-1.5">
+                    Rewards Earned
+                  </p>
+                  <p className="text-emerald-400 font-bold text-2xl tabular-nums">
+                    +{formatUsd(pnl.feesEarnedUsd + pnl.emissionsEarnedUsd)}
+                  </p>
+                  <div className="flex gap-3 text-[11px] mt-1">
+                    {pnl.feesEarnedUsd > 0 && (
+                      <span className="text-slate-600">Fees {formatUsd(pnl.feesEarnedUsd)}</span>
+                    )}
+                    {pnl.emissionsEarnedUsd > 0 && (
+                      <span className="text-slate-600">Emissions {formatUsd(pnl.emissionsEarnedUsd)}</span>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -271,83 +274,230 @@ export default function PositionPage() {
               />
             )}
 
-            <div className="grid sm:grid-cols-2 gap-6">
+            {/* Entry vs Current — side-by-side comparison */}
+            <div className="glass-card rounded-2xl p-6">
+              <p className="text-slate-500 text-[10px] uppercase tracking-widest font-medium mb-4">
+                Entry vs Current
+              </p>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-[10px] text-slate-600 uppercase tracking-widest">
+                      <th className="pb-3 font-medium" />
+                      <th className="pb-3 font-medium text-right">Amount</th>
+                      <th className="pb-3 font-medium text-right">Price</th>
+                      <th className="pb-3 font-medium text-right">Value</th>
+                      <th className="pb-3 font-medium text-right">Change</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/30">
+                    {/* Token 0 — Entry */}
+                    <tr>
+                      <td className="py-2.5">
+                        <span className="text-slate-500 text-xs">Entry {pnl.token0Symbol}</span>
+                      </td>
+                      <td className="py-2.5 text-right text-slate-300 font-mono tabular-nums text-xs">
+                        {formatToken(pnl.entryToken0Amount)}
+                      </td>
+                      <td className="py-2.5 text-right text-slate-400 font-mono tabular-nums text-xs">
+                        {formatUsd(pnl.entryToken0Price)}
+                      </td>
+                      <td className="py-2.5 text-right text-slate-300 font-mono tabular-nums text-xs">
+                        {formatUsd(pnl.entryToken0Amount * pnl.entryToken0Price)}
+                      </td>
+                      <td className="py-2.5" />
+                    </tr>
+                    {/* Token 0 — Current */}
+                    <tr>
+                      <td className="py-2.5">
+                        <span className="text-slate-400 text-xs font-medium flex items-center gap-1.5">
+                          <ArrowRight className="w-3 h-3 text-slate-600" />
+                          Now {pnl.token0Symbol}
+                        </span>
+                      </td>
+                      <td className="py-2.5 text-right text-slate-200 font-mono tabular-nums text-xs">
+                        {formatToken(pnl.currentToken0Amount)}
+                      </td>
+                      <td className="py-2.5 text-right text-slate-300 font-mono tabular-nums text-xs">
+                        {formatUsd(pnl.currentToken0Price)}
+                      </td>
+                      <td className="py-2.5 text-right text-slate-200 font-mono tabular-nums text-xs">
+                        {formatUsd(pnl.currentToken0Amount * pnl.currentToken0Price)}
+                      </td>
+                      <td className="py-2.5 text-right">
+                        {(() => {
+                          const entryVal = pnl.entryToken0Amount * pnl.entryToken0Price;
+                          const currVal = pnl.currentToken0Amount * pnl.currentToken0Price;
+                          const diff = currVal - entryVal;
+                          if (entryVal === 0) return <span className="text-slate-600 text-xs">-</span>;
+                          return (
+                            <span className={`text-xs tabular-nums font-medium ${diff >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                              {diff >= 0 ? "+" : ""}{((diff / entryVal) * 100).toFixed(1)}%
+                            </span>
+                          );
+                        })()}
+                      </td>
+                    </tr>
+                    {/* Token 1 — Entry */}
+                    <tr>
+                      <td className="py-2.5">
+                        <span className="text-slate-500 text-xs">Entry {pnl.token1Symbol}</span>
+                      </td>
+                      <td className="py-2.5 text-right text-slate-300 font-mono tabular-nums text-xs">
+                        {formatToken(pnl.entryToken1Amount)}
+                      </td>
+                      <td className="py-2.5 text-right text-slate-400 font-mono tabular-nums text-xs">
+                        {formatUsd(pnl.entryToken1Price)}
+                      </td>
+                      <td className="py-2.5 text-right text-slate-300 font-mono tabular-nums text-xs">
+                        {formatUsd(pnl.entryToken1Amount * pnl.entryToken1Price)}
+                      </td>
+                      <td className="py-2.5" />
+                    </tr>
+                    {/* Token 1 — Current */}
+                    <tr>
+                      <td className="py-2.5">
+                        <span className="text-slate-400 text-xs font-medium flex items-center gap-1.5">
+                          <ArrowRight className="w-3 h-3 text-slate-600" />
+                          Now {pnl.token1Symbol}
+                        </span>
+                      </td>
+                      <td className="py-2.5 text-right text-slate-200 font-mono tabular-nums text-xs">
+                        {formatToken(pnl.currentToken1Amount)}
+                      </td>
+                      <td className="py-2.5 text-right text-slate-300 font-mono tabular-nums text-xs">
+                        {formatUsd(pnl.currentToken1Price)}
+                      </td>
+                      <td className="py-2.5 text-right text-slate-200 font-mono tabular-nums text-xs">
+                        {formatUsd(pnl.currentToken1Amount * pnl.currentToken1Price)}
+                      </td>
+                      <td className="py-2.5 text-right">
+                        {(() => {
+                          const entryVal = pnl.entryToken1Amount * pnl.entryToken1Price;
+                          const currVal = pnl.currentToken1Amount * pnl.currentToken1Price;
+                          const diff = currVal - entryVal;
+                          if (entryVal === 0) return <span className="text-slate-600 text-xs">-</span>;
+                          return (
+                            <span className={`text-xs tabular-nums font-medium ${diff >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                              {diff >= 0 ? "+" : ""}{((diff / entryVal) * 100).toFixed(1)}%
+                            </span>
+                          );
+                        })()}
+                      </td>
+                    </tr>
+                  </tbody>
+                  {/* Totals */}
+                  <tfoot>
+                    <tr className="border-t border-slate-700/30">
+                      <td className="py-3 text-slate-400 text-xs font-medium">Total</td>
+                      <td className="py-3" />
+                      <td className="py-3" />
+                      <td className="py-3 text-right">
+                        <div className="text-slate-500 text-[10px]">
+                          {formatUsd(pnl.entryValueUsd)} <ArrowRight className="w-2.5 h-2.5 inline text-slate-600" /> <span className="text-slate-200 text-xs font-medium">{formatUsd(pnl.currentPositionUsd)}</span>
+                        </div>
+                      </td>
+                      <td className="py-3 text-right">
+                        <span className={`text-xs tabular-nums font-semibold ${pnl.principalPnl >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                          {pnl.principalPnl >= 0 ? "+" : ""}{formatUsd(pnl.principalPnl)}
+                        </span>
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+
+            <div className="grid sm:grid-cols-2 gap-5">
               {/* P&L Breakdown */}
               <div className="glass-card rounded-2xl p-6">
-                <p className="text-slate-500 text-xs uppercase tracking-widest font-medium mb-4">
+                <p className="text-slate-500 text-[10px] uppercase tracking-widest font-medium mb-4">
                   P&L Breakdown
                 </p>
-                <div className="divide-y divide-slate-800/40">
-                  <StatRow
-                    label="Position Value Change"
-                    value={<PnlValue value={pnl.principalPnl} />}
-                    sub="Includes impermanent loss"
-                  />
-                  <StatRow
-                    label="Trading Fees Earned"
-                    value={
-                      <span className="text-emerald-400 tabular-nums">
-                        +{formatUsd(pnl.feesEarnedUsd)}
-                      </span>
-                    }
-                    sub="Unclaimed swap fees"
-                  />
-                  <StatRow
-                    label="AERO Emissions"
-                    value={
-                      <span className="text-emerald-400 tabular-nums">
+                <div className="space-y-1">
+                  {/* Visual P&L bar */}
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="flex-1 h-2 bg-slate-800/40 rounded-full overflow-hidden">
+                      {(() => {
+                        const total = Math.abs(pnl.principalPnl) + pnl.feesEarnedUsd + pnl.emissionsEarnedUsd;
+                        if (total === 0) return null;
+                        const feesPct = (pnl.feesEarnedUsd / total) * 100;
+                        const emissionsPct = (pnl.emissionsEarnedUsd / total) * 100;
+                        const principalPct = (Math.abs(pnl.principalPnl) / total) * 100;
+                        return (
+                          <div className="flex h-full">
+                            <div
+                              className={`${pnl.principalPnl >= 0 ? "bg-emerald-400/60" : "bg-red-400/60"}`}
+                              style={{ width: `${principalPct}%` }}
+                            />
+                            <div className="bg-arc-400/60" style={{ width: `${feesPct}%` }} />
+                            <div className="bg-arc-400/30" style={{ width: `${emissionsPct}%` }} />
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between py-2 text-sm">
+                    <div className="flex items-center gap-2">
+                      {pnl.principalPnl >= 0 ? (
+                        <TrendingUp className="w-3.5 h-3.5 text-emerald-400/60" />
+                      ) : (
+                        <TrendingDown className="w-3.5 h-3.5 text-red-400/60" />
+                      )}
+                      <span className="text-slate-400">Position Value</span>
+                    </div>
+                    <span className={`tabular-nums font-medium ${pnl.principalPnl >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                      {pnl.principalPnl >= 0 ? "+" : ""}{formatUsd(pnl.principalPnl)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between py-2 text-sm">
+                    <span className="text-slate-400">Trading Fees</span>
+                    <span className="text-arc-400 tabular-nums font-medium">
+                      +{formatUsd(pnl.feesEarnedUsd)}
+                    </span>
+                  </div>
+                  {pnl.emissionsEarnedUsd > 0 && (
+                    <div className="flex items-center justify-between py-2 text-sm">
+                      <span className="text-slate-400">Emissions</span>
+                      <span className="text-arc-400/60 tabular-nums font-medium">
                         +{formatUsd(pnl.emissionsEarnedUsd)}
                       </span>
-                    }
-                    sub="Gauge rewards"
-                  />
-                  <StatRow
-                    label="Net Result"
-                    value={<PnlValue value={pnl.totalPnl} className="font-bold" />}
-                    highlight
-                  />
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between py-2.5 mt-1 border-t border-slate-700/30">
+                    <span className="text-slate-300 font-medium text-sm">Net Result</span>
+                    <PnlBadge value={pnl.totalPnl} percent={pnl.totalPnlPercent} size="sm" />
+                  </div>
                 </div>
               </div>
 
               {/* Impermanent Loss */}
               <div className="glass-card rounded-2xl p-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <p className="text-slate-500 text-xs uppercase tracking-widest font-medium">
-                    Impermanent Loss
-                  </p>
-                  <span className="group/info relative cursor-help">
-                    <Info className="w-3.5 h-3.5 text-slate-600" />
-                    <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-slate-200 text-[11px] leading-relaxed whitespace-normal w-56 opacity-0 group-hover/info:opacity-100 transition-opacity shadow-xl z-10 text-center">
-                      IL compares your LP position value to simply holding the same tokens. Negative = LP underperformed holding.
-                    </span>
-                  </span>
-                </div>
-                <div className="flex items-end gap-3 mb-4">
-                  <PnlValue value={pnl.ilAbsolute} className="text-2xl font-bold" />
-                  <span
-                    className={`text-xs font-semibold px-2 py-0.5 rounded-md mb-0.5 ${
-                      pnl.ilAbsolute >= 0
-                        ? "bg-emerald-400/10 text-emerald-400"
-                        : "bg-red-400/10 text-red-400"
-                    }`}
-                  >
-                    {formatPercent(pnl.ilPercent)}
-                  </span>
-                </div>
-                <div className="bg-slate-800/20 border border-slate-700/20 rounded-lg p-4 space-y-2 text-sm">
+                <p className="text-slate-500 text-[10px] uppercase tracking-widest font-medium mb-4">
+                  Impermanent Loss
+                </p>
+                <PnlBadge value={pnl.ilAbsolute} percent={pnl.ilPercent} size="md" />
+                <p className="text-slate-600 text-[11px] mt-1 mb-4">
+                  LP value vs holding the entry tokens
+                </p>
+                <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-slate-500">If held tokens instead</span>
+                    <span className="text-slate-500">Hold entry tokens</span>
                     <span className="text-slate-300 tabular-nums">{formatUsd(pnl.holdValue)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-500">Current LP value</span>
+                    <span className="text-slate-500">LP value</span>
                     <span className="text-slate-300 tabular-nums">{formatUsd(pnl.currentPositionUsd)}</span>
                   </div>
                   <div className="flex justify-between pt-2 border-t border-slate-700/30">
                     <span className="text-slate-400 font-medium">
-                      IL + Fees + Emissions
+                      IL + Rewards
                     </span>
-                    <PnlValue value={pnl.ilAbsolute + pnl.feesEarnedUsd + pnl.emissionsEarnedUsd} className="font-medium" />
+                    <span className={`tabular-nums font-medium ${(pnl.ilAbsolute + pnl.feesEarnedUsd + pnl.emissionsEarnedUsd) >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                      {(pnl.ilAbsolute + pnl.feesEarnedUsd + pnl.emissionsEarnedUsd) >= 0 ? "+" : ""}
+                      {formatUsd(pnl.ilAbsolute + pnl.feesEarnedUsd + pnl.emissionsEarnedUsd)}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -355,11 +505,11 @@ export default function PositionPage() {
 
             {/* Strategy Comparison */}
             <div className="glass-card rounded-2xl p-6">
-              <p className="text-slate-500 text-xs uppercase tracking-widest font-medium mb-2">
+              <p className="text-slate-500 text-[10px] uppercase tracking-widest font-medium mb-1">
                 Strategy Comparison
               </p>
-              <p className="text-slate-600 text-xs mb-4">
-                What if you had used a different strategy with the same {formatUsd(pnl.entryValueUsd)}?
+              <p className="text-slate-600 text-[11px] mb-4">
+                Same {formatUsd(pnl.entryValueUsd)} invested differently
               </p>
               <div className="space-y-2">
                 <StrategyRow
@@ -378,7 +528,7 @@ export default function PositionPage() {
                   entry={pnl.entryValueUsd}
                 />
                 <StrategyRow
-                  label="Hold exact entry ratio"
+                  label="Hold entry ratio"
                   value={pnl.holdValue}
                   entry={pnl.entryValueUsd}
                 />
@@ -391,15 +541,12 @@ export default function PositionPage() {
               </div>
             </div>
 
-            {/* Entry & Position Info */}
-            <div className="grid sm:grid-cols-2 gap-6">
-              <div className="bg-slate-800/20 border border-slate-700/20 rounded-2xl p-5 space-y-3 text-sm">
-                <p className="text-slate-500 text-xs uppercase tracking-widest font-medium mb-1">
-                  Entry Info
-                </p>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Entry Date</span>
-                  <span className="text-slate-300">
+            {/* Position Details — compact footer */}
+            <div className="bg-slate-800/15 border border-slate-700/15 rounded-2xl p-5">
+              <div className="flex flex-wrap gap-x-8 gap-y-3 text-xs">
+                <div>
+                  <span className="text-slate-600">Entry Date</span>
+                  <span className="ml-2 text-slate-300">
                     {new Date(pnl.entryDate).toLocaleDateString("en-US", {
                       month: "short",
                       day: "numeric",
@@ -407,71 +554,33 @@ export default function PositionPage() {
                     })}
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Entry Value</span>
-                  <span className="text-slate-300 tabular-nums">{formatUsd(pnl.entryValueUsd)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Entry {pnl.token0Symbol}</span>
-                  <span className="text-slate-300 tabular-nums">
-                    {pnl.entryToken0Amount.toLocaleString("en-US", { maximumFractionDigits: 6 })} @ {formatUsd(pnl.entryToken0Price)}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Entry {pnl.token1Symbol}</span>
-                  <span className="text-slate-300 tabular-nums">
-                    {pnl.entryToken1Amount.toLocaleString("en-US", { maximumFractionDigits: 6 })} @ {formatUsd(pnl.entryToken1Price)}
-                  </span>
-                </div>
-              </div>
-
-              <div className="bg-slate-800/20 border border-slate-700/20 rounded-2xl p-5 space-y-3 text-sm">
-                <p className="text-slate-500 text-xs uppercase tracking-widest font-medium mb-1">
-                  Current State
-                </p>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">{pnl.token0Symbol}</span>
-                  <span className="text-slate-300 tabular-nums">
-                    {pnl.currentToken0Amount.toLocaleString("en-US", { maximumFractionDigits: 6 })} @ {formatUsd(pnl.currentToken0Price)}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">{pnl.token1Symbol}</span>
-                  <span className="text-slate-300 tabular-nums">
-                    {pnl.currentToken1Amount.toLocaleString("en-US", { maximumFractionDigits: 6 })} @ {formatUsd(pnl.currentToken1Price)}
-                  </span>
-                </div>
-                <div className="flex justify-between pt-2 border-t border-slate-700/20">
-                  <span className="text-slate-500">Protocol</span>
-                  <span className="text-slate-300">Aerodrome CL</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Pool</span>
+                {pnl.tickLower !== undefined && pnl.tickUpper !== undefined && (
+                  <div>
+                    <span className="text-slate-600">Tick Range</span>
+                    <span className="ml-2 text-slate-300 font-mono tabular-nums">
+                      {pnl.tickLower} &rarr; {pnl.tickUpper}
+                    </span>
+                  </div>
+                )}
+                <div>
+                  <span className="text-slate-600">Pool</span>
                   <a
                     href={`https://basescan.org/address/${pnl.poolAddress}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-arc-400 hover:text-arc-300 font-mono transition-colors"
+                    className="ml-2 inline-flex items-center gap-1 text-arc-400 hover:text-arc-300 font-mono transition-colors"
                   >
                     {pnl.poolAddress.slice(0, 6)}...{pnl.poolAddress.slice(-4)}
                     <ExternalLink className="w-2.5 h-2.5" />
                   </a>
                 </div>
-                {pnl.tickLower !== undefined && pnl.tickUpper !== undefined && (
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Tick Range</span>
-                    <span className="text-slate-300 font-mono tabular-nums">
-                      {pnl.tickLower} &rarr; {pnl.tickUpper}
-                    </span>
-                  </div>
-                )}
-                <div className="flex justify-between">
-                  <span className="text-slate-500">NFT</span>
+                <div>
+                  <span className="text-slate-600">NFT</span>
                   <a
                     href={`https://basescan.org/token/0x827922686190790b37229fd06084350e74485b72?a=${pnl.nftTokenId}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-arc-400 hover:text-arc-300 font-mono transition-colors"
+                    className="ml-2 inline-flex items-center gap-1 text-arc-400 hover:text-arc-300 font-mono transition-colors"
                   >
                     #{pnl.nftTokenId}
                     <ExternalLink className="w-2.5 h-2.5" />
@@ -488,31 +597,34 @@ export default function PositionPage() {
 
 function LoadingSkeleton() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div>
         <div className="w-40 h-8 bg-slate-800/40 rounded mb-2" />
         <div className="w-56 h-4 bg-slate-800/30 rounded" />
       </div>
-      <div className="glass-card rounded-2xl p-8 animate-pulse">
-        <div className="grid sm:grid-cols-3 gap-6">
-          {[1, 2, 3].map((i) => (
+      <div className="glass-card rounded-2xl p-6 animate-pulse">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-5">
+          {[1, 2, 3, 4].map((i) => (
             <div key={i}>
-              <div className="w-20 h-3 bg-slate-700/30 rounded mb-3" />
-              <div className="w-40 h-9 bg-slate-700/30 rounded mb-2" />
-              <div className="w-28 h-3 bg-slate-700/20 rounded" />
+              <div className="w-16 h-2.5 bg-slate-700/30 rounded mb-3" />
+              <div className="w-32 h-7 bg-slate-700/30 rounded mb-2" />
+              <div className="w-20 h-2.5 bg-slate-700/20 rounded" />
             </div>
           ))}
         </div>
       </div>
-      <div className="grid sm:grid-cols-2 gap-6">
+      <div className="glass-card rounded-2xl p-6 animate-pulse">
+        <div className="w-full h-40 bg-slate-700/20 rounded-xl" />
+      </div>
+      <div className="grid sm:grid-cols-2 gap-5">
         {[1, 2].map((i) => (
           <div key={i} className="glass-card rounded-2xl p-6 animate-pulse">
-            <div className="w-24 h-3 bg-slate-700/30 rounded mb-4" />
+            <div className="w-20 h-2.5 bg-slate-700/30 rounded mb-4" />
             <div className="space-y-3">
               {[1, 2, 3].map((j) => (
                 <div key={j} className="flex justify-between">
-                  <div className="w-28 h-4 bg-slate-700/20 rounded" />
-                  <div className="w-20 h-4 bg-slate-700/20 rounded" />
+                  <div className="w-24 h-4 bg-slate-700/20 rounded" />
+                  <div className="w-16 h-4 bg-slate-700/20 rounded" />
                 </div>
               ))}
             </div>
