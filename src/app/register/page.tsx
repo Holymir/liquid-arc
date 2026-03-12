@@ -67,11 +67,11 @@ export default function RegisterPage() {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} autoComplete="on" className="space-y-8">
+          <form onSubmit={handleSubmit} autoComplete="on" className="space-y-5">
             <div>
-              <label htmlFor="register-email" className="block mb-3" style={{
-                color: "#00e5c4", fontFamily: "var(--font-geist-mono)",
-                fontSize: "10px", letterSpacing: "0.15em", textTransform: "uppercase",
+              <label htmlFor="register-email" className="block mb-2" style={{
+                color: "rgba(240,244,255,0.55)", fontFamily: "var(--font-geist-mono)",
+                fontSize: "11px", letterSpacing: "0.08em", textTransform: "uppercase",
               }}>Email</label>
               <input
                 className="underline-input"
@@ -82,9 +82,9 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label htmlFor="register-password" className="block mb-3" style={{
-                color: "#00e5c4", fontFamily: "var(--font-geist-mono)",
-                fontSize: "10px", letterSpacing: "0.15em", textTransform: "uppercase",
+              <label htmlFor="register-password" className="block mb-2" style={{
+                color: "rgba(240,244,255,0.55)", fontFamily: "var(--font-geist-mono)",
+                fontSize: "11px", letterSpacing: "0.08em", textTransform: "uppercase",
               }}>Password</label>
               <input
                 className="underline-input"

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { PoolsSidebar } from "@/components/pools/PoolsSidebar";
 import { Search, ExternalLink, ChevronLeft, ChevronRight, SlidersHorizontal, X, Loader2, EyeOff, Eye } from "lucide-react";
 import { getDepositUrl } from "@/lib/defi/deposit-urls";
 
@@ -219,10 +220,43 @@ export default function PoolsPage() {
     return <span className="text-arc-400 ml-1">{sortDir === "desc" ? "\u2193" : "\u2191"}</span>;
   };
 
+  const handleToggleChain = (chain: string) => {
+    setSelectedChains((prev) => {
+      const next = new Set(prev);
+      if (next.has(chain)) next.delete(chain); else next.add(chain);
+      return next;
+    });
+    setPage(1);
+  };
+
+  const handleToggleProtocol = (protocol: string) => {
+    setSelectedProtocols((prev) => {
+      const next = new Set(prev);
+      if (next.has(protocol)) next.delete(protocol); else next.add(protocol);
+      return next;
+    });
+    setPage(1);
+  };
+
+  const handleClearChainProtocol = () => {
+    setSelectedChains(new Set());
+    setSelectedProtocols(new Set());
+    setPage(1);
+  };
+
   return (
-    <AppLayout>
-
-
+    <AppLayout
+      sidebarTitle="Filters"
+      sidebarSlot={
+        <PoolsSidebar
+          selectedChains={selectedChains}
+          selectedProtocols={selectedProtocols}
+          onToggleChain={handleToggleChain}
+          onToggleProtocol={handleToggleProtocol}
+          onClearAll={handleClearChainProtocol}
+        />
+      }
+    >
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
         {/* Title + Stats */}
         <div className="mb-6">
@@ -257,7 +291,7 @@ export default function PoolsPage() {
             }`}
           >
             <SlidersHorizontal className="w-4 h-4" />
-            Filters
+            Ranges
             {activeFilterCount > 0 && (
               <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-arc-500/20 text-arc-300 text-[10px] font-bold">
                 {activeFilterCount}
@@ -271,7 +305,7 @@ export default function PoolsPage() {
               className="inline-flex items-center gap-1 px-2.5 py-2 rounded-lg text-xs text-slate-500 hover:text-slate-300 transition-colors"
             >
               <X className="w-3.5 h-3.5" />
-              Clear all
+              Clear ranges
             </button>
           )}
 
@@ -303,63 +337,33 @@ export default function PoolsPage() {
           </select>
         </div>
 
-        {/* Chain / Protocol chip filters */}
-        <div className="flex flex-wrap items-center gap-2 mb-3">
-          <span className="text-[10px] uppercase tracking-widest text-slate-600 font-medium mr-1">Chain</span>
-          {["base", "optimism", "ethereum", "arbitrum", "polygon"].map((chain) => {
-            const active = selectedChains.has(chain);
-            return (
-              <button
+        {/* Active chain/protocol chips (summary) */}
+        {(selectedChains.size > 0 || selectedProtocols.size > 0) && (
+          <div className="flex flex-wrap items-center gap-1.5 mb-3">
+            {[...selectedChains].map((chain) => (
+              <span
                 key={chain}
-                onClick={() => {
-                  setSelectedChains((prev) => {
-                    const next = new Set(prev);
-                    if (next.has(chain)) next.delete(chain); else next.add(chain);
-                    return next;
-                  });
-                  setPage(1);
-                }}
-                className={`px-2.5 py-1 rounded-lg text-xs border transition-all capitalize ${
-                  active
-                    ? "bg-arc-500/10 border-arc-500/30 text-arc-400"
-                    : "bg-slate-800/40 border-slate-700/40 text-slate-400 hover:text-slate-200 hover:border-slate-600"
-                }`}
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] bg-arc-500/10 border border-arc-500/20 text-arc-400 capitalize"
               >
                 {chain}
-              </button>
-            );
-          })}
-          <span className="text-slate-700 mx-1">|</span>
-          <span className="text-[10px] uppercase tracking-widest text-slate-600 font-medium mr-1">Protocol</span>
-          {[
-            { slug: "aerodrome", label: "Aerodrome", dotColor: "bg-blue-400" },
-            { slug: "velodrome", label: "Velodrome", dotColor: "bg-red-400" },
-            { slug: "uniswap-v3", label: "Uniswap V3", dotColor: "bg-pink-400" },
-          ].map(({ slug, label, dotColor }) => {
-            const active = selectedProtocols.has(slug);
-            return (
-              <button
-                key={slug}
-                onClick={() => {
-                  setSelectedProtocols((prev) => {
-                    const next = new Set(prev);
-                    if (next.has(slug)) next.delete(slug); else next.add(slug);
-                    return next;
-                  });
-                  setPage(1);
-                }}
-                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs border transition-all ${
-                  active
-                    ? "bg-arc-500/10 border-arc-500/30 text-arc-400"
-                    : "bg-slate-800/40 border-slate-700/40 text-slate-400 hover:text-slate-200 hover:border-slate-600"
-                }`}
+                <button onClick={() => handleToggleChain(chain)} className="hover:text-arc-300 transition-colors">
+                  <X className="w-2.5 h-2.5" />
+                </button>
+              </span>
+            ))}
+            {[...selectedProtocols].map((protocol) => (
+              <span
+                key={protocol}
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] bg-arc-500/10 border border-arc-500/20 text-arc-400"
               >
-                <span className={`w-1.5 h-1.5 rounded-full ${dotColor}`} />
-                {label}
-              </button>
-            );
-          })}
-        </div>
+                {protocol}
+                <button onClick={() => handleToggleProtocol(protocol)} className="hover:text-arc-300 transition-colors">
+                  <X className="w-2.5 h-2.5" />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
 
         {/* Range filters panel */}
         {filtersOpen && (

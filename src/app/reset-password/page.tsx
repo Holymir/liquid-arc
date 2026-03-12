@@ -150,16 +150,16 @@ function ResetPasswordContent() {
                 </p>
               </div>
 
-              <form onSubmit={handleSubmit} autoComplete="on" className="space-y-8">
+              <form onSubmit={handleSubmit} autoComplete="on" className="space-y-5">
                 <div>
                   <label
                     htmlFor="rp-password"
-                    className="block mb-3"
+                    className="block mb-2"
                     style={{
-                      color: "#00e5c4",
+                      color: "rgba(240,244,255,0.55)",
                       fontFamily: "var(--font-geist-mono)",
-                      fontSize: "10px",
-                      letterSpacing: "0.15em",
+                      fontSize: "11px",
+                      letterSpacing: "0.08em",
                       textTransform: "uppercase",
                     }}
                   >

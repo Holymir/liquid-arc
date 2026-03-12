@@ -2,10 +2,10 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { useSession } from "@/components/providers/SessionProvider";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { ArrowLeft, Check, Zap } from "lucide-react";
+import { SettingsSidebar } from "@/components/settings/SettingsSidebar";
+import { Check, Zap } from "lucide-react";
 
 const PLANS = [
   {
@@ -67,19 +67,14 @@ export default function BillingPage() {
   };
 
   return (
-    <AppLayout>
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+    <AppLayout
+      sidebarTitle="Settings"
+      sidebarSlot={<SettingsSidebar />}
+    >
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
         <div className="mb-8">
-          <div className="flex items-center gap-3 mb-1">
-            <Link
-              href="/settings"
-              className="text-slate-400 hover:text-slate-200 p-1.5 rounded-lg hover:bg-slate-800/40 transition-all"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </Link>
-            <h1 className="text-xl font-bold text-slate-100">Plans & Billing</h1>
-          </div>
-          <p className="text-sm text-slate-500 mt-1">
+          <h1 className="text-xl font-bold text-slate-100 mb-1">Plans & Billing</h1>
+          <p className="text-sm text-slate-500">
             Current plan: <span className="text-arc-400 capitalize">{user.tier}</span>
           </p>
         </div>

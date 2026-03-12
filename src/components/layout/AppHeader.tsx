@@ -14,6 +14,7 @@ interface AppHeaderProps {
 const navLinks = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/pools", label: "Pools", icon: BarChart3 },
+  // Future: Knowledge, Markets, Protocols, Tools
 ];
 
 export function AppHeader({ leftSlot, rightSlot, hideConnect }: AppHeaderProps) {
@@ -25,9 +26,15 @@ export function AppHeader({ leftSlot, rightSlot, hideConnect }: AppHeaderProps) 
         <div className="flex items-center gap-3">
           {leftSlot}
 
-          {/* Logo */}
+          {/* Logo — matches AppLayout LogoMark */}
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-arc-600/20 border border-arc-500/25 flex items-center justify-center">
+            <div
+              className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+              style={{
+                background: "rgba(0,229,196,0.1)",
+                border: "1px solid rgba(0,229,196,0.2)",
+              }}
+            >
               <svg
                 viewBox="0 0 24 24"
                 fill="none"
@@ -42,13 +49,16 @@ export function AppHeader({ leftSlot, rightSlot, hideConnect }: AppHeaderProps) 
                 />
               </svg>
             </div>
-            <span className="text-slate-100 font-bold text-sm tracking-tight hidden sm:block">
+            <span
+              className="font-extrabold text-sm tracking-tight text-slate-100 hidden sm:block"
+              style={{ fontFamily: "var(--font-syne), sans-serif" }}
+            >
               LiquidArc
             </span>
           </Link>
 
           {/* Desktop nav */}
-          <nav className="hidden sm:flex items-center gap-1 ml-2">
+          <nav className="hidden sm:flex items-center gap-0.5 ml-2">
             {navLinks.map(({ href, label, icon: Icon }) => {
               const isActive = pathname === href || pathname.startsWith(href + "/");
               return (
@@ -57,7 +67,7 @@ export function AppHeader({ leftSlot, rightSlot, hideConnect }: AppHeaderProps) 
                   href={href}
                   className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg transition-all ${
                     isActive
-                      ? "text-slate-100 bg-slate-800/60"
+                      ? "text-arc-400 bg-arc-500/10"
                       : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/30"
                   }`}
                 >
@@ -79,7 +89,7 @@ export function AppHeader({ leftSlot, rightSlot, hideConnect }: AppHeaderProps) 
                   key={href}
                   href={href}
                   className={`p-2 rounded-lg transition-all ${
-                    isActive ? "text-slate-100 bg-slate-800/60" : "text-slate-500 hover:text-slate-300"
+                    isActive ? "text-arc-400 bg-arc-500/10" : "text-slate-500 hover:text-slate-300"
                   }`}
                 >
                   <Icon className="w-4 h-4" />

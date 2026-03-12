@@ -53,6 +53,7 @@ export default function DashboardPage() {
 
   return (
     <AppLayout
+      sidebarTitle="Wallets"
       sidebarSlot={
         <WalletPanel
           wallets={wallets}
