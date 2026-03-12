@@ -13,12 +13,26 @@ interface PriceRangeChartProps {
   currentToken1Price: number;
 }
 
-/**
- * Convert tick to price (token1 per token0), adjusted for decimals.
- * price = 1.0001^tick * 10^(decimals0 - decimals1)
- */
 function tickToPrice(tick: number, decimals0: number, decimals1: number): number {
   return Math.pow(1.0001, tick) * Math.pow(10, decimals0 - decimals1);
+}
+
+function generateVolumeBars(count: number): number[] {
+  const bars: number[] = [];
+  for (let i = 0; i < count; i++) {
+    const t = (i / (count - 1)) * 2 - 1;
+    const base = Math.exp(-t * t * 2.5);
+    const noise = 0.85 + Math.sin(i * 7.3) * 0.1 + Math.cos(i * 13.7) * 0.05;
+    bars.push(base * noise);
+  }
+  return bars;
+}
+
+function formatPrice(p: number): string {
+  if (p >= 1000) return p.toLocaleString("en-US", { maximumFractionDigits: 0 });
+  if (p >= 1) return p.toLocaleString("en-US", { maximumFractionDigits: 4 });
+  if (p >= 0.0001) return p.toLocaleString("en-US", { maximumFractionDigits: 6 });
+  return p.toExponential(2);
 }
 
 export function PriceRangeChart({
@@ -31,251 +45,295 @@ export function PriceRangeChart({
   currentToken0Price,
   currentToken1Price,
 }: PriceRangeChartProps) {
-  const { priceLower, priceUpper, currentPrice, isInRange, pctPosition } = useMemo(() => {
-    // Price = token1 per token0
+  const { priceLower, priceUpper, currentPrice, isInRange } = useMemo(() => {
     const pLower = tickToPrice(tickLower, token0Decimals, token1Decimals);
     const pUpper = tickToPrice(tickUpper, token0Decimals, token1Decimals);
-    // Current price ratio from USD prices
     const pCurrent = currentToken1Price > 0 ? currentToken0Price / currentToken1Price : 0;
-
     const inRange = pCurrent >= pLower && pCurrent <= pUpper;
-    const rangeWidth = pUpper - pLower;
-    const pct = rangeWidth > 0 ? ((pCurrent - pLower) / rangeWidth) * 100 : 50;
-
-    return {
-      priceLower: pLower,
-      priceUpper: pUpper,
-      currentPrice: pCurrent,
-      isInRange: inRange,
-      pctPosition: Math.max(-20, Math.min(120, pct)),
-    };
+    return { priceLower: pLower, priceUpper: pUpper, currentPrice: pCurrent, isInRange: inRange };
   }, [tickLower, tickUpper, token0Decimals, token1Decimals, currentToken0Price, currentToken1Price]);
 
-  // Chart dimensions
-  const W = 100; // percentage width
-  const padding = 15; // % padding on each side for out-of-range visibility
+  // Chart layout
+  const SVG_W = 440;
+  const SVG_H = 160;
+  const CHART_TOP = 20;
+  const CHART_BOTTOM = 120;
+  const CHART_H = CHART_BOTTOM - CHART_TOP;
+  const PAD_L = 20;
+  const PAD_R = 20;
+  const CHART_W = SVG_W - PAD_L - PAD_R;
 
-  // Map prices to x positions
   const rangeWidth = priceUpper - priceLower;
-  const viewMin = priceLower - rangeWidth * (padding / 100);
-  const viewMax = priceUpper + rangeWidth * (padding / 100);
+  const padding = 0.25;
+  const viewMin = priceLower - rangeWidth * padding;
+  const viewMax = priceUpper + rangeWidth * padding;
   const viewWidth = viewMax - viewMin;
 
-  const toX = (price: number) => ((price - viewMin) / viewWidth) * W;
+  const toX = (price: number) => PAD_L + ((price - viewMin) / viewWidth) * CHART_W;
   const xLower = toX(priceLower);
   const xUpper = toX(priceUpper);
-  const xCurrent = toX(currentPrice);
+  const xCurrent = Math.max(PAD_L, Math.min(SVG_W - PAD_R, toX(currentPrice)));
 
-  function formatPrice(p: number): string {
-    if (p >= 1000) return p.toLocaleString("en-US", { maximumFractionDigits: 0 });
-    if (p >= 1) return p.toLocaleString("en-US", { maximumFractionDigits: 4 });
-    if (p >= 0.0001) return p.toLocaleString("en-US", { maximumFractionDigits: 6 });
-    return p.toExponential(2);
-  }
+  // Volume bars
+  const BAR_COUNT = 48;
+  const volumeBars = useMemo(() => generateVolumeBars(BAR_COUNT), []);
+  const barWidth = CHART_W / BAR_COUNT;
+
+  // Range percentage
+  const rangePct = rangeWidth > 0
+    ? Math.max(0, Math.min(100, ((currentPrice - priceLower) / rangeWidth) * 100))
+    : 0;
+
+  // Arc curve: a quadratic bezier from xLower to xUpper that bows upward
+  const arcMidX = (xLower + xUpper) / 2;
+  const arcSpan = xUpper - xLower;
+  const arcBow = Math.min(arcSpan * 0.35, CHART_H * 0.55); // how much it curves up
+  const arcY = CHART_BOTTOM - 8; // baseline of the arc
+  const arcPeakY = arcY - arcBow;
+  const arcPath = `M ${xLower} ${arcY} Q ${arcMidX} ${arcPeakY} ${xUpper} ${arcY}`;
+
+  // Find point on the arc curve for the current price marker
+  // Quadratic bezier: B(t) = (1-t)²P0 + 2(1-t)tP1 + t²P2
+  const t = rangeWidth > 0
+    ? Math.max(0, Math.min(1, (currentPrice - priceLower) / rangeWidth))
+    : 0.5;
+  const curveX = (1 - t) * (1 - t) * xLower + 2 * (1 - t) * t * arcMidX + t * t * xUpper;
+  const curveY = (1 - t) * (1 - t) * arcY + 2 * (1 - t) * t * arcPeakY + t * t * arcY;
+
+  // Fill path: arc + close along bottom
+  const fillPath = `${arcPath} L ${xUpper} ${CHART_BOTTOM} L ${xLower} ${CHART_BOTTOM} Z`;
 
   return (
     <div className="glass-card rounded-2xl p-6">
-      <div className="flex items-center justify-between mb-4">
-        <p className="text-slate-500 text-xs uppercase tracking-widest font-medium">
-          Price Range
-        </p>
-        <span
-          className={`text-[10px] font-semibold px-2 py-0.5 rounded-md ${
-            isInRange
-              ? "bg-emerald-400/10 text-emerald-400"
-              : "bg-amber-400/10 text-amber-400"
-          }`}
-        >
-          {isInRange ? "In Range" : "Out of Range"}
-        </span>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <p className="text-slate-400 text-xs uppercase tracking-widest font-medium">
+            Price Range
+          </p>
+          <p className="text-slate-600 text-[11px] mt-0.5">
+            {token1Symbol} per {token0Symbol}
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          {isInRange && (
+            <span className="text-slate-500 text-[10px] tabular-nums font-mono">
+              {rangePct.toFixed(0)}% through range
+            </span>
+          )}
+          <span
+            className={`text-[10px] font-semibold px-2.5 py-1 rounded-lg ${
+              isInRange
+                ? "bg-emerald-400/10 text-emerald-400 border border-emerald-400/20"
+                : "bg-amber-400/10 text-amber-400 border border-amber-400/20"
+            }`}
+          >
+            {isInRange ? "In Range" : "Out of Range"}
+          </span>
+        </div>
       </div>
 
       {/* SVG Chart */}
       <svg
-        viewBox="0 0 400 120"
+        viewBox={`0 0 ${SVG_W} ${SVG_H}`}
         className="w-full h-auto"
         preserveAspectRatio="xMidYMid meet"
       >
         <defs>
-          {/* Gradient for liquidity area */}
-          <linearGradient id="liq-fill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="rgb(99, 102, 241)" stopOpacity="0.3" />
-            <stop offset="100%" stopColor="rgb(99, 102, 241)" stopOpacity="0.05" />
+          <linearGradient id="arc-curve-fill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#00e5c4" stopOpacity="0.22" />
+            <stop offset="100%" stopColor="#00e5c4" stopOpacity="0.02" />
           </linearGradient>
-          <linearGradient id="liq-fill-active" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="rgb(99, 102, 241)" stopOpacity="0.5" />
-            <stop offset="100%" stopColor="rgb(99, 102, 241)" stopOpacity="0.1" />
+          <linearGradient id="arc-vol-active" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#00e5c4" stopOpacity="0.35" />
+            <stop offset="100%" stopColor="#00e5c4" stopOpacity="0.06" />
           </linearGradient>
+          <linearGradient id="arc-vol-inactive" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#64748b" stopOpacity="0.15" />
+            <stop offset="100%" stopColor="#64748b" stopOpacity="0.03" />
+          </linearGradient>
+          <filter id="arc-glow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="4" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+          <filter id="arc-dot-glow" x="-100%" y="-100%" width="300%" height="300%">
+            <feGaussianBlur stdDeviation="3" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
         </defs>
 
-        {/* Background grid lines */}
-        {[20, 40, 60, 80].map((y) => (
+        {/* Subtle grid lines */}
+        {[0.25, 0.5, 0.75].map((frac) => (
           <line
-            key={y}
-            x1="0"
-            y1={y}
-            x2="400"
-            y2={y}
-            stroke="rgb(51, 65, 85)"
-            strokeOpacity="0.15"
-            strokeDasharray="4 4"
+            key={frac}
+            x1={PAD_L}
+            y1={CHART_TOP + CHART_H * frac}
+            x2={SVG_W - PAD_R}
+            y2={CHART_TOP + CHART_H * frac}
+            stroke="#334155"
+            strokeOpacity="0.12"
+            strokeDasharray="2 4"
           />
         ))}
 
-        {/* Liquidity distribution rectangle (uniform for CL position) */}
-        <rect
-          x={xLower * 4}
-          y={15}
-          width={(xUpper - xLower) * 4}
-          height={70}
-          fill="url(#liq-fill-active)"
-          rx="2"
-        />
-        {/* Top edge of liquidity */}
-        <line
-          x1={xLower * 4}
-          y1={15}
-          x2={xUpper * 4}
-          y2={15}
-          stroke="rgb(99, 102, 241)"
-          strokeWidth="1.5"
-          strokeOpacity="0.6"
+        {/* Volume distribution bars (behind the curve) */}
+        {volumeBars.map((h, i) => {
+          const bx = PAD_L + i * barWidth;
+          const barH = h * CHART_H * 0.85;
+          const barY = CHART_BOTTOM - barH;
+          const inActiveRange = bx >= xLower && bx + barWidth <= xUpper;
+          return (
+            <rect
+              key={i}
+              x={bx + 0.5}
+              y={barY}
+              width={Math.max(0, barWidth - 1)}
+              height={barH}
+              fill={inActiveRange ? "url(#arc-vol-active)" : "url(#arc-vol-inactive)"}
+              rx="1"
+            />
+          );
+        })}
+
+        {/* Arc curve — gradient fill underneath */}
+        <path d={fillPath} fill="url(#arc-curve-fill)" />
+
+        {/* Arc curve — glow layer */}
+        <path
+          d={arcPath}
+          fill="none"
+          stroke="rgba(0,229,196,0.25)"
+          strokeWidth="8"
+          filter="url(#arc-glow)"
         />
 
-        {/* Lower bound line */}
-        <line
-          x1={xLower * 4}
-          y1={8}
-          x2={xLower * 4}
-          y2={92}
-          stroke="rgb(139, 92, 246)"
-          strokeWidth="1.5"
-          strokeDasharray="4 3"
+        {/* Arc curve — main stroke */}
+        <path
+          d={arcPath}
+          fill="none"
+          stroke="#00e5c4"
+          strokeWidth="2"
+          strokeLinecap="round"
         />
-        {/* Lower label */}
+
+        {/* Lower bound dashed line */}
+        <line
+          x1={xLower} y1={CHART_TOP - 4} x2={xLower} y2={CHART_BOTTOM + 4}
+          stroke="#00e5c4" strokeWidth="1" strokeOpacity="0.4" strokeDasharray="3 3"
+        />
+        {/* Lower bound endpoint dot */}
+        <circle cx={xLower} cy={arcY} r="3" fill="rgba(0,229,196,0.5)" />
         <text
-          x={xLower * 4}
-          y={105}
-          textAnchor="middle"
-          className="fill-violet-400"
-          fontSize="9"
-          fontFamily="monospace"
+          x={xLower} y={CHART_BOTTOM + 18}
+          textAnchor="middle" fill="#00e5c4" fontSize="8"
+          fontFamily="ui-monospace, monospace" opacity="0.8"
         >
           {formatPrice(priceLower)}
         </text>
-        <text
-          x={xLower * 4}
-          y={115}
-          textAnchor="middle"
-          className="fill-slate-600"
-          fontSize="7"
-        >
+        <text x={xLower} y={CHART_BOTTOM + 28} textAnchor="middle" fill="#64748b" fontSize="7">
           Min
         </text>
 
-        {/* Upper bound line */}
+        {/* Upper bound dashed line */}
         <line
-          x1={xUpper * 4}
-          y1={8}
-          x2={xUpper * 4}
-          y2={92}
-          stroke="rgb(139, 92, 246)"
-          strokeWidth="1.5"
-          strokeDasharray="4 3"
+          x1={xUpper} y1={CHART_TOP - 4} x2={xUpper} y2={CHART_BOTTOM + 4}
+          stroke="#00e5c4" strokeWidth="1" strokeOpacity="0.4" strokeDasharray="3 3"
         />
-        {/* Upper label */}
+        {/* Upper bound endpoint dot */}
+        <circle cx={xUpper} cy={arcY} r="3" fill="rgba(0,229,196,0.5)" />
         <text
-          x={xUpper * 4}
-          y={105}
-          textAnchor="middle"
-          className="fill-violet-400"
-          fontSize="9"
-          fontFamily="monospace"
+          x={xUpper} y={CHART_BOTTOM + 18}
+          textAnchor="middle" fill="#00e5c4" fontSize="8"
+          fontFamily="ui-monospace, monospace" opacity="0.8"
         >
           {formatPrice(priceUpper)}
         </text>
-        <text
-          x={xUpper * 4}
-          y={115}
-          textAnchor="middle"
-          className="fill-slate-600"
-          fontSize="7"
-        >
+        <text x={xUpper} y={CHART_BOTTOM + 28} textAnchor="middle" fill="#64748b" fontSize="7">
           Max
         </text>
 
-        {/* Current price line */}
+        {/* Current price vertical line */}
         <line
-          x1={Math.max(0, Math.min(400, xCurrent * 4))}
-          y1={5}
-          x2={Math.max(0, Math.min(400, xCurrent * 4))}
-          y2={92}
-          stroke="white"
-          strokeWidth="1.5"
+          x1={xCurrent} y1={CHART_TOP - 4} x2={xCurrent} y2={CHART_BOTTOM}
+          stroke="white" strokeWidth="1" strokeOpacity="0.3" strokeDasharray="2 3"
         />
-        {/* Current price dot */}
-        <circle
-          cx={Math.max(0, Math.min(400, xCurrent * 4))}
-          cy={5}
-          r="3"
-          fill="white"
-        />
+
+        {/* Current price dot on the curve — glowing */}
+        {isInRange && (
+          <>
+            <circle cx={curveX} cy={curveY} r="6" fill="#00e5c4" filter="url(#arc-dot-glow)" />
+            <circle cx={curveX} cy={curveY} r="3.5" fill="#aff8ee" />
+          </>
+        )}
+        {!isInRange && (
+          <>
+            <circle cx={xCurrent} cy={CHART_BOTTOM - 8} r="5" fill="rgba(251,191,36,0.6)" filter="url(#arc-dot-glow)" />
+            <circle cx={xCurrent} cy={CHART_BOTTOM - 8} r="3" fill="#fbbf24" />
+          </>
+        )}
+
         {/* Current price label */}
         <text
-          x={Math.max(40, Math.min(360, xCurrent * 4))}
-          y={-2}
-          textAnchor="middle"
-          className="fill-slate-300"
-          fontSize="8"
-          fontWeight="600"
+          x={Math.max(PAD_L + 30, Math.min(SVG_W - PAD_R - 30, xCurrent))}
+          y={CHART_BOTTOM + 18}
+          textAnchor="middle" fill="#e2e8f0" fontSize="9" fontWeight="600"
+          fontFamily="ui-monospace, monospace"
         >
-          {formatPrice(currentPrice)} {token1Symbol}/{token0Symbol}
+          {formatPrice(currentPrice)}
+        </text>
+        <text
+          x={Math.max(PAD_L + 30, Math.min(SVG_W - PAD_R - 30, xCurrent))}
+          y={CHART_BOTTOM + 28}
+          textAnchor="middle" fill="#94a3b8" fontSize="7"
+        >
+          Current
         </text>
       </svg>
 
+      {/* Price cards row */}
+      <div className="grid grid-cols-3 gap-3 mt-5">
+        <div className="bg-slate-800/30 border border-[#00e5c4]/10 rounded-xl px-3 py-2.5 text-center">
+          <p className="text-[10px] text-slate-600 uppercase tracking-wider mb-1">Min Price</p>
+          <p className="text-xs text-arc-400 font-mono tabular-nums font-medium">
+            {formatPrice(priceLower)}
+          </p>
+        </div>
+        <div className="bg-slate-800/30 border border-slate-700/20 rounded-xl px-3 py-2.5 text-center">
+          <p className="text-[10px] text-slate-600 uppercase tracking-wider mb-1">Current</p>
+          <p className="text-xs text-slate-100 font-mono tabular-nums font-medium">
+            {formatPrice(currentPrice)}
+          </p>
+        </div>
+        <div className="bg-slate-800/30 border border-[#00e5c4]/10 rounded-xl px-3 py-2.5 text-center">
+          <p className="text-[10px] text-slate-600 uppercase tracking-wider mb-1">Max Price</p>
+          <p className="text-xs text-arc-400 font-mono tabular-nums font-medium">
+            {formatPrice(priceUpper)}
+          </p>
+        </div>
+      </div>
+
       {/* Legend */}
-      <div className="flex items-center justify-between mt-4 text-xs">
+      <div className="flex items-center justify-between mt-3 text-[11px]">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1.5">
-            <div className="w-3 h-0.5 bg-white rounded-full" />
-            <span className="text-slate-400">Current Price</span>
+            <div className="w-2.5 h-2.5 rounded-sm bg-[#00e5c4]/20 border border-[#00e5c4]/30" />
+            <span className="text-slate-500">Your Range</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-3 h-0.5 bg-violet-400 rounded-full" style={{ borderStyle: "dashed" }} />
-            <span className="text-slate-400">Range Bounds</span>
+            <div className="w-2.5 h-0.5 bg-white rounded-full" />
+            <span className="text-slate-500">Current Price</span>
           </div>
         </div>
-        <span className="text-slate-600">
+        <span className="text-slate-600 font-mono">
           {token0Symbol}/{token1Symbol}
         </span>
       </div>
-
-      {/* Price stats */}
-      <div className="grid grid-cols-3 gap-3 mt-4">
-        <div className="bg-slate-800/20 border border-slate-700/20 rounded-lg px-3 py-2 text-center">
-          <p className="text-[10px] text-slate-600 uppercase tracking-wider mb-0.5">Min Price</p>
-          <p className="text-xs text-violet-400 font-mono tabular-nums">
-            {formatPrice(priceLower)} <span className="text-slate-600">{token1Symbol}</span>
-          </p>
-        </div>
-        <div className="bg-slate-800/20 border border-slate-700/20 rounded-lg px-3 py-2 text-center">
-          <p className="text-[10px] text-slate-600 uppercase tracking-wider mb-0.5">Current</p>
-          <p className="text-xs text-slate-200 font-mono tabular-nums">
-            {formatPrice(currentPrice)} <span className="text-slate-500">{token1Symbol}</span>
-          </p>
-        </div>
-        <div className="bg-slate-800/20 border border-slate-700/20 rounded-lg px-3 py-2 text-center">
-          <p className="text-[10px] text-slate-600 uppercase tracking-wider mb-0.5">Max Price</p>
-          <p className="text-xs text-violet-400 font-mono tabular-nums">
-            {formatPrice(priceUpper)} <span className="text-slate-600">{token1Symbol}</span>
-          </p>
-        </div>
-      </div>
-
-      {/* Unit label */}
-      <p className="text-[11px] text-slate-600 text-center mt-2">
-        {token1Symbol} per {token0Symbol}
-      </p>
     </div>
   );
 }

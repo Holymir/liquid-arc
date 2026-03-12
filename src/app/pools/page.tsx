@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Search, ExternalLink, ChevronLeft, ChevronRight, SlidersHorizontal, X, Loader2, EyeOff, Eye } from "lucide-react";
+import { getDepositUrl } from "@/lib/defi/deposit-urls";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -113,6 +114,8 @@ export default function PoolsPage() {
   const [page, setPage] = useState(1);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [hideEmpty, setHideEmpty] = useState(true);
+  const [selectedChains, setSelectedChains] = useState<Set<string>>(new Set());
+  const [selectedProtocols, setSelectedProtocols] = useState<Set<string>>(new Set());
 
   // Range filters state — debounced values used for API calls
   const emptyFilters = (): Record<string, RangeFilter> =>
@@ -164,6 +167,8 @@ export default function PoolsPage() {
       });
       if (search.trim()) params.set("token", search.trim());
       if (hideEmpty) params.set("hideEmpty", "1");
+      if (selectedChains.size > 0) params.set("chain", [...selectedChains].join(","));
+      if (selectedProtocols.size > 0) params.set("protocol", [...selectedProtocols].join(","));
 
       // Add range filters
       for (const [key, range] of Object.entries(appliedFilters)) {
@@ -183,7 +188,7 @@ export default function PoolsPage() {
       setLoading(false);
       setRefetching(false);
     }
-  }, [sortBy, sortDir, page, search, appliedFilters, hideEmpty]);
+  }, [sortBy, sortDir, page, search, appliedFilters, hideEmpty, selectedChains, selectedProtocols]);
 
   useEffect(() => {
     fetchPools();
@@ -223,9 +228,10 @@ export default function PoolsPage() {
         <div className="mb-6">
           <h1 className="text-xl sm:text-2xl font-bold text-slate-100 mb-1">Pool Analytics</h1>
           <p className="text-sm text-slate-500">
-            {pagination.total} pools across{" "}
-            <span className="text-slate-400">Aerodrome</span>
-            {" "}on Base
+            {pagination.total} pools
+            {selectedProtocols.size > 0 || selectedChains.size > 0
+              ? ` across ${[...selectedProtocols].join(", ") || "all protocols"}${selectedChains.size > 0 ? ` on ${[...selectedChains].join(", ")}` : ""}`
+              : " across all protocols"}
           </p>
         </div>
 
@@ -295,6 +301,64 @@ export default function PoolsPage() {
               <option key={o.value} value={o.value}>Sort: {o.label}</option>
             ))}
           </select>
+        </div>
+
+        {/* Chain / Protocol chip filters */}
+        <div className="flex flex-wrap items-center gap-2 mb-3">
+          <span className="text-[10px] uppercase tracking-widest text-slate-600 font-medium mr-1">Chain</span>
+          {["base", "optimism", "ethereum", "arbitrum", "polygon"].map((chain) => {
+            const active = selectedChains.has(chain);
+            return (
+              <button
+                key={chain}
+                onClick={() => {
+                  setSelectedChains((prev) => {
+                    const next = new Set(prev);
+                    if (next.has(chain)) next.delete(chain); else next.add(chain);
+                    return next;
+                  });
+                  setPage(1);
+                }}
+                className={`px-2.5 py-1 rounded-lg text-xs border transition-all capitalize ${
+                  active
+                    ? "bg-arc-500/10 border-arc-500/30 text-arc-400"
+                    : "bg-slate-800/40 border-slate-700/40 text-slate-400 hover:text-slate-200 hover:border-slate-600"
+                }`}
+              >
+                {chain}
+              </button>
+            );
+          })}
+          <span className="text-slate-700 mx-1">|</span>
+          <span className="text-[10px] uppercase tracking-widest text-slate-600 font-medium mr-1">Protocol</span>
+          {[
+            { slug: "aerodrome", label: "Aerodrome", dotColor: "bg-blue-400" },
+            { slug: "velodrome", label: "Velodrome", dotColor: "bg-red-400" },
+            { slug: "uniswap-v3", label: "Uniswap V3", dotColor: "bg-pink-400" },
+          ].map(({ slug, label, dotColor }) => {
+            const active = selectedProtocols.has(slug);
+            return (
+              <button
+                key={slug}
+                onClick={() => {
+                  setSelectedProtocols((prev) => {
+                    const next = new Set(prev);
+                    if (next.has(slug)) next.delete(slug); else next.add(slug);
+                    return next;
+                  });
+                  setPage(1);
+                }}
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs border transition-all ${
+                  active
+                    ? "bg-arc-500/10 border-arc-500/30 text-arc-400"
+                    : "bg-slate-800/40 border-slate-700/40 text-slate-400 hover:text-slate-200 hover:border-slate-600"
+                }`}
+              >
+                <span className={`w-1.5 h-1.5 rounded-full ${dotColor}`} />
+                {label}
+              </button>
+            );
+          })}
         </div>
 
         {/* Range filters panel */}
@@ -436,7 +500,14 @@ export default function PoolsPage() {
                         </div>
                       </td>
                       <td className="px-4 py-3 text-slate-400 text-xs hidden sm:table-cell">
-                        {pool.protocolName}
+                        <span className="inline-flex items-center gap-1.5">
+                          <span className={`w-1.5 h-1.5 rounded-full ${
+                            pool.protocol === "aerodrome" ? "bg-blue-400" :
+                            pool.protocol === "velodrome" ? "bg-red-400" :
+                            pool.protocol === "uniswap-v3" ? "bg-pink-400" : "bg-slate-400"
+                          }`} />
+                          {pool.protocolName}
+                        </span>
                       </td>
                       <td className="px-4 py-3 text-right text-slate-300 font-mono text-xs tabular-nums">
                         {formatUsd(pool.tvlUsd)}
@@ -462,7 +533,7 @@ export default function PoolsPage() {
                       </td>
                       <td className="px-4 py-3 text-center">
                         <a
-                          href={`https://aerodrome.finance/deposit?token0=${pool.token0.address}&token1=${pool.token1.address}`}
+                          href={getDepositUrl(pool)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-1 text-xs text-arc-400 hover:text-arc-300 border border-arc-500/20 hover:border-arc-500/40 rounded-lg px-2.5 py-1 transition-all"

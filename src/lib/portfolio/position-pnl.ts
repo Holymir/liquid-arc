@@ -26,11 +26,14 @@ export async function calculatePositionPnL(
 
   const currentToken0Amount = position.token0Amount ?? 0;
   const currentToken1Amount = position.token1Amount ?? 0;
-  const currentPositionUsd = (position.token0Usd ?? 0) + (position.token1Usd ?? 0);
+  // Recompute from fresh prices for consistency with displayed per-token values
+  const currentPositionUsd =
+    currentToken0Amount * currentToken0Price + currentToken1Amount * currentToken1Price;
   const feesEarnedUsd = position.feesEarnedUsd ?? 0;
   const emissionsEarnedUsd = position.emissionsEarnedUsd ?? 0;
 
-  const entryValueUsd = entry.positionUsd;
+  // Recompute from stored per-token data so entry amounts × prices = entry value
+  const entryValueUsd = entry.token0Amount * entry.token0Price + entry.token1Amount * entry.token1Price;
 
   // ─── P&L Breakdown ─────────────────────────────────────────────────
   // Principal P&L: how much the position value itself changed (includes IL effect)

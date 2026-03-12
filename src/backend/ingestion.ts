@@ -124,8 +124,18 @@ async function runPhase1(adapter: PoolAdapter, result: IngestionResult) {
     pools = await adapter.fetchPools({ minTvlUsd: 50000, limit: 100 });
   }
 
+  // Filter out spam / dead / fake-TVL pools
+  const validPools = pools.filter((pool) => {
+    const dayData = poolDayDataMap.get(pool.poolAddress) ?? [];
+    return isValidPool(pool, dayData);
+  });
+  const filteredCount = pools.length - validPools.length;
+  if (filteredCount > 0) {
+    console.log(`[ingestion] Filtered ${filteredCount} invalid pools (${validPools.length} remaining)`);
+  }
+
   // Upsert pools
-  for (const pool of pools) {
+  for (const pool of validPools) {
     try {
       const dayData = poolDayDataMap.get(pool.poolAddress) ?? [];
       const { volume7d, fees7d, apr24h, apr7d } = computePoolMetrics(pool, dayData);
@@ -291,6 +301,31 @@ async function runPhase2(adapter: PoolAdapter, result: IngestionResult) {
   }
 
   console.log(`[ingestion] Phase 2 done: ${result.volatilityUpdated} pools with volatility`);
+}
+
+// ── Pool Validation ──────────────────────────────────────────────────────
+
+const SPAM_PATTERNS = /https?:|\.com|\.org|t\.me/i;
+
+function isValidPool(pool: RawPoolData, dayData: RawPoolDayData[]): boolean {
+  const volume7d = dayData.slice(0, 7).reduce((s, d) => s + d.volumeUsd, 0);
+
+  // Dead pool: no activity at all
+  if (pool.volumeUsd24h === 0 && pool.feesUsd24h === 0 && volume7d === 0) return false;
+
+  // Fake TVL: high TVL but virtually no volume
+  if (pool.tvlUsd > 1_000_000 && volume7d / pool.tvlUsd < 0.0001) return false;
+
+  // Absurd TVL cap
+  if (pool.tvlUsd > 10_000_000_000) return false;
+
+  // Spam tokens: long symbols or URL-like patterns
+  const symbols = [pool.token0Symbol ?? "", pool.token1Symbol ?? ""];
+  for (const sym of symbols) {
+    if (sym.length > 20 || SPAM_PATTERNS.test(sym)) return false;
+  }
+
+  return true;
 }
 
 // ── Metric Computation ─────────────────────────────────────────────────────
