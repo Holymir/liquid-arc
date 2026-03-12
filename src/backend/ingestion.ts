@@ -97,6 +97,16 @@ export async function runFullIngestion(): Promise<IngestionResult[]> {
     }
   }
 
+  // Prune invalid/stale pools after all protocols are processed
+  try {
+    const pruned = await pruneInvalidPools();
+    if (pruned > 0) {
+      console.log(`[ingestion] Post-ingestion cleanup: removed ${pruned} invalid pools`);
+    }
+  } catch (err) {
+    console.error("[ingestion] Pruning failed:", err);
+  }
+
   const totalDuration = results.reduce((s, r) => s + r.durationMs, 0);
   console.log(
     `[ingestion] Full ingestion complete: ${results.length} protocols in ${(totalDuration / 1000).toFixed(1)}s`
@@ -241,6 +251,62 @@ async function runPhase1(adapter: PoolAdapter, result: IngestionResult) {
   );
 }
 
+// ── Pool Pruning ────────────────────────────────────────────────────────────
+
+/**
+ * Remove pools that no longer pass validation:
+ * - Absurd TVL (> $1B)
+ * - Stale pools not updated in 48h+
+ * - Zero-activity pools (no volume/fees at all)
+ * - Fake TVL (high TVL but negligible volume)
+ *
+ * Also cascades to delete associated PoolDayData.
+ */
+export async function pruneInvalidPools(): Promise<number> {
+  const staleThreshold = new Date(Date.now() - 48 * 60 * 60 * 1000);
+
+  // Find pools that should be removed
+  const poolsToDelete = await prisma.pool.findMany({
+    where: {
+      OR: [
+        // Absurd TVL
+        { tvlUsd: { gt: 1_000_000_000 } },
+        // Stale — not updated in 48h
+        { lastSyncedAt: { lt: staleThreshold } },
+        // Zero activity
+        {
+          volume24hUsd: { equals: 0 },
+          fees24hUsd: { equals: 0 },
+          volume7dUsd: { equals: 0 },
+        },
+        // Fake TVL: >$1M TVL but negligible volume ratio
+        {
+          tvlUsd: { gt: 1_000_000 },
+          volume7dUsd: { lt: 100 },
+        },
+      ],
+    },
+    select: { id: true, poolAddress: true, tvlUsd: true },
+  });
+
+  if (poolsToDelete.length === 0) return 0;
+
+  const ids = poolsToDelete.map((p) => p.id);
+
+  // Delete day data first (FK constraint), then pools
+  await prisma.$transaction([
+    prisma.poolDayData.deleteMany({ where: { poolId: { in: ids } } }),
+    prisma.pool.deleteMany({ where: { id: { in: ids } } }),
+  ]);
+
+  console.log(
+    `[ingestion] Pruned ${poolsToDelete.length} invalid pools ` +
+    `(sample: ${poolsToDelete.slice(0, 3).map((p) => `${p.poolAddress} TVL=$${p.tvlUsd}`).join(", ")})`
+  );
+
+  return poolsToDelete.length;
+}
+
 // ── Phase 2: Volatility & Correlation ───────────────────────────────────────
 
 async function runPhase2(adapter: PoolAdapter, result: IngestionResult) {
@@ -316,8 +382,8 @@ function isValidPool(pool: RawPoolData, dayData: RawPoolDayData[]): boolean {
   // Fake TVL: high TVL but virtually no volume
   if (pool.tvlUsd > 1_000_000 && volume7d / pool.tvlUsd < 0.0001) return false;
 
-  // Absurd TVL cap
-  if (pool.tvlUsd > 10_000_000_000) return false;
+  // Absurd TVL cap — no single pool realistically exceeds $1B
+  if (pool.tvlUsd > 1_000_000_000) return false;
 
   // Spam tokens: long symbols or URL-like patterns
   const symbols = [pool.token0Symbol ?? "", pool.token1Symbol ?? ""];

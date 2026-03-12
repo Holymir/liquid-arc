@@ -8,8 +8,8 @@ import { runFullIngestion } from "./ingestion";
 let cronInterval: ReturnType<typeof setInterval> | null = null;
 let isRunning = false;
 
-// Default: every 6 hours
-const CRON_INTERVAL_MS = parseInt(process.env.INGEST_INTERVAL_MS || String(6 * 60 * 60 * 1000), 10);
+// Default: every 3 hours
+const CRON_INTERVAL_MS = parseInt(process.env.INGEST_INTERVAL_MS || String(3 * 60 * 60 * 1000), 10);
 
 export function scheduleCron() {
   console.log(
