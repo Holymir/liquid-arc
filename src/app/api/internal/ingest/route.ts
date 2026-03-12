@@ -48,7 +48,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(data, { status: res.status });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    return NextResponse.json({ error: `Backend unreachable: ${msg}` }, { status: 502 });
+    console.error("[ingest] Backend unreachable:", msg);
+    return NextResponse.json({ error: "Backend service unavailable" }, { status: 502 });
   }
 }
 

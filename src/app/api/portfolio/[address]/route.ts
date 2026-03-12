@@ -54,7 +54,7 @@ export async function GET(
     const message = error instanceof Error ? error.message : String(error);
     console.error("[portfolio] GET error:", message);
     return NextResponse.json(
-      { error: "Failed to load portfolio", detail: message },
+      { error: "Failed to load portfolio" },
       { status: 500 }
     );
   }

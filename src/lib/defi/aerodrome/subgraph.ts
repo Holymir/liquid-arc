@@ -8,6 +8,31 @@ import type { RawPoolData, RawPoolDayData, TokenPriceHistory } from "../types";
 
 const AERODROME_SUBGRAPH_ID = "GENunSHWLBXm59mBSgPzQ8metBEp9YDfdqwFr91Av1UM";
 
+// ─── Input sanitizers (prevent GraphQL injection) ────────────────────────────
+
+/** Validate a hex address (with or without 0x prefix, up to 64 hex chars). */
+function sanitizeAddress(value: string): string {
+  const v = value.toLowerCase();
+  if (/^0x[a-f0-9]{1,64}$/.test(v)) return v;
+  if (/^[a-f0-9]{1,64}$/.test(v)) return v;
+  throw new Error(`[subgraph] Invalid address: ${v}`);
+}
+
+/** Validate an NFT token ID (numeric or hex string). */
+function sanitizeTokenId(value: string): string {
+  if (/^[a-zA-Z0-9]+$/.test(value)) return value;
+  throw new Error(`[subgraph] Invalid token ID: ${value}`);
+}
+
+/** Validate and coerce a numeric value. Returns the number. */
+function sanitizeNumber(value: unknown): number {
+  const n = Number(value);
+  if (!isFinite(n)) {
+    throw new Error(`[subgraph] Invalid number: ${value}`);
+  }
+  return n;
+}
+
 export function getSubgraphUrl(subgraphId?: string): string | null {
   const apiKey = process.env.GRAPH_API_KEY;
   if (!apiKey) return null;
@@ -57,7 +82,7 @@ export async function getPositionEntryFromSubgraph(
   token1Decimals: number
 ): Promise<PositionEntryData | null> {
   const data = await querySubgraph<{ position: SubgraphPosition | null }>(`{
-    position(id: "${nftTokenId}") {
+    position(id: "${sanitizeTokenId(nftTokenId)}") {
       id depositedToken0 depositedToken1 liquidity
       transaction { timestamp blockNumber }
     }
@@ -137,10 +162,10 @@ export async function fetchPoolsFromSubgraph(
       ethPriceUSD
     }
     pools(
-      first: ${limit},
+      first: ${sanitizeNumber(limit)},
       orderBy: totalValueLockedUSD,
       orderDirection: desc,
-      where: { totalValueLockedUSD_gt: "${minTvl}" }
+      where: { totalValueLockedUSD_gt: "${sanitizeNumber(minTvl)}" }
     ) {
       id
       token0 { id symbol decimals derivedETH }
@@ -149,7 +174,7 @@ export async function fetchPoolsFromSubgraph(
       totalValueLockedUSD totalValueLockedToken0 totalValueLockedToken1
       token0Price token1Price
       volumeUSD feesUSD
-      poolDayData(first: ${dayDataDays}, orderBy: date, orderDirection: desc) {
+      poolDayData(first: ${sanitizeNumber(dayDataDays)}, orderBy: date, orderDirection: desc) {
         date volumeUSD feesUSD tvlUSD txCount token0Price token1Price
       }
     }
@@ -239,10 +264,10 @@ export async function fetchTokenPriceHistoryFromSubgraph(
     tokenDayDatas: { date: number; priceUSD: string }[];
   }>(`{
     tokenDayDatas(
-      first: ${days},
+      first: ${sanitizeNumber(days)},
       orderBy: date,
       orderDirection: desc,
-      where: { token: "${tokenAddress.toLowerCase()}" }
+      where: { token: "${sanitizeAddress(tokenAddress)}" }
     ) {
       date priceUSD
     }
@@ -277,10 +302,10 @@ export async function fetchPoolDayDataFromSubgraph(
     }[];
   }>(`{
     poolDayDatas(
-      first: ${days},
+      first: ${sanitizeNumber(days)},
       orderBy: date,
       orderDirection: desc,
-      where: { pool: "${poolAddress.toLowerCase()}" }
+      where: { pool: "${sanitizeAddress(poolAddress)}" }
     ) {
       date volumeUSD feesUSD tvlUSD txCount token0Price token1Price
     }
