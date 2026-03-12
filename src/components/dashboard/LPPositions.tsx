@@ -66,7 +66,7 @@ function PositionCard({
             title={inRange ? "In Range" : "Out of Range"}
           />
           {isStaked && (
-            <span className="text-[9px] uppercase tracking-wider px-1 py-px rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-medium">
+            <span className="text-[9px] uppercase tracking-wider px-1 py-px rounded bg-arc-500/10 text-arc-400 border border-arc-500/20 font-medium">
               Staked
             </span>
           )}
@@ -128,7 +128,7 @@ function PositionCard({
               {pnl && pnl.apr > 0 && (
                 <div>
                   <span className="text-slate-500">APR </span>
-                  <span className="text-indigo-400 font-semibold tabular-nums">
+                  <span className="text-arc-400 font-semibold tabular-nums">
                     {pnl.apr.toFixed(1)}%
                   </span>
                 </div>

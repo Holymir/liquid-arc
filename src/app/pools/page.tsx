@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AppHeader } from "@/components/layout/AppHeader";
+import { AppLayout } from "@/components/layout/AppLayout";
 import { Search, ExternalLink, ChevronLeft, ChevronRight, SlidersHorizontal, X, Loader2, EyeOff, Eye } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -211,14 +211,14 @@ export default function PoolsPage() {
 
   const SortIcon = ({ field }: { field: SortField }) => {
     if (sortBy !== field) return <span className="text-slate-700 ml-1">&#8597;</span>;
-    return <span className="text-indigo-400 ml-1">{sortDir === "desc" ? "\u2193" : "\u2191"}</span>;
+    return <span className="text-arc-400 ml-1">{sortDir === "desc" ? "\u2193" : "\u2191"}</span>;
   };
 
   return (
-    <div className="min-h-screen bg-[#06080d]">
-      <AppHeader />
+    <AppLayout>
 
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-6">
+
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
         {/* Title + Stats */}
         <div className="mb-6">
           <h1 className="text-xl sm:text-2xl font-bold text-slate-100 mb-1">Pool Analytics</h1>
@@ -238,7 +238,7 @@ export default function PoolsPage() {
               placeholder="Search by token..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 bg-slate-800/30 border border-slate-700/40 rounded-lg text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition-all"
+              className="w-full pl-9 pr-3 py-2 bg-slate-800/30 border border-slate-700/40 rounded-lg text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-arc-500/50 focus:ring-1 focus:ring-arc-500/20 transition-all"
             />
           </div>
 
@@ -246,14 +246,14 @@ export default function PoolsPage() {
             onClick={() => setFiltersOpen((o) => !o)}
             className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm border transition-all ${
               filtersOpen || activeFilterCount > 0
-                ? "bg-indigo-500/10 border-indigo-500/30 text-indigo-400"
+                ? "bg-arc-500/10 border-arc-500/30 text-arc-400"
                 : "bg-slate-800/30 border-slate-700/40 text-slate-400 hover:text-slate-200 hover:border-slate-600"
             }`}
           >
             <SlidersHorizontal className="w-4 h-4" />
             Filters
             {activeFilterCount > 0 && (
-              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-indigo-500/20 text-indigo-300 text-[10px] font-bold">
+              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-arc-500/20 text-arc-300 text-[10px] font-bold">
                 {activeFilterCount}
               </span>
             )}
@@ -283,13 +283,13 @@ export default function PoolsPage() {
           </button>
 
           {refetching && (
-            <Loader2 className="w-4 h-4 text-indigo-400 animate-spin" />
+            <Loader2 className="w-4 h-4 text-arc-400 animate-spin" />
           )}
 
           <select
             value={sortBy}
             onChange={(e) => { setSortBy(e.target.value as SortField); setPage(1); }}
-            className="sm:hidden bg-slate-800/30 border border-slate-700/40 rounded-lg px-3 py-2 text-sm text-slate-300 focus:outline-none focus:border-indigo-500/50 transition-all"
+            className="sm:hidden bg-slate-800/30 border border-slate-700/40 rounded-lg px-3 py-2 text-sm text-slate-300 focus:outline-none focus:border-arc-500/50 transition-all"
           >
             {SORT_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>Sort: {o.label}</option>
@@ -317,7 +317,7 @@ export default function PoolsPage() {
                         placeholder="Min"
                         value={filterInputs[col.key]?.min ?? ""}
                         onChange={(e) => updateFilter(col.key, "min", e.target.value)}
-                        className={`w-full ${col.prefix ? "pl-6" : "pl-3"} ${col.suffix ? "pr-6" : "pr-3"} py-1.5 bg-slate-800/40 border border-slate-700/30 rounded-lg text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-indigo-500/40 focus:ring-1 focus:ring-indigo-500/15 transition-all font-mono tabular-nums`}
+                        className={`w-full ${col.prefix ? "pl-6" : "pl-3"} ${col.suffix ? "pr-6" : "pr-3"} py-1.5 bg-slate-800/40 border border-slate-700/30 rounded-lg text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-arc-500/40 focus:ring-1 focus:ring-arc-500/15 transition-all font-mono tabular-nums`}
                       />
                       {col.suffix && (
                         <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-600 text-xs">{col.suffix}</span>
@@ -334,7 +334,7 @@ export default function PoolsPage() {
                         placeholder="Max"
                         value={filterInputs[col.key]?.max ?? ""}
                         onChange={(e) => updateFilter(col.key, "max", e.target.value)}
-                        className={`w-full ${col.prefix ? "pl-6" : "pl-3"} ${col.suffix ? "pr-6" : "pr-3"} py-1.5 bg-slate-800/40 border border-slate-700/30 rounded-lg text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-indigo-500/40 focus:ring-1 focus:ring-indigo-500/15 transition-all font-mono tabular-nums`}
+                        className={`w-full ${col.prefix ? "pl-6" : "pl-3"} ${col.suffix ? "pr-6" : "pr-3"} py-1.5 bg-slate-800/40 border border-slate-700/30 rounded-lg text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-arc-500/40 focus:ring-1 focus:ring-arc-500/15 transition-all font-mono tabular-nums`}
                       />
                       {col.suffix && (
                         <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-600 text-xs">{col.suffix}</span>
@@ -465,7 +465,7 @@ export default function PoolsPage() {
                           href={`https://aerodrome.finance/deposit?token0=${pool.token0.address}&token1=${pool.token1.address}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-300 border border-indigo-500/20 hover:border-indigo-500/40 rounded-lg px-2.5 py-1 transition-all"
+                          className="inline-flex items-center gap-1 text-xs text-arc-400 hover:text-arc-300 border border-arc-500/20 hover:border-arc-500/40 rounded-lg px-2.5 py-1 transition-all"
                           onClick={(e) => e.stopPropagation()}
                         >
                           Deposit
@@ -514,6 +514,6 @@ export default function PoolsPage() {
           </p>
         )}
       </div>
-    </div>
+    </AppLayout>
   );
 }

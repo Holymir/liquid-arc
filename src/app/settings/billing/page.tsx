@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useSession } from "@/components/providers/SessionProvider";
-import { AppHeader } from "@/components/layout/AppHeader";
+import { AppLayout } from "@/components/layout/AppLayout";
 import { ArrowLeft, Check, Zap } from "lucide-react";
 
 const PLANS = [
@@ -67,23 +67,20 @@ export default function BillingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#06080d]">
-      <AppHeader
-        leftSlot={
-          <Link
-            href="/settings"
-            className="text-slate-400 hover:text-slate-200 p-1.5 rounded-lg hover:bg-slate-800/40 transition-all"
-          >
-            <ArrowLeft className="w-4 h-4" />
-          </Link>
-        }
-      />
-
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 lg:py-8">
+    <AppLayout>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
         <div className="mb-8">
-          <h1 className="text-xl font-bold text-slate-100">Plans & Billing</h1>
+          <div className="flex items-center gap-3 mb-1">
+            <Link
+              href="/settings"
+              className="text-slate-400 hover:text-slate-200 p-1.5 rounded-lg hover:bg-slate-800/40 transition-all"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </Link>
+            <h1 className="text-xl font-bold text-slate-100">Plans & Billing</h1>
+          </div>
           <p className="text-sm text-slate-500 mt-1">
-            Current plan: <span className="text-indigo-400 capitalize">{user.tier}</span>
+            Current plan: <span className="text-arc-400 capitalize">{user.tier}</span>
           </p>
         </div>
 
@@ -95,12 +92,12 @@ export default function BillingPage() {
                 key={plan.tier}
                 className={`rounded-2xl p-5 border transition-all ${
                   plan.popular
-                    ? "bg-indigo-500/5 border-indigo-500/30"
+                    ? "bg-arc-500/5 border-arc-500/30"
                     : "bg-slate-800/20 border-slate-700/20"
                 }`}
               >
                 {plan.popular && (
-                  <div className="flex items-center gap-1 text-[10px] text-indigo-400 font-semibold uppercase tracking-wider mb-3">
+                  <div className="flex items-center gap-1 text-[10px] text-arc-400 font-semibold uppercase tracking-wider mb-3">
                     <Zap className="w-3 h-3" /> Most Popular
                   </div>
                 )}
@@ -126,7 +123,7 @@ export default function BillingPage() {
                     isCurrent
                       ? "bg-slate-800/40 text-slate-500 cursor-not-allowed"
                       : plan.popular
-                      ? "bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/20"
+                      ? "bg-arc-600 hover:bg-arc-500 text-white shadow-lg shadow-arc-600/20"
                       : "bg-slate-800/40 hover:bg-slate-700/40 text-slate-300"
                   }`}
                 >
@@ -137,6 +134,6 @@ export default function BillingPage() {
           })}
         </div>
       </div>
-    </div>
+    </AppLayout>
   );
 }

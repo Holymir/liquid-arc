@@ -76,7 +76,7 @@ export function TokenList({ tokens, isLoading }: TokenListProps) {
               className="grid grid-cols-3 py-3 items-center hover:bg-slate-800/20 -mx-3 px-3 rounded-lg transition-colors"
             >
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-indigo-600/15 border border-indigo-500/15 flex items-center justify-center text-[10px] font-bold text-indigo-400 uppercase">
+                <div className="w-8 h-8 rounded-full bg-arc-600/15 border border-arc-500/15 flex items-center justify-center text-[10px] font-bold text-arc-400 uppercase">
                   {token.symbol.slice(0, 2)}
                 </div>
                 <span className="text-slate-200 font-medium text-sm">

@@ -171,7 +171,7 @@ export function PortfolioHeader({
             {/* Labels */}
             <div className="space-y-3">
               <div className="flex items-center gap-2.5">
-                <span className="w-2.5 h-2.5 rounded-sm bg-indigo-500/60" />
+                <span className="w-2.5 h-2.5 rounded-sm bg-arc-500/60" />
                 <div>
                   <p className="text-slate-500 text-[11px] leading-none">LP Positions</p>
                   <p className="text-slate-200 text-sm font-semibold tabular-nums mt-0.5">

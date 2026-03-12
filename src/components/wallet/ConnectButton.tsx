@@ -33,7 +33,7 @@ export function ConnectButton() {
     return (
       <button
         onClick={() => router.push("/login")}
-        className="bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-semibold px-5 py-2 rounded-xl text-sm shadow-lg shadow-indigo-600/20 hover:shadow-indigo-500/30 transition-all"
+        className="bg-arc-600 hover:bg-arc-500 active:bg-arc-700 text-white font-semibold px-5 py-2 rounded-xl text-sm shadow-lg shadow-arc-600/20 hover:shadow-arc-500/30 transition-all"
       >
         Sign in
       </button>
@@ -55,7 +55,7 @@ export function ConnectButton() {
         <div className="absolute right-0 mt-2 w-48 bg-[#0c1019] border border-slate-700/50 rounded-xl shadow-xl py-1 z-50">
           <div className="px-3 py-2 border-b border-slate-800/50">
             <p className="text-xs text-slate-500 truncate">{user.email}</p>
-            <p className="text-[10px] text-indigo-400 uppercase tracking-wider mt-0.5">{user.tier}</p>
+            <p className="text-[10px] text-arc-400 uppercase tracking-wider mt-0.5">{user.tier}</p>
           </div>
           <button
             onClick={() => {

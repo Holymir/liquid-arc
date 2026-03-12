@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
   const verifyUrl = `${baseUrl}/verify-email?token=${verificationToken}`;
   sendEmail({
     to: email,
-    subject: "Verify your LiquidArk email",
+    subject: "Verify your LiquidArc email",
     html: verificationEmailHtml(verifyUrl),
   }).catch((err) => console.error("[register] verification email failed:", err));
 

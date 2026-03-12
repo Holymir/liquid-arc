@@ -66,7 +66,7 @@ export function RouteProgress() {
       style={{ opacity: visible || progress === 100 ? 1 : 0 }}
     >
       <div
-        className="h-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.4)] transition-all duration-200 ease-out"
+        className="h-full bg-arc-500 shadow-[0_0_8px_rgba(99,102,241,0.4)] transition-all duration-200 ease-out"
         style={{ width: `${progress}%` }}
       />
     </div>
