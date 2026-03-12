@@ -23,15 +23,13 @@ export default function LoginPage() {
     if (status === "authenticated") router.replace("/dashboard");
   }, [status, router]);
 
-  if (status === "loading") {
+  if (status === "loading" || status === "authenticated") {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: "#030b14" }}>
         <Loader2 className="w-5 h-5 animate-spin text-arc-400" />
       </div>
     );
   }
-
-  if (status === "authenticated") return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

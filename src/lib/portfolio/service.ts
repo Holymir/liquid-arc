@@ -76,6 +76,34 @@ export async function getPortfolio(
 
   const lpPositions = lpResults.flat();
 
+  // 1b. Fix ???/??? token symbols by looking up the pool in our database.
+  //     The ingestion pipeline stores reliable symbols from the subgraph,
+  //     so we use those as fallback when RPC multicall fails.
+  const unknownSymbolPositions = lpPositions.filter(
+    (p) => p.token0Symbol === "???" || p.token1Symbol === "???"
+  );
+  if (unknownSymbolPositions.length > 0) {
+    const poolAddresses = [...new Set(unknownSymbolPositions.map((p) => p.poolAddress.toLowerCase()))];
+    const dbPools = await prisma.pool.findMany({
+      where: { poolAddress: { in: poolAddresses } },
+      select: { poolAddress: true, token0Symbol: true, token1Symbol: true, token0Decimals: true, token1Decimals: true },
+    });
+    const poolMap = new Map(dbPools.map((p) => [p.poolAddress.toLowerCase(), p]));
+
+    for (const pos of lpPositions) {
+      const dbPool = poolMap.get(pos.poolAddress.toLowerCase());
+      if (!dbPool) continue;
+      if (pos.token0Symbol === "???" && dbPool.token0Symbol) {
+        pos.token0Symbol = dbPool.token0Symbol;
+        if (dbPool.token0Decimals != null) pos.token0Decimals = dbPool.token0Decimals;
+      }
+      if (pos.token1Symbol === "???" && dbPool.token1Symbol) {
+        pos.token1Symbol = dbPool.token1Symbol;
+        if (dbPool.token1Decimals != null) pos.token1Decimals = dbPool.token1Decimals;
+      }
+    }
+  }
+
   // 2. Collect all token addresses that need pricing
   const emissionsToken = EMISSIONS_TOKENS[chainId];
   const allTokenAddresses = [
