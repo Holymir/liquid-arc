@@ -99,6 +99,7 @@ export function Dashboard({ address, chainId = "base" }: DashboardProps) {
 
       <LPPositions
         address={address}
+        chainId={chainId}
         positions={data?.lpPositions ?? []}
         isLoading={isLoading}
       />

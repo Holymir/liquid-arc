@@ -27,11 +27,12 @@ interface EnrichedPosition extends LPPositionData {
 export async function savePositionSnapshots(
   walletId: string,
   positions: EnrichedPosition[],
-  prices: Map<string, number>
+  prices: Map<string, number>,
+  chainId: string = "base"
 ): Promise<void> {
   for (const pos of positions) {
     try {
-      await saveOnePositionSnapshot(walletId, pos, prices);
+      await saveOnePositionSnapshot(walletId, pos, prices, chainId);
     } catch (err) {
       console.warn(
         `[position-snapshot] Failed for NFT #${pos.nftTokenId}:`,
@@ -44,7 +45,8 @@ export async function savePositionSnapshots(
 async function saveOnePositionSnapshot(
   walletId: string,
   pos: EnrichedPosition,
-  prices: Map<string, number>
+  prices: Map<string, number>,
+  chainId: string
 ): Promise<void> {
   // Try exact key first (Solana uses case-sensitive base58), then lowercase (EVM)
   const price0 = prices.get(pos.token0Address) ?? prices.get(pos.token0Address.toLowerCase()) ?? 0;
@@ -58,10 +60,10 @@ async function saveOnePositionSnapshot(
 
   if (!existingEntry) {
     // New position — try on-chain entry first, then fall back to first-seen
-    await createEntrySnapshot(walletId, pos, prices);
+    await createEntrySnapshot(walletId, pos, prices, chainId);
   } else if (existingEntry.entrySource === "first-seen") {
     // Existing first-seen entry — try to upgrade to on-chain data
-    await upgradeToOnChainEntry(walletId, existingEntry.id, pos, prices);
+    await upgradeToOnChainEntry(walletId, existingEntry.id, pos, prices, chainId);
   }
 
   // Throttle regular snapshots to once per hour per position
@@ -108,19 +110,19 @@ async function saveOnePositionSnapshot(
 async function createEntrySnapshot(
   walletId: string,
   pos: EnrichedPosition,
-  currentPrices: Map<string, number>
+  currentPrices: Map<string, number>,
+  chainId: string
 ): Promise<void> {
-  // Attempt on-chain entry lookup
-  const entry = await getPositionEntry(
-    pos.nftTokenId,
-    pos.token0Decimals,
-    pos.token1Decimals
-  );
+  // Attempt on-chain entry lookup (Aerodrome/EVM only — skip for Solana)
+  const isEvm = chainId !== "solana";
+  const entry = isEvm
+    ? await getPositionEntry(pos.nftTokenId, pos.token0Decimals, pos.token1Decimals)
+    : null;
 
   if (entry) {
     // Got on-chain data — now fetch historical prices at that timestamp
     const { price0, price1 } = await getHistoricalPricePair(
-      "base",
+      chainId,
       pos.token0Address,
       pos.token1Address,
       entry.timestamp
@@ -239,8 +241,12 @@ async function upgradeToOnChainEntry(
   walletId: string,
   existingEntryId: string,
   pos: EnrichedPosition,
-  currentPrices: Map<string, number>
+  currentPrices: Map<string, number>,
+  chainId: string
 ): Promise<void> {
+  // On-chain entry upgrade only works for EVM chains (Aerodrome events)
+  if (chainId === "solana") return;
+
   const entry = await getPositionEntry(
     pos.nftTokenId,
     pos.token0Decimals,
@@ -250,7 +256,7 @@ async function upgradeToOnChainEntry(
   if (!entry) return; // Still can't get on-chain data
 
   const { price0, price1 } = await getHistoricalPricePair(
-    "base",
+    chainId,
     pos.token0Address,
     pos.token1Address,
     entry.timestamp
