@@ -1,13 +1,6 @@
 // Generate protocol-specific deposit URLs for pool rows.
 
-/** Wrapped native token addresses that Uniswap expects as "ETH" */
-const WETH_ADDRESSES = new Set([
-  "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", // Ethereum WETH
-  "0x4200000000000000000000000000000000000006", // Base / Optimism WETH
-  "0x82af49447d8a07e3bd95bd0d56f35241523fbab1", // Arbitrum WETH
-  "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270", // Polygon WMATIC
-  "0x7ceb23fd6bc0add59e62ac25578270cff1b9f619", // Polygon WETH
-]);
+import { EVM_CHAINS } from "@/lib/chain/evm/chains";
 
 const CHAIN_NAMES: Record<string, string> = {
   ethereum: "mainnet",
@@ -25,6 +18,20 @@ const BLOCK_EXPLORERS: Record<string, string> = {
   optimism: "https://optimistic.etherscan.io/address",
   solana: "https://solscan.io/account",
 };
+
+/**
+ * Replace the wrapped native token address with the native symbol
+ * that the protocol's UI expects (e.g. Uniswap wants "ETH" not the WETH address).
+ * Looks up the chain config dynamically instead of hardcoding addresses.
+ */
+function nativeCurrencyId(chainId: string, tokenAddress: string): string {
+  const chain = EVM_CHAINS[chainId];
+  if (!chain) return tokenAddress;
+  if (tokenAddress.toLowerCase() === chain.wrappedNativeAddress.toLowerCase()) {
+    return chain.nativeSymbol;
+  }
+  return tokenAddress;
+}
 
 export function getDepositUrl(pool: {
   protocol: string;
@@ -47,10 +54,9 @@ export function getDepositUrl(pool: {
   if (slug === "uniswap-v3") {
     const chain = CHAIN_NAMES[pool.chainId] ?? "mainnet";
     const fee = pool.feeTier ?? 3000;
-    // Uniswap expects "ETH" instead of the WETH contract address
-    const toUniCurrency = (addr: string) =>
-      WETH_ADDRESSES.has(addr.toLowerCase()) ? "ETH" : addr;
-    return `https://app.uniswap.org/add/${toUniCurrency(pool.token0.address)}/${toUniCurrency(pool.token1.address)}/${fee}?chain=${chain}`;
+    const t0 = nativeCurrencyId(pool.chainId, pool.token0.address);
+    const t1 = nativeCurrencyId(pool.chainId, pool.token1.address);
+    return `https://app.uniswap.org/add/${t0}/${t1}/${fee}?chain=${chain}`;
   }
 
   if (slug === "raydium") {

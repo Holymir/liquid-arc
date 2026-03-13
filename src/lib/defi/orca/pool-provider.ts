@@ -18,12 +18,10 @@ interface OrcaWhirlpool {
     decimals: number;
   };
   tvl: number;
-  feeRate: number; // decimal, e.g. 0.003 = 0.30%
+  lpFeeRate: number;       // decimal, e.g. 0.0004 = 0.04%
   volume: {
     day: number;
-  };
-  fees?: {
-    day?: number;
+    week: number;
   };
 }
 
@@ -41,7 +39,7 @@ class OrcaPoolProvider implements PoolDataProvider {
     const limit = options?.limit ?? 100;
     const minTvl = options?.minTvlUsd ?? 0;
 
-    const res = await fetch("https://api.orca.so/v2/solana/whirlpool/list");
+    const res = await fetch("https://api.mainnet.orca.so/v1/whirlpool/list");
     if (!res.ok) throw new Error(`Orca API HTTP ${res.status}`);
 
     const json: OrcaApiResponse = await res.json();
@@ -59,8 +57,8 @@ class OrcaPoolProvider implements PoolDataProvider {
 
     for (const wp of sorted) {
       const volumeUsd24h = wp.volume.day;
-      // Use fees.day if available, otherwise compute from volume * feeRate
-      const feesUsd24h = wp.fees?.day ?? volumeUsd24h * wp.feeRate;
+      // Compute fees from volume * lpFeeRate (Orca API no longer provides fees.day)
+      const feesUsd24h = volumeUsd24h * wp.lpFeeRate;
 
       pools.push({
         poolAddress: wp.address,
@@ -70,10 +68,10 @@ class OrcaPoolProvider implements PoolDataProvider {
         token1Address: wp.tokenB.mint,
         token1Symbol: wp.tokenB.symbol,
         token1Decimals: wp.tokenB.decimals,
-        // Orca feeRate is a decimal (0.003 = 0.30%).
+        // Orca lpFeeRate is a decimal (0.0004 = 0.04%).
         // DB/UI expects feeTier / 10_000 to produce a percentage string.
         // So store decimal * 1_000_000 → e.g. 0.003 → 3000.
-        feeTier: Math.round(wp.feeRate * 1_000_000),
+        feeTier: Math.round(wp.lpFeeRate * 1_000_000),
         poolType: "cl",
         tvlUsd: wp.tvl,
         volumeUsd24h,

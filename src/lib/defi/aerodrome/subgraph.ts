@@ -53,13 +53,14 @@ async function querySubgraph<T>(
   });
 
   if (!res.ok) {
-    console.warn(`[subgraph] HTTP ${res.status}`);
+    const body = await res.text().catch(() => "");
+    console.warn(`[subgraph] HTTP ${res.status} for ${subgraphId ?? "default"}:`, body.slice(0, 200));
     return null;
   }
 
   const json = await res.json();
   if (json.errors) {
-    console.warn(`[subgraph] GraphQL errors:`, json.errors);
+    console.warn(`[subgraph] GraphQL errors for ${subgraphId ?? "default"}:`, json.errors);
     return null;
   }
 
@@ -181,6 +182,7 @@ export async function fetchPoolsFromSubgraph(
   }`, subgraphId);
 
   if (!data?.pools) {
+    console.warn(`[subgraph] No pool data returned for subgraph ${subgraphId ?? "default"} — check API key and subgraph ID`);
     return { pools: [], dayDataByPool: new Map() };
   }
 
