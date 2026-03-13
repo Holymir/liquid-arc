@@ -20,7 +20,9 @@ export async function GET(
   const period = (request.nextUrl.searchParams.get("period") ?? "7d") as
     | "24h"
     | "7d"
-    | "30d";
+    | "30d"
+    | "90d"
+    | "all";
 
   const isSolana = !address.startsWith("0x");
   const normalizedAddress = isSolana ? address : address.toLowerCase();
@@ -43,16 +45,20 @@ export async function GET(
     "30d": 720,
     "90d": 2160,
   };
+
+  const isAll = period === "all";
   const hours = periodHours[period] ?? 168;
-  const since = new Date(Date.now() - hours * 60 * 60 * 1000);
+  const since = isAll ? undefined : new Date(Date.now() - hours * 60 * 60 * 1000);
+
+  const pnlPeriod = isAll ? "30d" : period;
 
   const [snapshots, pnl] = await Promise.all([
     prisma.portfolioSnapshot.findMany({
-      where: { walletId: wallet.id, snapshotAt: { gte: since } },
+      where: { walletId: wallet.id, ...(since ? { snapshotAt: { gte: since } } : {}) },
       orderBy: { snapshotAt: "asc" },
       select: { totalUsdValue: true, snapshotAt: true },
     }),
-    calculatePnL(wallet.id, period),
+    calculatePnL(wallet.id, pnlPeriod as "24h" | "7d" | "30d"),
   ]);
 
   return NextResponse.json({ snapshots, pnl, period });
