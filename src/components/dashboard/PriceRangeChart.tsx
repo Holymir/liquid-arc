@@ -55,7 +55,7 @@ export function PriceRangeChart({
 
   // Chart layout
   const SVG_W = 440;
-  const SVG_H = 160;
+  const SVG_H = 170;
   const CHART_TOP = 20;
   const CHART_BOTTOM = 120;
   const CHART_H = CHART_BOTTOM - CHART_TOP;
@@ -239,6 +239,9 @@ export function PriceRangeChart({
         <text x={xLower} y={CHART_BOTTOM + 28} textAnchor="middle" fill="#64748b" fontSize="7">
           Min
         </text>
+        <text x={xLower} y={CHART_BOTTOM + 37} textAnchor="middle" fill="#475569" fontSize="6">
+          {token1Symbol}/{token0Symbol}
+        </text>
 
         {/* Upper bound dashed line */}
         <line
@@ -256,6 +259,9 @@ export function PriceRangeChart({
         </text>
         <text x={xUpper} y={CHART_BOTTOM + 28} textAnchor="middle" fill="#64748b" fontSize="7">
           Max
+        </text>
+        <text x={xUpper} y={CHART_BOTTOM + 37} textAnchor="middle" fill="#475569" fontSize="6">
+          {token1Symbol}/{token0Symbol}
         </text>
 
         {/* Current price vertical line */}
@@ -326,18 +332,21 @@ export function PriceRangeChart({
           <p className="text-xs text-arc-400 font-mono tabular-nums font-medium">
             {formatPrice(priceLower)}
           </p>
+          <p className="text-[9px] text-slate-600 mt-0.5">{token1Symbol} per {token0Symbol}</p>
         </div>
         <div className="bg-slate-800/30 border border-slate-700/20 rounded-xl px-3 py-2.5 text-center">
           <p className="text-[10px] text-slate-600 uppercase tracking-wider mb-1">Current</p>
           <p className="text-xs text-slate-100 font-mono tabular-nums font-medium">
             {formatPrice(currentPrice)}
           </p>
+          <p className="text-[9px] text-slate-600 mt-0.5">{token1Symbol} per {token0Symbol}</p>
         </div>
         <div className="bg-slate-800/30 border border-[#00e5c4]/10 rounded-xl px-3 py-2.5 text-center">
           <p className="text-[10px] text-slate-600 uppercase tracking-wider mb-1">Max Price</p>
           <p className="text-xs text-arc-400 font-mono tabular-nums font-medium">
             {formatPrice(priceUpper)}
           </p>
+          <p className="text-[9px] text-slate-600 mt-0.5">{token1Symbol} per {token0Symbol}</p>
         </div>
       </div>
 
