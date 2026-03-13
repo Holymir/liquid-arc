@@ -278,22 +278,45 @@ export function PriceRangeChart({
           </>
         )}
 
-        {/* Current price label */}
-        <text
-          x={Math.max(PAD_L + 30, Math.min(SVG_W - PAD_R - 30, xCurrent))}
-          y={CHART_BOTTOM + 18}
-          textAnchor="middle" fill="#e2e8f0" fontSize="9" fontWeight="600"
-          fontFamily="ui-monospace, monospace"
-        >
-          {formatPrice(currentPrice)}
-        </text>
-        <text
-          x={Math.max(PAD_L + 30, Math.min(SVG_W - PAD_R - 30, xCurrent))}
-          y={CHART_BOTTOM + 28}
-          textAnchor="middle" fill="#94a3b8" fontSize="7"
-        >
-          Current
-        </text>
+        {/* Current price label — floating badge above the dot to avoid overlapping min/max */}
+        {(() => {
+          const dotX = isInRange ? curveX : xCurrent;
+          const dotY = isInRange ? curveY : CHART_BOTTOM - 8;
+          const labelY = dotY - 14;
+          // Clamp horizontally so the badge doesn't clip outside the SVG
+          const labelX = Math.max(PAD_L + 32, Math.min(SVG_W - PAD_R - 32, dotX));
+          const badgeW = 64;
+          const badgeH = 22;
+          return (
+            <>
+              <rect
+                x={labelX - badgeW / 2}
+                y={labelY - badgeH + 2}
+                width={badgeW}
+                height={badgeH}
+                rx="6"
+                fill="rgba(15,23,42,0.85)"
+                stroke={isInRange ? "rgba(0,229,196,0.3)" : "rgba(251,191,36,0.3)"}
+                strokeWidth="1"
+              />
+              <text
+                x={labelX}
+                y={labelY - 9}
+                textAnchor="middle" fill="#e2e8f0" fontSize="8.5" fontWeight="600"
+                fontFamily="ui-monospace, monospace"
+              >
+                {formatPrice(currentPrice)}
+              </text>
+              <text
+                x={labelX}
+                y={labelY}
+                textAnchor="middle" fill="#94a3b8" fontSize="6.5"
+              >
+                Current
+              </text>
+            </>
+          );
+        })()}
       </svg>
 
       {/* Price cards row */}
