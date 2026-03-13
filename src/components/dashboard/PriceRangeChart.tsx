@@ -325,31 +325,6 @@ export function PriceRangeChart({
         })()}
       </svg>
 
-      {/* Price cards row */}
-      <div className="grid grid-cols-3 gap-3 mt-5">
-        <div className="bg-slate-800/30 border border-[#00e5c4]/10 rounded-xl px-3 py-2.5 text-center">
-          <p className="text-[10px] text-slate-600 uppercase tracking-wider mb-1">Min Price</p>
-          <p className="text-xs text-arc-400 font-mono tabular-nums font-medium">
-            {formatPrice(priceLower)}
-          </p>
-          <p className="text-[9px] text-slate-600 mt-0.5">{token1Symbol} per {token0Symbol}</p>
-        </div>
-        <div className="bg-slate-800/30 border border-slate-700/20 rounded-xl px-3 py-2.5 text-center">
-          <p className="text-[10px] text-slate-600 uppercase tracking-wider mb-1">Current</p>
-          <p className="text-xs text-slate-100 font-mono tabular-nums font-medium">
-            {formatPrice(currentPrice)}
-          </p>
-          <p className="text-[9px] text-slate-600 mt-0.5">{token1Symbol} per {token0Symbol}</p>
-        </div>
-        <div className="bg-slate-800/30 border border-[#00e5c4]/10 rounded-xl px-3 py-2.5 text-center">
-          <p className="text-[10px] text-slate-600 uppercase tracking-wider mb-1">Max Price</p>
-          <p className="text-xs text-arc-400 font-mono tabular-nums font-medium">
-            {formatPrice(priceUpper)}
-          </p>
-          <p className="text-[9px] text-slate-600 mt-0.5">{token1Symbol} per {token0Symbol}</p>
-        </div>
-      </div>
-
       {/* Legend */}
       <div className="flex items-center justify-between mt-3 text-[11px]">
         <div className="flex items-center gap-4">
