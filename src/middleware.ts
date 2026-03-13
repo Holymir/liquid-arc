@@ -24,7 +24,9 @@ export async function middleware(req: NextRequest) {
     pathname.startsWith("/api/auth/register") ||
     pathname.startsWith("/api/auth/forgot-password") ||
     pathname.startsWith("/api/auth/reset-password") ||
-    pathname.startsWith("/api/auth/verify-email")
+    pathname.startsWith("/api/auth/verify-email") ||
+    pathname.startsWith("/api/auth/change-password") ||
+    pathname.startsWith("/api/auth/delete-account")
   ) {
     const rl = checkRateLimit(`auth:${ip}`, RATE_LIMITS.auth);
     if (!rl.allowed) {
@@ -91,6 +93,9 @@ export const config = {
     "/api/auth/forgot-password",
     "/api/auth/reset-password",
     "/api/auth/verify-email",
+    "/api/auth/change-password",
+    "/api/auth/delete-account",
+    "/api/stripe/:path*",
     "/api/pools/:path*",
     "/knowledge/:path*",
   ],

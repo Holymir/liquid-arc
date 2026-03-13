@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "@/components/providers/SessionProvider";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { SettingsSidebar } from "@/components/settings/SettingsSidebar";
-import { Check, Zap } from "lucide-react";
+import { Check, Zap, Loader2, ExternalLink } from "lucide-react";
 
 const PLANS = [
   {
@@ -51,19 +51,70 @@ const PLANS = [
 ];
 
 export default function BillingPage() {
-  const { user, status } = useSession();
+  const { user, status, refresh } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const [loadingTier, setLoadingTier] = useState<string | null>(null);
+  const [portalLoading, setPortalLoading] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (status === "unauthenticated") router.replace("/login");
   }, [status, router]);
 
+  // Handle success/cancel redirects from Stripe
+  useEffect(() => {
+    if (searchParams.get("success") === "true") {
+      setMessage("Subscription activated! Your plan has been upgraded.");
+      refresh();
+    } else if (searchParams.get("canceled") === "true") {
+      setMessage("Checkout canceled.");
+    }
+  }, [searchParams, refresh]);
+
   if (status === "loading" || !user) return null;
 
+  const hasSubscription = user.tier !== "free";
+
   const handleUpgrade = async (tier: string) => {
-    if (tier === "free") return;
-    // TODO: Stripe checkout integration
-    alert(`Stripe checkout for ${tier} plan coming soon!`);
+    if (tier === "free" || tier === user.tier) return;
+    setLoadingTier(tier);
+    setMessage(null);
+
+    try {
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tier }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        setMessage(data.error || "Failed to start checkout");
+        setLoadingTier(null);
+      }
+    } catch {
+      setMessage("Network error");
+      setLoadingTier(null);
+    }
+  };
+
+  const handleManageSubscription = async () => {
+    setPortalLoading(true);
+    try {
+      const res = await fetch("/api/stripe/portal", { method: "POST" });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        setMessage(data.error || "Failed to open billing portal");
+      }
+    } catch {
+      setMessage("Network error");
+    } finally {
+      setPortalLoading(false);
+    }
   };
 
   return (
@@ -79,9 +130,29 @@ export default function BillingPage() {
           </p>
         </div>
 
+        {message && (
+          <div className="mb-6 px-4 py-3 rounded-xl bg-arc-500/10 border border-arc-500/20 text-sm text-arc-300">
+            {message}
+          </div>
+        )}
+
+        {hasSubscription && (
+          <div className="mb-6">
+            <button
+              onClick={handleManageSubscription}
+              disabled={portalLoading}
+              className="px-4 py-2 rounded-xl text-sm font-semibold bg-slate-800/40 hover:bg-slate-700/40 text-slate-300 transition-all inline-flex items-center gap-2"
+            >
+              {portalLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <ExternalLink className="w-3 h-3" />}
+              Manage Subscription
+            </button>
+          </div>
+        )}
+
         <div className="grid sm:grid-cols-3 gap-4">
           {PLANS.map((plan) => {
             const isCurrent = user.tier === plan.tier;
+            const isLoading = loadingTier === plan.tier;
             return (
               <div
                 key={plan.tier}
@@ -113,8 +184,8 @@ export default function BillingPage() {
 
                 <button
                   onClick={() => handleUpgrade(plan.tier)}
-                  disabled={isCurrent}
-                  className={`w-full mt-5 py-2 rounded-xl text-sm font-semibold transition-all ${
+                  disabled={isCurrent || isLoading}
+                  className={`w-full mt-5 py-2 rounded-xl text-sm font-semibold transition-all inline-flex items-center justify-center gap-2 ${
                     isCurrent
                       ? "bg-slate-800/40 text-slate-500 cursor-not-allowed"
                       : plan.popular
@@ -122,6 +193,7 @@ export default function BillingPage() {
                       : "bg-slate-800/40 hover:bg-slate-700/40 text-slate-300"
                   }`}
                 >
+                  {isLoading && <Loader2 className="w-3 h-3 animate-spin" />}
                   {isCurrent ? "Current plan" : "Upgrade"}
                 </button>
               </div>

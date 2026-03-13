@@ -10,6 +10,7 @@ import { createServer } from "http";
 import "@/lib/defi/init";
 import { runIngestionForProtocol, getRegisteredProtocols } from "./ingestion";
 import { scheduleCron, runNow } from "./cron";
+import { scheduleAlertCron, runAlertEvaluation } from "./alert-cron";
 
 const PORT = parseInt(process.env.PORT || process.env.BACKEND_PORT || "3001", 10);
 
@@ -58,6 +59,27 @@ const httpServer = createServer(async (req, res) => {
     return;
   }
 
+  // Manual trigger: POST /evaluate-alerts
+  if (url.pathname === "/evaluate-alerts" && req.method === "POST") {
+    const authHeader = req.headers["x-api-key"];
+    const expected = process.env.INGEST_SECRET;
+    if (expected && authHeader !== expected) {
+      res.writeHead(401, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Unauthorized" }));
+      return;
+    }
+
+    try {
+      const count = await runAlertEvaluation();
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: true, triggered: count }));
+    } catch (err) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err instanceof Error ? err.message : String(err) }));
+    }
+    return;
+  }
+
   res.writeHead(404);
   res.end("Not found");
 });
@@ -66,8 +88,9 @@ httpServer.listen(PORT, () => {
   console.log(`[backend] Server listening on port ${PORT}`);
   console.log(`[backend] Protocols: ${getRegisteredProtocols().join(", ")}`);
 
-  // Start cron scheduler
+  // Start cron schedulers
   scheduleCron();
+  scheduleAlertCron();
 
   // Run initial ingestion on startup
   if (process.env.INGEST_ON_STARTUP === "true") {

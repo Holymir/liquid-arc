@@ -71,3 +71,31 @@ export const resetPasswordSchema = z.object({
       "Password must contain at least one uppercase letter, one lowercase letter, and one number"
     ),
 });
+
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, "Current password is required"),
+  newPassword: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .max(128, "Password is too long")
+    .regex(
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
+      "Password must contain at least one uppercase letter, one lowercase letter, and one number"
+    ),
+});
+
+export const deleteAccountSchema = z.object({
+  password: z.string().min(1, "Password is required"),
+});
+
+export const createAlertSchema = z.object({
+  type: z.enum(["out_of_range", "price_change", "il_threshold", "fees_earned"]),
+  config: z.record(z.unknown()),
+  channel: z.enum(["email", "webhook"]).default("email"),
+});
+
+export const updateAlertSchema = z.object({
+  isActive: z.boolean().optional(),
+  config: z.record(z.unknown()).optional(),
+  channel: z.enum(["email", "webhook"]).optional(),
+});

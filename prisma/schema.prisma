@@ -47,7 +47,6 @@ model Wallet {
   userId            String?             @map("user_id")
   user              User?               @relation(fields: [userId], references: [id])
   tokenBalances     TokenBalance[]
-  lpPositions       LPPosition[]
   snapshots         PortfolioSnapshot[]
   positionSnapshots PositionSnapshot[]
 
@@ -68,30 +67,6 @@ model TokenBalance {
   wallet       Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
 
   @@map("token_balances")
-}
-
-model LPPosition {
-  id            String   @id @default(uuid())
-  walletId      String   @map("wallet_id")
-  nftTokenId    String?  @map("nft_token_id")
-  protocol      String
-  poolAddress   String   @map("pool_address")
-  token0Address String   @map("token0_address")
-  token0Symbol  String?  @map("token0_symbol")
-  token1Address String   @map("token1_address")
-  token1Symbol  String?  @map("token1_symbol")
-  liquidity     String
-  tickLower     Int?     @map("tick_lower")
-  tickUpper     Int?     @map("tick_upper")
-  token0Amount  Float?   @map("token0_amount")
-  token1Amount  Float?   @map("token1_amount")
-  usdValue      Float?   @map("usd_value")
-  feesEarnedUsd Float?   @map("fees_earned_usd")
-  lastUpdated   DateTime @default(now()) @map("last_updated")
-  wallet        Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
-
-  @@index([walletId, nftTokenId])
-  @@map("lp_positions")
 }
 
 model PositionSnapshot {
@@ -129,6 +104,7 @@ model PositionSnapshot {
   @@unique([walletId, nftTokenId, snapshotAt])
   @@index([walletId, nftTokenId, snapshotAt(sort: Desc)])
   @@index([nftTokenId])
+  @@index([poolAddress])
   @@map("position_snapshots")
 }
 
