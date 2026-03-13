@@ -45,6 +45,8 @@ export interface LPPositionData {
   // AERO emissions earned (for staked positions, from emissions_earned in Sugar)
   emissionsEarned?: number;   // AERO token amount
   emissionsEarnedUsd?: number;
+  // Additional reward tokens (Raydium CLMM reward programs)
+  rewardTokens?: Array<{ address: string; symbol: string; decimals: number; amount: number }>;
 }
 
 /** Lightweight P&L summary attached to each position in the portfolio response */
@@ -80,6 +82,7 @@ export interface LPPositionJSON {
   feesEarnedUsd?: number;
   emissionsEarned?: number;
   emissionsEarnedUsd?: number;
+  rewardTokens?: Array<{ address: string; symbol: string; decimals: number; amount: number }>;
   pnlSummary?: PnLSummary | null;
 }
 
@@ -87,6 +90,8 @@ export interface LPPositionJSON {
 export interface PositionPnL {
   nftTokenId: string;
   poolAddress: string;
+  protocol: string;
+  chainId: string;
   token0Symbol: string;
   token1Symbol: string;
 

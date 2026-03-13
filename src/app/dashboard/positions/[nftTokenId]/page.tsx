@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useSession } from "@/components/providers/SessionProvider";
 import { useTrackedWallets } from "@/hooks/useTrackedWallets";
@@ -96,17 +96,36 @@ function protocolLabel(protocol: string): string {
   if (protocol.includes("aerodrome")) return "Aerodrome CL";
   if (protocol.includes("velodrome")) return "Velodrome CL";
   if (protocol.includes("uniswap")) return "Uniswap V3";
+  if (protocol.includes("raydium")) return "Raydium CLMM";
   // Fallback: capitalize first letter
   return protocol.charAt(0).toUpperCase() + protocol.slice(1);
 }
 
+/** Get explorer base URL for a given chain */
+function explorerUrl(chainId: string): string {
+  if (chainId === "solana") return "https://solscan.io";
+  if (chainId === "optimism") return "https://optimistic.etherscan.io";
+  return "https://basescan.org";
+}
+
+/** Get the address/account URL for a given chain's explorer */
+function explorerAddressUrl(chainId: string, address: string): string {
+  if (chainId === "solana") return `https://solscan.io/account/${address}`;
+  return `${explorerUrl(chainId)}/address/${address}`;
+}
+
 export default function PositionPage() {
   const { nftTokenId } = useParams<{ nftTokenId: string }>();
+  const searchParams = useSearchParams();
   const { status } = useSession();
   const { wallets } = useTrackedWallets();
   const router = useRouter();
 
-  const address = wallets[0]?.address;
+  // Prefer query params (set when clicking from dashboard) over wallets[0]
+  const qAddress = searchParams.get("address");
+  const qChainId = searchParams.get("chainId");
+  const address = qAddress || wallets[0]?.address;
+  const chainId = qChainId || wallets.find((w) => w.address === address)?.chainId;
 
   useEffect(() => {
     if (status === "unauthenticated") router.replace("/login");
@@ -114,7 +133,8 @@ export default function PositionPage() {
 
   const { data: pnl, isLoading, error, refresh } = usePositionDetail(
     address,
-    nftTokenId
+    nftTokenId,
+    chainId
   );
 
   if (status === "loading" || status === "unauthenticated") return null;
@@ -174,7 +194,7 @@ export default function PositionPage() {
                     NFT #{pnl.nftTokenId}
                   </span>
                   <span className="text-arc-400/60 text-[10px] uppercase tracking-wider font-medium">
-                    {protocolLabel(pnl.poolAddress)}
+                    {protocolLabel(pnl.protocol)}
                   </span>
                   <span
                     className={`px-1.5 py-0.5 rounded-md text-[10px] font-medium ${
@@ -565,7 +585,7 @@ export default function PositionPage() {
                 <div>
                   <span className="text-slate-600">Pool</span>
                   <a
-                    href={`https://basescan.org/address/${pnl.poolAddress}`}
+                    href={explorerAddressUrl(pnl.chainId, pnl.poolAddress)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="ml-2 inline-flex items-center gap-1 text-arc-400 hover:text-arc-300 font-mono transition-colors"
@@ -576,15 +596,21 @@ export default function PositionPage() {
                 </div>
                 <div>
                   <span className="text-slate-600">NFT</span>
-                  <a
-                    href={`https://basescan.org/token/0x827922686190790b37229fd06084350e74485b72?a=${pnl.nftTokenId}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="ml-2 inline-flex items-center gap-1 text-arc-400 hover:text-arc-300 font-mono transition-colors"
-                  >
-                    #{pnl.nftTokenId}
-                    <ExternalLink className="w-2.5 h-2.5" />
-                  </a>
+                  {pnl.chainId === "solana" ? (
+                    <span className="ml-2 text-slate-400 font-mono">
+                      #{pnl.nftTokenId}
+                    </span>
+                  ) : (
+                    <a
+                      href={`${explorerUrl(pnl.chainId)}/token/0x827922686190790b37229fd06084350e74485b72?a=${pnl.nftTokenId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="ml-2 inline-flex items-center gap-1 text-arc-400 hover:text-arc-300 font-mono transition-colors"
+                    >
+                      #{pnl.nftTokenId}
+                      <ExternalLink className="w-2.5 h-2.5" />
+                    </a>
+                  )}
                 </div>
               </div>
             </div>

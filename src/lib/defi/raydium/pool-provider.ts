@@ -18,10 +18,10 @@ interface RaydiumPoolItem {
     decimals: number;
   };
   tvl: number;
-  feeRate: number; // basis points, e.g. 100 = 1%
+  feeRate: number; // decimal, e.g. 0.0025 = 0.25%
   day: {
     volume: number;
-    fee: number;
+    volumeFee: number;
   };
 }
 
@@ -43,13 +43,18 @@ class RaydiumPoolProvider implements PoolDataProvider {
     const limit = options?.limit ?? 100;
     const minTvl = options?.minTvlUsd ?? 0;
 
-    const url = `https://api-v3.raydium.io/pools/info/list?poolType=concentrated&sort=tvl&order=desc&pageSize=${limit}`;
+    // Raydium v3 API requires poolSortField + sortType + page params
+    const url =
+      `https://api-v3.raydium.io/pools/info/list` +
+      `?poolType=concentrated&poolSortField=liquidity&sortType=desc` +
+      `&pageSize=${limit}&page=1`;
     const res = await fetch(url);
     if (!res.ok) throw new Error(`Raydium API HTTP ${res.status}`);
 
     const json: RaydiumApiResponse = await res.json();
     if (!json.success || !json.data?.data) {
-      throw new Error("Raydium API returned unsuccessful response");
+      const msg = (json as unknown as { msg?: string }).msg ?? "unknown error";
+      throw new Error(`Raydium API error: ${msg}`);
     }
 
     const pools: RawPoolData[] = [];
@@ -65,14 +70,14 @@ class RaydiumPoolProvider implements PoolDataProvider {
         token1Address: pool.mintB.address,
         token1Symbol: pool.mintB.symbol,
         token1Decimals: pool.mintB.decimals,
-        // Raydium feeRate is in basis points (100 = 1%).
+        // Raydium feeRate is a decimal (0.0025 = 0.25%).
         // DB/UI expects feeTier / 10_000 to produce a percentage string.
-        // So store bps * 100 → e.g. 100 bps → 10000.
-        feeTier: pool.feeRate * 100,
+        // So store decimal * 1_000_000 → e.g. 0.0025 → 2500.
+        feeTier: Math.round(pool.feeRate * 1_000_000),
         poolType: "cl",
         tvlUsd: pool.tvl,
         volumeUsd24h: pool.day.volume,
-        feesUsd24h: pool.day.fee,
+        feesUsd24h: pool.day.volumeFee,
       });
     }
 

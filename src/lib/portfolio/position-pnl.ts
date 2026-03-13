@@ -14,7 +14,8 @@ export async function calculatePositionPnL(
   walletId: string,
   position: LPPositionJSON,
   currentToken0Price: number,
-  currentToken1Price: number
+  currentToken1Price: number,
+  chainId: string = "base"
 ): Promise<PositionPnL | null> {
   // Load the entry snapshot
   const entry = await prisma.positionSnapshot.findFirst({
@@ -77,6 +78,8 @@ export async function calculatePositionPnL(
   return {
     nftTokenId: position.nftTokenId,
     poolAddress: position.poolAddress,
+    protocol: position.protocol,
+    chainId,
     token0Symbol: position.token0Symbol,
     token1Symbol: position.token1Symbol,
 

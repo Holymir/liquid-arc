@@ -71,7 +71,8 @@ export async function GET(
       wallet.id,
       position,
       currentToken0Price,
-      currentToken1Price
+      currentToken1Price,
+      chainId
     );
 
     if (!pnl) {

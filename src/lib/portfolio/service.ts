@@ -111,7 +111,11 @@ export async function getPortfolio(
   const allTokenAddresses = [
     nativeInfo.wrappedAddress, // needed to price the native balance
     ...tokenBalances.map((t) => t.tokenAddress),
-    ...lpPositions.flatMap((p) => [p.token0Address, p.token1Address]),
+    ...lpPositions.flatMap((p) => [
+      p.token0Address,
+      p.token1Address,
+      ...(p.rewardTokens?.map((r) => r.address) ?? []),
+    ]),
     ...(emissionsToken ? [emissionsToken] : []),
   ];
 
@@ -158,7 +162,13 @@ export async function getPortfolio(
     const feesEarnedUsd =
       (lp.fees0Amount ?? 0) * price0 + (lp.fees1Amount ?? 0) * price1;
 
-    const emissionsEarnedUsd = (lp.emissionsEarned ?? 0) * emissionsPrice;
+    // Emissions: use reward tokens if available (Raydium), otherwise single emissions token (Aerodrome/Velodrome)
+    const emissionsEarnedUsd = lp.rewardTokens && lp.rewardTokens.length > 0
+      ? lp.rewardTokens.reduce(
+          (sum, r) => sum + r.amount * (prices.get(norm(r.address)) ?? 0),
+          0
+        )
+      : (lp.emissionsEarned ?? 0) * emissionsPrice;
 
     return { ...lp, token0Usd, token1Usd, usdValue, feesEarnedUsd, emissionsEarnedUsd };
   });
@@ -203,7 +213,7 @@ export async function getPortfolio(
     );
 
     // Fire-and-forget: save position snapshots (entry detection + periodic snapshots)
-    void savePositionSnapshots(wallet.id, enrichedLPs, prices).catch((err) => {
+    void savePositionSnapshots(wallet.id, enrichedLPs, prices, chainId).catch((err) => {
       console.warn("[portfolio] position snapshots failed:", err);
     });
   }

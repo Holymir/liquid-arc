@@ -12,6 +12,7 @@ import {
 
 interface LPPositionsProps {
   address?: string;
+  chainId?: string;
   positions: LPPositionJSON[];
   isLoading?: boolean;
 }
@@ -32,11 +33,13 @@ function formatToken(value: number, maxDecimals = 4): string {
 function PositionCard({
   pos,
   address,
+  chainId,
   isExpanded,
   onToggle,
 }: {
   pos: LPPositionJSON;
   address?: string;
+  chainId?: string;
   isExpanded: boolean;
   onToggle: () => void;
 }) {
@@ -176,7 +179,7 @@ function PositionCard({
             {address && (
               <div className="pt-1">
                 <Link
-                  href={`/dashboard/positions/${pos.nftTokenId}`}
+                  href={`/dashboard/positions/${pos.nftTokenId}?address=${encodeURIComponent(address!)}&chainId=${encodeURIComponent(chainId ?? "base")}`}
                   onClick={(e) => e.stopPropagation()}
                   className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-slate-200 bg-slate-800/30 hover:bg-slate-800/50 border border-slate-700/30 rounded-lg px-3 py-1.5 transition-all"
                 >
@@ -192,7 +195,7 @@ function PositionCard({
   );
 }
 
-export function LPPositions({ address, positions, isLoading }: LPPositionsProps) {
+export function LPPositions({ address, chainId, positions, isLoading }: LPPositionsProps) {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
   const totalLpValue = positions.reduce((sum, p) => sum + (p.usdValue ?? 0), 0);
@@ -272,6 +275,7 @@ export function LPPositions({ address, positions, isLoading }: LPPositionsProps)
                 key={id}
                 pos={pos}
                 address={address}
+                chainId={chainId}
                 isExpanded={expandedIds.has(id)}
                 onToggle={() =>
                   setExpandedIds((prev) => {

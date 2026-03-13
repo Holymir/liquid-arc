@@ -1,5 +1,7 @@
 // Generate protocol-specific deposit URLs for pool rows.
 
+import { EVM_CHAINS } from "@/lib/chain/evm/chains";
+
 const CHAIN_NAMES: Record<string, string> = {
   ethereum: "mainnet",
   arbitrum: "arbitrum",
@@ -16,6 +18,20 @@ const BLOCK_EXPLORERS: Record<string, string> = {
   optimism: "https://optimistic.etherscan.io/address",
   solana: "https://solscan.io/account",
 };
+
+/**
+ * Replace the wrapped native token address with the native symbol
+ * that the protocol's UI expects (e.g. Uniswap wants "ETH" not the WETH address).
+ * Looks up the chain config dynamically instead of hardcoding addresses.
+ */
+function nativeCurrencyId(chainId: string, tokenAddress: string): string {
+  const chain = EVM_CHAINS[chainId];
+  if (!chain) return tokenAddress;
+  if (tokenAddress.toLowerCase() === chain.wrappedNativeAddress.toLowerCase()) {
+    return chain.nativeSymbol;
+  }
+  return tokenAddress;
+}
 
 export function getDepositUrl(pool: {
   protocol: string;
@@ -38,7 +54,9 @@ export function getDepositUrl(pool: {
   if (slug === "uniswap-v3") {
     const chain = CHAIN_NAMES[pool.chainId] ?? "mainnet";
     const fee = pool.feeTier ?? 3000;
-    return `https://app.uniswap.org/add/${pool.token0.address}/${pool.token1.address}/${fee}?chain=${chain}`;
+    const t0 = nativeCurrencyId(pool.chainId, pool.token0.address);
+    const t1 = nativeCurrencyId(pool.chainId, pool.token1.address);
+    return `https://app.uniswap.org/add/${t0}/${t1}/${fee}?chain=${chain}`;
   }
 
   if (slug === "raydium") {
