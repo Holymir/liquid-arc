@@ -96,11 +96,24 @@ export async function getPortfolio(
       if (!dbPool) continue;
       if (pos.token0Symbol === "???" && dbPool.token0Symbol) {
         pos.token0Symbol = dbPool.token0Symbol;
-        if (dbPool.token0Decimals != null) pos.token0Decimals = dbPool.token0Decimals;
+        if (dbPool.token0Decimals != null && dbPool.token0Decimals !== pos.token0Decimals) {
+          // Decimals were wrong (RPC failed) — recompute token amount
+          if (pos.token0Amount != null) {
+            const correction = 10 ** (pos.token0Decimals - dbPool.token0Decimals);
+            pos.token0Amount *= correction;
+          }
+          pos.token0Decimals = dbPool.token0Decimals;
+        }
       }
       if (pos.token1Symbol === "???" && dbPool.token1Symbol) {
         pos.token1Symbol = dbPool.token1Symbol;
-        if (dbPool.token1Decimals != null) pos.token1Decimals = dbPool.token1Decimals;
+        if (dbPool.token1Decimals != null && dbPool.token1Decimals !== pos.token1Decimals) {
+          if (pos.token1Amount != null) {
+            const correction = 10 ** (pos.token1Decimals - dbPool.token1Decimals);
+            pos.token1Amount *= correction;
+          }
+          pos.token1Decimals = dbPool.token1Decimals;
+        }
       }
     }
   }

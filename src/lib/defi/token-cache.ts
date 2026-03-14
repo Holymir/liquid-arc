@@ -79,7 +79,13 @@ export function resolveTokenMeta(
   // 2. Check in-memory cache (a previous successful fetch)
   if (cached) return cached;
 
-  // 3. Nothing reliable — return "???"
+  // 3. Symbol unknown but we may still know the correct decimals
+  const knownDec = KNOWN_DECIMALS[address.toLowerCase()];
+  if (knownDec !== undefined) {
+    return { symbol: fetched.symbol, decimals: knownDec };
+  }
+
+  // 4. Nothing reliable — return "???"
   return fetched;
 }
 
