@@ -75,6 +75,7 @@ export class VelodromeAdapter implements DefiProtocolAdapter {
     const tokenCalls = uniquePools.flatMap((pool) => [
       { address: pool, abi: VELO_CL_POOL_ABI, functionName: "token0" as const },
       { address: pool, abi: VELO_CL_POOL_ABI, functionName: "token1" as const },
+      { address: pool, abi: VELO_CL_POOL_ABI, functionName: "slot0" as const },
     ]);
 
     const tokenResults = await opClient.multicall({
@@ -84,15 +85,20 @@ export class VelodromeAdapter implements DefiProtocolAdapter {
 
     const poolTokens = new Map<
       string,
-      { token0: `0x${string}`; token1: `0x${string}` }
+      { token0: `0x${string}`; token1: `0x${string}`; currentTick?: number }
     >();
     for (let i = 0; i < uniquePools.length; i++) {
-      const t0r = tokenResults[i * 2];
-      const t1r = tokenResults[i * 2 + 1];
+      const t0r = tokenResults[i * 3];
+      const t1r = tokenResults[i * 3 + 1];
+      const s0r = tokenResults[i * 3 + 2];
       if (t0r.status === "success" && t1r.status === "success") {
+        const currentTick = s0r.status === "success"
+          ? Number((s0r.result as readonly unknown[])[1])
+          : undefined;
         poolTokens.set(uniquePools[i], {
           token0: t0r.result as `0x${string}`,
           token1: t1r.result as `0x${string}`,
+          currentTick,
         });
       }
     }
@@ -157,6 +163,7 @@ export class VelodromeAdapter implements DefiProtocolAdapter {
         liquidity: p.liquidity + p.staked,
         tickLower: p.tick_lower,
         tickUpper: p.tick_upper,
+        currentTick: tokens.currentTick,
         token0Amount: parseFloat(formatUnits(raw0, m0.decimals)),
         token1Amount: parseFloat(formatUnits(raw1, m1.decimals)),
         fees0Amount: fees0,

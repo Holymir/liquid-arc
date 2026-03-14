@@ -63,4 +63,18 @@ export const VELO_CL_POOL_ABI = [
     inputs: [],
     outputs: [{ name: "", type: "address" }],
   },
+  {
+    name: "slot0",
+    type: "function",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [
+      { name: "sqrtPriceX96", type: "uint160" },
+      { name: "tick", type: "int24" },
+      { name: "observationIndex", type: "uint16" },
+      { name: "observationCardinality", type: "uint16" },
+      { name: "observationCardinalityNext", type: "uint16" },
+      { name: "unlocked", type: "bool" },
+    ],
+  },
 ] as const;
