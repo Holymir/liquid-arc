@@ -69,12 +69,18 @@ export class AerodromeAdapter implements DefiProtocolAdapter {
     );
     if (raw.length > 0) {
       console.log(
-        "[aerodrome] positions:",
+        "[aerodrome] raw Sugar positions:",
         raw.map((p) => ({
           id: p.id.toString(),
           lp: p.lp,
           liquidity: p.liquidity.toString(),
           staked: p.staked.toString(),
+          amount0: p.amount0.toString(),
+          amount1: p.amount1.toString(),
+          staked0: p.staked0.toString(),
+          staked1: p.staked1.toString(),
+          tickLower: p.tick_lower,
+          tickUpper: p.tick_upper,
         }))
       );
     }
@@ -170,6 +176,15 @@ export class AerodromeAdapter implements DefiProtocolAdapter {
       const raw1 = p.staked1 + p.amount1;
 
       const isStaked = p.staked > 0n;
+
+      console.log(
+        `[aerodrome] position #${p.id.toString()} ${m0.symbol}/${m1.symbol}:`,
+        `token0=${tokens.token0} (${m0.symbol}, ${m0.decimals} dec)`,
+        `token1=${tokens.token1} (${m1.symbol}, ${m1.decimals} dec)`,
+        `raw0=${raw0.toString()} → ${formatUnits(raw0, m0.decimals)}`,
+        `raw1=${raw1.toString()} → ${formatUnits(raw1, m1.decimals)}`,
+        `staked=${isStaked}`,
+      );
 
       // Sugar provides unclaimed trading fees and AERO emissions directly.
       // USD pricing is applied in service.ts where token prices are available.
