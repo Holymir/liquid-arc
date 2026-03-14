@@ -112,6 +112,8 @@ async function runPhase1(
           fees7dUsd: fees7d,
           apr24h,
           apr7d,
+          poolType: pool.poolType,
+          tickSpacing: pool.tickSpacing,
           currentTick: pool.currentTick,
           totalLiquidity: pool.totalLiquidity,
           lastSyncedAt: new Date(),
