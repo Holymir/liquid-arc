@@ -28,19 +28,31 @@ export function setCachedTokenMeta(address: string, meta: TokenMeta): void {
 /**
  * Resolve token metadata from a fresh RPC fetch, falling back to a previously
  * cached successful result. Never falls back to a static name list.
+ *
+ * @param decimalsVerified  Pass `false` when the decimals value is a default
+ *   (e.g. 18) because the RPC call failed. This prevents caching an incorrect
+ *   decimals value and prefers a previously-cached value when available.
  */
 export function resolveTokenMeta(
   address: string,
   fetched: TokenMeta,
+  decimalsVerified = true,
 ): TokenMeta {
-  // 1. If fetched is good, cache and return it
+  const cached = getCachedTokenMeta(address);
+
+  // 1. If fetched symbol is good
   if (fetched.symbol !== "???" && fetched.symbol !== "UNKNOWN") {
+    if (!decimalsVerified && cached) {
+      // Decimals defaulted — keep the cached (verified) decimals value
+      const merged = { symbol: fetched.symbol, decimals: cached.decimals };
+      setCachedTokenMeta(address, merged);
+      return merged;
+    }
     setCachedTokenMeta(address, fetched);
     return fetched;
   }
 
   // 2. Check in-memory cache (a previous successful fetch)
-  const cached = getCachedTokenMeta(address);
   if (cached) return cached;
 
   // 3. Nothing reliable — return "???"

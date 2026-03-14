@@ -23,6 +23,14 @@ interface RaydiumPoolItem {
     volume: number;
     volumeFee: number;
   };
+  week: {
+    volume: number;
+    volumeFee: number;
+  };
+  month: {
+    volume: number;
+    volumeFee: number;
+  };
 }
 
 interface RaydiumApiResponse {
@@ -78,6 +86,8 @@ class RaydiumPoolProvider implements PoolDataProvider {
         tvlUsd: pool.tvl,
         volumeUsd24h: pool.day.volume,
         feesUsd24h: pool.day.volumeFee,
+        volumeUsd7d: pool.week.volume,
+        feesUsd7d: pool.week.volumeFee,
       });
     }
 
