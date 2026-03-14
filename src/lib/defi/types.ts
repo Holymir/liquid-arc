@@ -23,6 +23,8 @@ export interface RawPoolData {
   tvlUsd: number;
   volumeUsd24h: number;
   feesUsd24h: number;
+  volumeUsd7d?: number;
+  feesUsd7d?: number;
   currentTick?: number;
   totalLiquidity?: string;
 }

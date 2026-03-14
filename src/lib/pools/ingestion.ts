@@ -280,19 +280,30 @@ function computePoolMetrics(
   apr7d: number;
 } {
   const last7 = dayData.slice(0, 7);
-  const volume7d = last7.reduce((sum, d) => sum + d.volumeUsd, 0);
-  const fees7d = last7.reduce((sum, d) => sum + d.feesUsd, 0);
 
   const apr24h =
     pool.tvlUsd > 0 ? (pool.feesUsd24h / pool.tvlUsd) * 365 * 100 : 0;
-  const avgDailyFees7d = last7.length > 0 ? fees7d / last7.length : 0;
-  const avgTvl7d =
-    last7.length > 0
-      ? last7.reduce((sum, d) => sum + d.tvlUsd, 0) / last7.length
-      : pool.tvlUsd;
-  const apr7d = avgTvl7d > 0 ? (avgDailyFees7d / avgTvl7d) * 365 * 100 : 0;
 
-  return { volume7d, fees7d, apr24h, apr7d };
+  // Prefer subgraph day data, fall back to API-provided 7d totals
+  if (last7.length > 0) {
+    const volume7d = last7.reduce((sum, d) => sum + d.volumeUsd, 0);
+    const fees7d = last7.reduce((sum, d) => sum + d.feesUsd, 0);
+    const avgDailyFees7d = fees7d / last7.length;
+    const avgTvl7d = last7.reduce((sum, d) => sum + d.tvlUsd, 0) / last7.length;
+    const apr7d = avgTvl7d > 0 ? (avgDailyFees7d / avgTvl7d) * 365 * 100 : 0;
+    return { volume7d, fees7d, apr24h, apr7d };
+  }
+
+  // Fallback: use 7d totals from the pool provider (Raydium/Orca APIs)
+  if (pool.feesUsd7d != null && pool.feesUsd7d > 0) {
+    const volume7d = pool.volumeUsd7d ?? 0;
+    const fees7d = pool.feesUsd7d;
+    const avgDailyFees7d = fees7d / 7;
+    const apr7d = pool.tvlUsd > 0 ? (avgDailyFees7d / pool.tvlUsd) * 365 * 100 : 0;
+    return { volume7d, fees7d, apr24h, apr7d };
+  }
+
+  return { volume7d: 0, fees7d: 0, apr24h, apr7d: 0 };
 }
 
 function computeVolatilityMetrics(

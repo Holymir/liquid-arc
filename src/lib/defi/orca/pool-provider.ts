@@ -57,8 +57,10 @@ class OrcaPoolProvider implements PoolDataProvider {
 
     for (const wp of sorted) {
       const volumeUsd24h = wp.volume.day;
+      const volumeUsd7d = wp.volume.week;
       // Compute fees from volume * lpFeeRate (Orca API no longer provides fees.day)
       const feesUsd24h = volumeUsd24h * wp.lpFeeRate;
+      const feesUsd7d = volumeUsd7d * wp.lpFeeRate;
 
       pools.push({
         poolAddress: wp.address,
@@ -76,6 +78,8 @@ class OrcaPoolProvider implements PoolDataProvider {
         tvlUsd: wp.tvl,
         volumeUsd24h,
         feesUsd24h,
+        volumeUsd7d,
+        feesUsd7d,
       });
     }
 
