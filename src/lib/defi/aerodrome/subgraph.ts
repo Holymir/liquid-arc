@@ -5,6 +5,8 @@
 
 import type { PositionEntryData } from "./events";
 import type { RawPoolData, RawPoolDayData, TokenPriceHistory } from "../types";
+import { baseClient } from "@/lib/chain/base/client";
+import { erc20Abi, formatUnits } from "viem";
 
 const AERODROME_SUBGRAPH_ID = "GENunSHWLBXm59mBSgPzQ8metBEp9YDfdqwFr91Av1UM";
 
@@ -126,6 +128,7 @@ interface SubgraphPool {
   token0: { id: string; symbol: string; decimals: string; derivedETH: string };
   token1: { id: string; symbol: string; decimals: string; derivedETH: string };
   feeTier: string;
+  tickSpacing: string | null;
   tick: string | null;
   liquidity: string;
   totalValueLockedUSD: string;
@@ -171,7 +174,7 @@ export async function fetchPoolsFromSubgraph(
       id
       token0 { id symbol decimals derivedETH }
       token1 { id symbol decimals derivedETH }
-      feeTier tick liquidity
+      feeTier tickSpacing tick liquidity
       totalValueLockedUSD totalValueLockedToken0 totalValueLockedToken1
       token0Price token1Price
       volumeUSD feesUSD
@@ -192,42 +195,78 @@ export async function fetchPoolsFromSubgraph(
   const pools: RawPoolData[] = [];
   const dayDataByPool = new Map<string, RawPoolDayData[]>();
 
-  for (const p of data.pools) {
+  // Batch on-chain balanceOf calls for accurate TVL.
+  // The subgraph's totalValueLockedToken0/Token1 are inflated (doesn't track removals).
+  const balanceCalls = data.pools.flatMap((p) => [
+    {
+      address: p.token0.id as `0x${string}`,
+      abi: erc20Abi,
+      functionName: "balanceOf" as const,
+      args: [p.id as `0x${string}`] as const,
+    },
+    {
+      address: p.token1.id as `0x${string}`,
+      abi: erc20Abi,
+      functionName: "balanceOf" as const,
+      args: [p.id as `0x${string}`] as const,
+    },
+  ]);
+
+  let onChainBalances: (bigint | null)[] = [];
+  try {
+    const results = await baseClient.multicall({ contracts: balanceCalls });
+    onChainBalances = results.map((r) => (r.status === "success" ? r.result as bigint : null));
+  } catch (err) {
+    console.warn("[subgraph] multicall balanceOf failed, falling back to subgraph TVL:", err);
+  }
+
+  for (let i = 0; i < data.pools.length; i++) {
+    const p = data.pools[i];
     const day1 = p.poolDayData[0];
     const feesUsd24h = day1 ? parseFloat(day1.feesUSD) : 0;
     const volumeUsd24h = day1 ? parseFloat(day1.volumeUSD) : 0;
 
-    // Compute TVL from actual locked token amounts × current USD prices.
-    // This matches how Aerodrome/Uniswap frontends compute TVL (token amounts
-    // are accurate; the subgraph's `totalValueLockedUSD` drifts over time).
-    const lockedToken0 = parseFloat(p.totalValueLockedToken0);
-    const lockedToken1 = parseFloat(p.totalValueLockedToken1);
+    const token0Decimals = parseInt(p.token0.decimals, 10);
+    const token1Decimals = parseInt(p.token1.decimals, 10);
     const token0DerivedETH = parseFloat(p.token0.derivedETH);
     const token1DerivedETH = parseFloat(p.token1.derivedETH);
 
+    // Use on-chain balanceOf for accurate token amounts, fall back to subgraph
+    const bal0Raw = onChainBalances[i * 2];
+    const bal1Raw = onChainBalances[i * 2 + 1];
+
     let tvlUsd: number;
-    if (ethPriceUsd > 0 && (token0DerivedETH > 0 || token1DerivedETH > 0)) {
-      // token USD price = derivedETH × ethPriceUSD
+    if (bal0Raw !== null && bal1Raw !== null && ethPriceUsd > 0) {
+      // On-chain balances — the ground truth
+      const lockedToken0 = parseFloat(formatUnits(bal0Raw, token0Decimals));
+      const lockedToken1 = parseFloat(formatUnits(bal1Raw, token1Decimals));
       const token0Usd = token0DerivedETH * ethPriceUsd;
       const token1Usd = token1DerivedETH * ethPriceUsd;
       tvlUsd = lockedToken0 * token0Usd + lockedToken1 * token1Usd;
     } else if (day1) {
-      // Fallback: use day data TVL
       tvlUsd = parseFloat(day1.tvlUSD);
     } else {
       tvlUsd = parseFloat(p.totalValueLockedUSD);
+    }
+
+    // Derive pool type from tickSpacing
+    const tickSpacing = p.tickSpacing ? parseInt(p.tickSpacing, 10) : null;
+    let poolType = "cl";
+    if (tickSpacing !== null) {
+      poolType = `cl${tickSpacing}`;  // e.g. "cl1", "cl100", "cl200"
     }
 
     pools.push({
       poolAddress: p.id,
       token0Address: p.token0.id,
       token0Symbol: p.token0.symbol,
-      token0Decimals: parseInt(p.token0.decimals, 10),
+      token0Decimals,
       token1Address: p.token1.id,
       token1Symbol: p.token1.symbol,
-      token1Decimals: parseInt(p.token1.decimals, 10),
+      token1Decimals,
       feeTier: parseInt(p.feeTier, 10),
-      poolType: "cl",
+      tickSpacing: tickSpacing ?? undefined,
+      poolType,
       tvlUsd,
       volumeUsd24h,
       feesUsd24h,

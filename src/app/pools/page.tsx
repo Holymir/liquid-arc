@@ -496,6 +496,11 @@ export default function PoolsPage() {
                           <span className="font-medium text-slate-200">
                             {pool.token0.symbol}/{pool.token1.symbol}
                           </span>
+                          {pool.poolType && (
+                            <span className="text-[10px] text-slate-400 bg-slate-800/50 border border-slate-700/30 rounded-md px-1.5 py-0.5 uppercase">
+                              {pool.poolType}
+                            </span>
+                          )}
                           {pool.feeTier != null && (
                             <span className="text-[10px] text-slate-500 bg-slate-800/40 border border-slate-700/30 rounded-md px-1.5 py-0.5">
                               {feeTierLabel(pool.feeTier)}

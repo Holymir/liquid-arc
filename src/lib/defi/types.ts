@@ -19,7 +19,7 @@ export interface RawPoolData {
   token1Decimals?: number;
   feeTier?: number;
   tickSpacing?: number;
-  poolType: "cl" | "v2" | "stable";
+  poolType: string;  // "cl1", "cl100", "cl200", "v2", "stable", etc.
   tvlUsd: number;
   volumeUsd24h: number;
   feesUsd24h: number;
