@@ -44,9 +44,11 @@ function PositionCard({
   onToggle: () => void;
 }) {
   const inRange =
+    pos.currentTick !== undefined &&
     pos.tickLower !== undefined &&
     pos.tickUpper !== undefined &&
-    pos.tickLower < pos.tickUpper;
+    pos.currentTick >= pos.tickLower &&
+    pos.currentTick < pos.tickUpper;
 
   const isStaked = pos.protocol.includes("staked");
   const totalClaimable = (pos.feesEarnedUsd ?? 0) + (pos.emissionsEarnedUsd ?? 0);

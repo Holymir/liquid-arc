@@ -190,6 +190,7 @@ export class OrcaWhirlpoolAdapter implements DefiProtocolAdapter {
           liquidity,
           tickLower,
           tickUpper,
+          currentTick,
           token0Amount: amount0,
           token1Amount: amount1,
           fees0Amount: fees0,

@@ -33,6 +33,7 @@ export interface LPPositionData {
   liquidity: bigint;
   tickLower?: number;
   tickUpper?: number;
+  currentTick?: number;   // Pool's current tick — for in-range detection
   token0Amount?: number;
   token1Amount?: number;
   token0Usd?: number;
@@ -72,6 +73,7 @@ export interface LPPositionJSON {
   liquidity: string;     // BigInt serialized as string
   tickLower?: number;
   tickUpper?: number;
+  currentTick?: number;
   token0Amount?: number;
   token1Amount?: number;
   token0Usd?: number;

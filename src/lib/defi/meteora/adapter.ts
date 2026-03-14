@@ -274,6 +274,7 @@ export class MeteoraAdapter implements DefiProtocolAdapter {
           liquidity: pos.totalLiquidityX + pos.totalLiquidityY,
           tickLower: pos.lowerBinId,
           tickUpper: pos.upperBinId,
+          currentTick: activeBinId,
           token0Amount,
           token1Amount,
         });
