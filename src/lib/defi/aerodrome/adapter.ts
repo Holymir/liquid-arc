@@ -140,11 +140,12 @@ export class AerodromeAdapter implements DefiProtocolAdapter {
     for (let i = 0; i < uniqueTokens.length; i++) {
       const symR = metaResults[i * 2];
       const decR = metaResults[i * 2 + 1];
+      const decOk = decR.status === "success";
       const fetched = {
         symbol: symR.status === "success" ? (symR.result as string) : "???",
-        decimals: decR.status === "success" ? (decR.result as number) : 18,
+        decimals: decOk ? (decR.result as number) : 18,
       };
-      tokenMeta.set(uniqueTokens[i], resolveTokenMeta(uniqueTokens[i], fetched));
+      tokenMeta.set(uniqueTokens[i], resolveTokenMeta(uniqueTokens[i], fetched, decOk));
     }
 
     // ── 5. Build LPPositionData ───────────────────────────────────────────
