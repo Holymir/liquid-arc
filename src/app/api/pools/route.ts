@@ -47,9 +47,6 @@ export async function GET(request: NextRequest) {
   const limit = Math.min(100, Math.max(1, parseInt(params.get("limit") ?? "50", 10)));
   const skip = (page - 1) * limit;
 
-  // Hide empty pools (zero TVL, volume, and fees)
-  const hideEmpty = params.get("hideEmpty") === "1";
-
   // Build where clause using AND array to avoid OR conflicts
   const where: Record<string, unknown> = {};
   const andClauses: Record<string, unknown>[] = [];
@@ -58,15 +55,14 @@ export async function GET(request: NextRequest) {
   if (protocols?.length) {
     where.protocol = { slug: { in: protocols } };
   }
-  if (hideEmpty) {
-    andClauses.push({
-      OR: [
-        { tvlUsd: { gt: 0 } },
-        { volume24hUsd: { gt: 0 } },
-        { fees24hUsd: { gt: 0 } },
-      ],
-    });
-  }
+  // Always filter out empty pools (zero TVL, volume, and fees)
+  andClauses.push({
+    OR: [
+      { tvlUsd: { gt: 0 } },
+      { volume24hUsd: { gt: 0 } },
+      { fees24hUsd: { gt: 0 } },
+    ],
+  });
   for (const [field, range] of Object.entries(rangeFilters)) {
     where[field] = range;
   }

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PoolsSidebar } from "@/components/pools/PoolsSidebar";
-import { Search, ExternalLink, ChevronLeft, ChevronRight, SlidersHorizontal, X, Loader2, EyeOff, Eye } from "lucide-react";
+import { Search, ExternalLink, ChevronLeft, ChevronRight, SlidersHorizontal, X, Loader2 } from "lucide-react";
 import { getDepositUrl } from "@/lib/defi/deposit-urls";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -114,7 +114,6 @@ export default function PoolsPage() {
   const [sortDir, setSortDir] = useState<"desc" | "asc">("desc");
   const [page, setPage] = useState(1);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [hideEmpty, setHideEmpty] = useState(true);
   const [selectedChains, setSelectedChains] = useState<Set<string>>(new Set());
   const [selectedProtocols, setSelectedProtocols] = useState<Set<string>>(new Set());
 
@@ -143,11 +142,31 @@ export default function PoolsPage() {
     setAppliedFilters(empty);
   };
 
+  const clearFilter = (key: string) => {
+    const cleared = { min: "", max: "" };
+    setFilterInputs((prev) => ({ ...prev, [key]: cleared }));
+    setAppliedFilters((prev) => ({ ...prev, [key]: cleared }));
+  };
+
   const updateFilter = (key: string, field: "min" | "max", value: string) => {
     // Allow only numbers and decimal point
     if (value && !/^\d*\.?\d*$/.test(value)) return;
     setFilterInputs((prev) => ({ ...prev, [key]: { ...prev[key], [field]: value } }));
   };
+
+  // Build chip labels for active filters
+  const activeFilterChips = FILTER_COLUMNS
+    .filter((col) => appliedFilters[col.key]?.min || appliedFilters[col.key]?.max)
+    .map((col) => {
+      const f = appliedFilters[col.key];
+      const p = col.prefix;
+      const s = col.suffix;
+      let label = col.label + ": ";
+      if (f.min && f.max) label += `${p}${f.min}${s}–${p}${f.max}${s}`;
+      else if (f.min) label += `>${p}${f.min}${s}`;
+      else label += `<${p}${f.max}${s}`;
+      return { key: col.key, label };
+    });
 
   const [refetching, setRefetching] = useState(false);
   const hasFetched = useRef(false);
@@ -167,7 +186,6 @@ export default function PoolsPage() {
         limit: "50",
       });
       if (search.trim()) params.set("token", search.trim());
-      if (hideEmpty) params.set("hideEmpty", "1");
       if (selectedChains.size > 0) params.set("chain", [...selectedChains].join(","));
       if (selectedProtocols.size > 0) params.set("protocol", [...selectedProtocols].join(","));
 
@@ -189,7 +207,7 @@ export default function PoolsPage() {
       setLoading(false);
       setRefetching(false);
     }
-  }, [sortBy, sortDir, page, search, appliedFilters, hideEmpty, selectedChains, selectedProtocols]);
+  }, [sortBy, sortDir, page, search, appliedFilters, selectedChains, selectedProtocols]);
 
   useEffect(() => {
     fetchPools();
@@ -309,18 +327,21 @@ export default function PoolsPage() {
             </button>
           )}
 
-          <button
-            onClick={() => { setHideEmpty((h) => !h); setPage(1); }}
-            className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm border transition-all ${
-              hideEmpty
-                ? "bg-slate-800/40 border-slate-700/40 text-slate-300"
-                : "bg-slate-800/20 border-slate-700/30 text-slate-500"
-            }`}
-            title={hideEmpty ? "Showing active pools only" : "Showing all pools including empty"}
-          >
-            {hideEmpty ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-            <span className="hidden sm:inline text-xs">{hideEmpty ? "Hide empty" : "Show all"}</span>
-          </button>
+          {/* Active filter chips */}
+          {activeFilterChips.slice(0, 3).map((chip) => (
+            <span
+              key={chip.key}
+              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-mono bg-arc-500/8 border border-arc-500/20 text-arc-400"
+            >
+              {chip.label}
+              <button onClick={() => clearFilter(chip.key)} className="hover:text-arc-300 transition-colors">
+                <X className="w-2.5 h-2.5" />
+              </button>
+            </span>
+          ))}
+          {activeFilterChips.length > 3 && (
+            <span className="text-[10px] font-mono text-arc-500/60">+{activeFilterChips.length - 3} more</span>
+          )}
 
           {refetching && (
             <Loader2 className="w-4 h-4 text-arc-400 animate-spin" />
@@ -365,55 +386,51 @@ export default function PoolsPage() {
           </div>
         )}
 
-        {/* Range filters panel */}
-        {filtersOpen && (
-          <div className="glass-card rounded-xl p-4 mb-5 animate-in fade-in slide-in-from-top-2 duration-200">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* Range filters panel — smooth slide */}
+        <div
+          className={`overflow-hidden transition-all duration-200 ease-in-out ${
+            filtersOpen ? "max-h-[200px] opacity-100" : "max-h-0 opacity-0"
+          }`}
+        >
+          <div className="bg-slate-900/40 border-t border-arc-500/20 rounded-b-xl px-4 py-3 mt-2 mb-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-2.5">
               {FILTER_COLUMNS.map((col) => (
-                <div key={col.key}>
-                  <label className="block text-[10px] uppercase tracking-widest text-slate-500 font-medium mb-2">
+                <div key={col.key} className="flex items-center gap-2">
+                  <span className="text-[10px] uppercase tracking-widest text-slate-500 font-medium w-20 shrink-0">
                     {col.label}
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <div className="relative flex-1">
-                      {col.prefix && (
-                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-600 text-xs">{col.prefix}</span>
-                      )}
+                  </span>
+                  <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                    <div className="flex items-center flex-1 bg-slate-800/60 border border-slate-700/40 rounded-lg h-7 px-2">
+                      {col.prefix && <span className="text-slate-600 text-xs shrink-0">{col.prefix}</span>}
                       <input
                         type="text"
                         inputMode="decimal"
                         placeholder="Min"
                         value={filterInputs[col.key]?.min ?? ""}
                         onChange={(e) => updateFilter(col.key, "min", e.target.value)}
-                        className={`w-full ${col.prefix ? "pl-6" : "pl-3"} ${col.suffix ? "pr-6" : "pr-3"} py-1.5 bg-slate-800/40 border border-slate-700/30 rounded-lg text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-arc-500/40 focus:ring-1 focus:ring-arc-500/15 transition-all font-mono tabular-nums`}
+                        className="w-full bg-transparent text-xs text-slate-200 placeholder-slate-600 focus:outline-none font-mono tabular-nums px-1"
                       />
-                      {col.suffix && (
-                        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-600 text-xs">{col.suffix}</span>
-                      )}
+                      {col.suffix && <span className="text-slate-600 text-xs shrink-0">{col.suffix}</span>}
                     </div>
                     <span className="text-slate-600 text-xs">–</span>
-                    <div className="relative flex-1">
-                      {col.prefix && (
-                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-600 text-xs">{col.prefix}</span>
-                      )}
+                    <div className="flex items-center flex-1 bg-slate-800/60 border border-slate-700/40 rounded-lg h-7 px-2">
+                      {col.prefix && <span className="text-slate-600 text-xs shrink-0">{col.prefix}</span>}
                       <input
                         type="text"
                         inputMode="decimal"
                         placeholder="Max"
                         value={filterInputs[col.key]?.max ?? ""}
                         onChange={(e) => updateFilter(col.key, "max", e.target.value)}
-                        className={`w-full ${col.prefix ? "pl-6" : "pl-3"} ${col.suffix ? "pr-6" : "pr-3"} py-1.5 bg-slate-800/40 border border-slate-700/30 rounded-lg text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-arc-500/40 focus:ring-1 focus:ring-arc-500/15 transition-all font-mono tabular-nums`}
+                        className="w-full bg-transparent text-xs text-slate-200 placeholder-slate-600 focus:outline-none font-mono tabular-nums px-1"
                       />
-                      {col.suffix && (
-                        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-600 text-xs">{col.suffix}</span>
-                      )}
+                      {col.suffix && <span className="text-slate-600 text-xs shrink-0">{col.suffix}</span>}
                     </div>
                   </div>
                 </div>
               ))}
             </div>
           </div>
-        )}
+        </div>
 
         {/* Error */}
         {error && (
