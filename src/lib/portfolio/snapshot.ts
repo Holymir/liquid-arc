@@ -7,9 +7,9 @@ export async function saveSnapshotData(
   walletId: string,
   portfolio: PortfolioResponse
 ): Promise<void> {
-  // Throttle: skip if a snapshot was saved within the last hour
+  // Throttle: skip if a snapshot was saved within the last 15 minutes
   const recent = await prisma.portfolioSnapshot.findFirst({
-    where: { walletId, snapshotAt: { gte: new Date(Date.now() - 3_600_000) } },
+    where: { walletId, snapshotAt: { gte: new Date(Date.now() - 15 * 60_000) } },
     select: { id: true },
   });
   if (recent) return;
