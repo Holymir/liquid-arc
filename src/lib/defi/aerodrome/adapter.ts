@@ -63,22 +63,6 @@ export class AerodromeAdapter implements DefiProtocolAdapter {
 
     const raw = [...oldFactoryRaw, ...newFactoryRaw];
 
-    console.log(
-      `[aerodrome] Sugar returned ${raw.length} positions for ${ownerAddress}` +
-      ` (old factory: ${oldFactoryRaw.length}, new factory: ${newFactoryRaw.length})`
-    );
-    if (raw.length > 0) {
-      console.log(
-        "[aerodrome] positions:",
-        raw.map((p) => ({
-          id: p.id.toString(),
-          lp: p.lp,
-          liquidity: p.liquidity.toString(),
-          staked: p.staked.toString(),
-        }))
-      );
-    }
-
     // ── 2. Filter to active CL positions ─────────────────────────────────
     // id > 0  → CL/NFT position (v2 LP positions have id = 0)
     // liquidity + staked > 0  → position still has liquidity
