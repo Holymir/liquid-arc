@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useCallback, useRef, type ReactNode } from "react";
+import { createContext, useContext, useCallback, useMemo, useRef, type ReactNode } from "react";
 import type { PortfolioResponse } from "@/types";
 
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
@@ -57,8 +57,13 @@ export function PortfolioCacheProvider({ children }: { children: ReactNode }) {
     return Date.now() - entry.fetchedAt < CACHE_TTL_MS;
   }, []);
 
+  const value = useMemo(
+    () => ({ get, set, invalidate, invalidateAll, isFresh }),
+    [get, set, invalidate, invalidateAll, isFresh]
+  );
+
   return (
-    <PortfolioCacheContext.Provider value={{ get, set, invalidate, invalidateAll, isFresh }}>
+    <PortfolioCacheContext.Provider value={value}>
       {children}
     </PortfolioCacheContext.Provider>
   );

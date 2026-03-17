@@ -20,14 +20,19 @@ export function usePortfolio(
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  // Use refs for cache to avoid re-creating fetchPortfolio when cache ref changes
+  const cacheRef = useRef(cache);
+  cacheRef.current = cache;
 
   const fetchPortfolio = useCallback(async (forceRefresh = false) => {
     if (!address) return;
 
+    const c = cacheRef.current;
+
     // Serve from cache if fresh (unless forced)
     if (!forceRefresh) {
-      const cached = cache.get(address, chainId);
-      if (cached && cache.isFresh(address, chainId)) {
+      const cached = c.get(address, chainId);
+      if (cached && c.isFresh(address, chainId)) {
         setData(cached.data);
         setIsLoading(false);
         setError(null);
@@ -63,7 +68,7 @@ export function usePortfolio(
 
       const portfolio = await response.json();
       if (!controller.signal.aborted) {
-        cache.set(address, chainId, portfolio);
+        cacheRef.current.set(address, chainId, portfolio);
         setData(portfolio);
         setIsLoading(false);
       }
@@ -72,18 +77,18 @@ export function usePortfolio(
       setError(err instanceof Error ? err.message : "Network error");
       setIsLoading(false);
     }
-  }, [address, chainId, cache]);
+  }, [address, chainId]);
 
-  // Fetch once on mount / when address changes
+  // Fetch once on mount / when address changes — no auto-polling
   useEffect(() => {
     fetchPortfolio();
     return () => abortRef.current?.abort();
   }, [fetchPortfolio]);
 
   const refresh = useCallback(() => {
-    if (address) cache.invalidate(address, chainId);
+    if (address) cacheRef.current.invalidate(address, chainId);
     fetchPortfolio(true);
-  }, [address, chainId, cache, fetchPortfolio]);
+  }, [address, chainId, fetchPortfolio]);
 
   return { data, isLoading, error, refresh };
 }

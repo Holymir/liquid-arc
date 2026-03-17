@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import type { PortfolioResponse, LPPositionJSON, TokenBalanceJSON } from "@/types";
 import type { TrackedWallet } from "@/hooks/useTrackedWallets";
 import { usePortfolioCache } from "@/components/providers/PortfolioCacheProvider";
@@ -38,8 +38,12 @@ export function useAllPortfolios(wallets: TrackedWallet[]): UseAllPortfoliosResu
   const [fetchTrigger, setFetchTrigger] = useState(0);
   const abortRefs = useRef<Map<string, AbortController>>(new Map());
 
+  // Stabilize wallets — only change when the actual addresses change
+  const walletsKey = wallets.map((w) => `${w.address}:${w.chainId}`).join(",");
+  const stableWallets = useMemo(() => wallets, [walletsKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const fetchSingle = useCallback(
-    async (wallet: TrackedWallet, forceRefresh = false) => {
+    async (wallet: TrackedWallet, forceRefresh = false): Promise<WalletPortfolio | null> => {
       const key = `${wallet.address}:${wallet.chainId}`;
 
       // Return cached if fresh (unless forced)
@@ -83,47 +87,52 @@ export function useAllPortfolios(wallets: TrackedWallet[]): UseAllPortfoliosResu
   );
 
   useEffect(() => {
-    if (wallets.length === 0) {
+    if (stableWallets.length === 0) {
       setWalletPortfolios([]);
       return;
     }
 
     let cancelled = false;
 
-    // Initialize with cached data + loading state for uncached
-    const initial: WalletPortfolio[] = wallets.map((wallet) => {
+    // Initialize with cached data immediately, mark uncached as loading
+    const initial: WalletPortfolio[] = stableWallets.map((wallet) => {
       const cached = cache.get(wallet.address, wallet.chainId);
+      if (cached && cache.isFresh(wallet.address, wallet.chainId)) {
+        return { wallet, data: cached.data, isLoading: false, error: null };
+      }
       return {
         wallet,
         data: cached?.data ?? null,
-        isLoading: !cached,
+        isLoading: true,
         error: null,
       };
     });
     setWalletPortfolios(initial);
 
-    // Fetch all wallets in parallel
+    // Only fetch wallets that need fetching
+    const needsFetch = initial.some((wp) => wp.isLoading);
+    if (!needsFetch && fetchTrigger === 0) return;
+
     const forceRefresh = fetchTrigger > 0;
-    Promise.allSettled(wallets.map((w) => fetchSingle(w, forceRefresh))).then(
-      (results) => {
-        if (cancelled) return;
-        setWalletPortfolios((prev) =>
-          prev.map((wp, i) => {
-            const r = results[i];
-            if (r.status === "fulfilled" && r.value) return r.value;
-            return { ...wp, isLoading: false };
-          })
-        );
-      }
-    );
+    Promise.allSettled(
+      stableWallets.map((w) => fetchSingle(w, forceRefresh))
+    ).then((results) => {
+      if (cancelled) return;
+      setWalletPortfolios((prev) =>
+        prev.map((wp, i) => {
+          const r = results[i];
+          if (r.status === "fulfilled" && r.value) return r.value;
+          return { ...wp, isLoading: false };
+        })
+      );
+    });
 
     return () => {
       cancelled = true;
       abortRefs.current.forEach((c) => c.abort());
       abortRefs.current.clear();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [wallets, fetchTrigger, fetchSingle]);
+  }, [stableWallets, fetchTrigger, fetchSingle, cache]);
 
   const refresh = useCallback(() => {
     cache.invalidateAll();
@@ -138,48 +147,51 @@ export function useAllPortfolios(wallets: TrackedWallet[]): UseAllPortfoliosResu
     [cache]
   );
 
-  // Compute aggregate
-  const aggregate: AggregatePortfolio = {
-    totalUsdValue: 0,
-    totalLpValue: 0,
-    totalTokenValue: 0,
-    totalClaimable: 0,
-    allPositions: [],
-    allTokens: [],
-    walletCount: walletPortfolios.filter((wp) => wp.data).length,
-    positionCount: 0,
-  };
+  // Compute aggregate (memoized)
+  const aggregate = useMemo<AggregatePortfolio>(() => {
+    const agg: AggregatePortfolio = {
+      totalUsdValue: 0,
+      totalLpValue: 0,
+      totalTokenValue: 0,
+      totalClaimable: 0,
+      allPositions: [],
+      allTokens: [],
+      walletCount: 0,
+      positionCount: 0,
+    };
 
-  for (const wp of walletPortfolios) {
-    if (!wp.data) continue;
-    aggregate.totalUsdValue += wp.data.totalUsdValue;
-    const lpVal = wp.data.lpPositions.reduce((s, p) => s + (p.usdValue ?? 0), 0);
-    const tokenVal = wp.data.tokenBalances.reduce((s, t) => s + (t.usdValue ?? 0), 0);
-    aggregate.totalLpValue += lpVal;
-    aggregate.totalTokenValue += tokenVal;
+    for (const wp of walletPortfolios) {
+      if (!wp.data) continue;
+      agg.walletCount++;
+      agg.totalUsdValue += wp.data.totalUsdValue;
+      const lpVal = wp.data.lpPositions.reduce((s, p) => s + (p.usdValue ?? 0), 0);
+      const tokenVal = wp.data.tokenBalances.reduce((s, t) => s + (t.usdValue ?? 0), 0);
+      agg.totalLpValue += lpVal;
+      agg.totalTokenValue += tokenVal;
 
-    for (const pos of wp.data.lpPositions) {
-      const claimable = (pos.feesEarnedUsd ?? 0) + (pos.emissionsEarnedUsd ?? 0);
-      aggregate.totalClaimable += claimable;
-      aggregate.allPositions.push({
-        ...pos,
-        walletAddress: wp.wallet.address,
-        walletLabel: wp.wallet.label,
-        walletChainId: wp.wallet.chainId,
-      });
+      for (const pos of wp.data.lpPositions) {
+        const claimable = (pos.feesEarnedUsd ?? 0) + (pos.emissionsEarnedUsd ?? 0);
+        agg.totalClaimable += claimable;
+        agg.allPositions.push({
+          ...pos,
+          walletAddress: wp.wallet.address,
+          walletLabel: wp.wallet.label,
+          walletChainId: wp.wallet.chainId,
+        });
+      }
+
+      for (const tok of wp.data.tokenBalances) {
+        agg.allTokens.push({
+          ...tok,
+          walletAddress: wp.wallet.address,
+          walletLabel: wp.wallet.label,
+        });
+      }
     }
-
-    for (const tok of wp.data.tokenBalances) {
-      aggregate.allTokens.push({
-        ...tok,
-        walletAddress: wp.wallet.address,
-        walletLabel: wp.wallet.label,
-      });
-    }
-  }
-  aggregate.positionCount = aggregate.allPositions.length;
-  // Sort positions by value descending
-  aggregate.allPositions.sort((a, b) => (b.usdValue ?? 0) - (a.usdValue ?? 0));
+    agg.positionCount = agg.allPositions.length;
+    agg.allPositions.sort((a, b) => (b.usdValue ?? 0) - (a.usdValue ?? 0));
+    return agg;
+  }, [walletPortfolios]);
 
   const isLoading = walletPortfolios.some((wp) => wp.isLoading);
   const hasAnyData = walletPortfolios.some((wp) => wp.data !== null);
