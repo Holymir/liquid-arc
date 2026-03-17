@@ -117,6 +117,7 @@ export async function GET(request: NextRequest) {
         fees7dUsd: p.fees7dUsd,
         apr24h: p.apr24h,
         apr7d: p.apr7d,
+        emissionsApr: p.emissionsApr,
         token0Volatility30d: p.token0Volatility30d,
         token1Volatility30d: p.token1Volatility30d,
         pairCorrelation30d: p.pairCorrelation30d,
