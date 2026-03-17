@@ -8,6 +8,7 @@ import { DEFAULT_SOLANA_TOKEN_ADDRESSES } from "@/lib/chain/solana/adapter";
 import { EVM_CHAINS } from "@/lib/chain/evm/chains";
 import { VELO_TOKEN_ADDRESS } from "@/lib/defi/velodrome/adapter";
 import { prisma } from "@/lib/db/prisma";
+import { warmTokenCacheFromDB } from "@/lib/defi/token-cache";
 import { formatUnits } from "viem";
 
 // Emissions reward token addresses per chain (for pricing emissions)
@@ -56,6 +57,10 @@ export async function getPortfolio(
   const isSolana = chainId === "solana";
   const normalizedAddress = isSolana ? address : address.toLowerCase();
   const defaultTokens = getDefaultTokenAddresses(chainId);
+
+  // 0. Pre-warm token symbol cache from DB so adapters have reliable fallbacks
+  //    even on serverless cold starts when the in-memory cache is empty.
+  await warmTokenCacheFromDB();
 
   // 1. Fetch native balance + token balances + LP positions from all protocols in parallel.
   //    LP position fetches are best-effort: failures return [] so the portfolio still loads.
