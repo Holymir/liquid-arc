@@ -65,5 +65,5 @@ export const velodromePoolProvider = new VelodromeStylePoolProvider({
   slug: "velodrome",
   displayName: "Velodrome",
   chainId: "optimism",
-  subgraphId: "A4Y1A82YhSLTn998BVVELC8eWzhi992k4ZitByvssxqA",
+  subgraphId: "BsBDqDf6rJJyxKACZrCHAa8Gaf384cmL2hxfLaDuB8XM",
 });
