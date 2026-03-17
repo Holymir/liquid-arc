@@ -84,10 +84,11 @@ export async function getPortfolio(
     (p) => p.token0Symbol === "???" || p.token1Symbol === "???"
   );
   if (unknownSymbolPositions.length > 0) {
+    // Step 1: Try exact pool address lookup
     const poolAddresses = [...new Set(unknownSymbolPositions.map((p) => p.poolAddress.toLowerCase()))];
     const dbPools = await prisma.pool.findMany({
       where: { poolAddress: { in: poolAddresses } },
-      select: { poolAddress: true, token0Symbol: true, token1Symbol: true, token0Decimals: true, token1Decimals: true },
+      select: { poolAddress: true, token0Address: true, token0Symbol: true, token1Address: true, token1Symbol: true, token0Decimals: true, token1Decimals: true },
     });
     const poolMap = new Map(dbPools.map((p) => [p.poolAddress.toLowerCase(), p]));
 
@@ -113,6 +114,76 @@ export async function getPortfolio(
             pos.token1Amount *= correction;
           }
           pos.token1Decimals = dbPool.token1Decimals;
+        }
+      }
+    }
+
+    // Step 2: For any remaining "???" symbols, look up the token address across
+    // ALL pools in the DB. The same token (e.g. WETH, BRETT) appears in many pools,
+    // so even if this specific pool isn't indexed, we can resolve the symbol.
+    const stillUnknown = lpPositions.filter(
+      (p) => p.token0Symbol === "???" || p.token1Symbol === "???"
+    );
+    if (stillUnknown.length > 0) {
+      const unknownTokenAddrs = new Set<string>();
+      for (const pos of stillUnknown) {
+        if (pos.token0Symbol === "???") unknownTokenAddrs.add(pos.token0Address.toLowerCase());
+        if (pos.token1Symbol === "???") unknownTokenAddrs.add(pos.token1Address.toLowerCase());
+      }
+      const addrList = [...unknownTokenAddrs];
+
+      // Find any pool that references these tokens (as token0 or token1)
+      const tokenPools = await prisma.pool.findMany({
+        where: {
+          OR: [
+            { token0Address: { in: addrList } },
+            { token1Address: { in: addrList } },
+          ],
+        },
+        select: { token0Address: true, token0Symbol: true, token0Decimals: true, token1Address: true, token1Symbol: true, token1Decimals: true },
+        take: addrList.length * 3, // a few matches per token is enough
+      });
+
+      // Build a token address → { symbol, decimals } map from the results
+      const tokenLookup = new Map<string, { symbol: string; decimals: number | null }>();
+      for (const p of tokenPools) {
+        const addr0 = p.token0Address.toLowerCase();
+        const addr1 = p.token1Address.toLowerCase();
+        if (unknownTokenAddrs.has(addr0) && p.token0Symbol && !tokenLookup.has(addr0)) {
+          tokenLookup.set(addr0, { symbol: p.token0Symbol, decimals: p.token0Decimals });
+        }
+        if (unknownTokenAddrs.has(addr1) && p.token1Symbol && !tokenLookup.has(addr1)) {
+          tokenLookup.set(addr1, { symbol: p.token1Symbol, decimals: p.token1Decimals });
+        }
+      }
+
+      // Apply the resolved symbols
+      for (const pos of lpPositions) {
+        if (pos.token0Symbol === "???") {
+          const found = tokenLookup.get(pos.token0Address.toLowerCase());
+          if (found) {
+            pos.token0Symbol = found.symbol;
+            if (found.decimals != null && found.decimals !== pos.token0Decimals) {
+              if (pos.token0Amount != null) {
+                const correction = 10 ** (pos.token0Decimals - found.decimals);
+                pos.token0Amount *= correction;
+              }
+              pos.token0Decimals = found.decimals;
+            }
+          }
+        }
+        if (pos.token1Symbol === "???") {
+          const found = tokenLookup.get(pos.token1Address.toLowerCase());
+          if (found) {
+            pos.token1Symbol = found.symbol;
+            if (found.decimals != null && found.decimals !== pos.token1Decimals) {
+              if (pos.token1Amount != null) {
+                const correction = 10 ** (pos.token1Decimals - found.decimals);
+                pos.token1Amount *= correction;
+              }
+              pos.token1Decimals = found.decimals;
+            }
+          }
         }
       }
     }
