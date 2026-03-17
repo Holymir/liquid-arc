@@ -10,6 +10,14 @@ import { createPublicClient, http, erc20Abi, formatUnits } from "viem";
 
 const AERODROME_SUBGRAPH_ID = "GENunSHWLBXm59mBSgPzQ8metBEp9YDfdqwFr91Av1UM";
 
+// Standard Uniswap V3 fee tier → tick spacing mapping
+const FEE_TIER_TO_TICK_SPACING: Record<number, number> = {
+  100: 1,
+  500: 10,
+  3000: 60,
+  10000: 200,
+};
+
 // ─── Input sanitizers (prevent GraphQL injection) ────────────────────────────
 
 /** Validate a hex address (with or without 0x prefix, up to 64 hex chars). */
@@ -128,7 +136,6 @@ interface SubgraphPool {
   token0: { id: string; symbol: string; decimals: string; derivedETH: string };
   token1: { id: string; symbol: string; decimals: string; derivedETH: string };
   feeTier: string;
-  tickSpacing: string | null;
   tick: string | null;
   liquidity: string;
   totalValueLockedUSD: string;
@@ -175,7 +182,7 @@ export async function fetchPoolsFromSubgraph(
       id
       token0 { id symbol decimals derivedETH }
       token1 { id symbol decimals derivedETH }
-      feeTier tickSpacing tick liquidity
+      feeTier tick liquidity
       totalValueLockedUSD totalValueLockedToken0 totalValueLockedToken1
       token0Price token1Price
       volumeUSD feesUSD
@@ -260,12 +267,10 @@ export async function fetchPoolsFromSubgraph(
       tvlUsd = parseFloat(p.totalValueLockedUSD);
     }
 
-    // Derive pool type from tickSpacing
-    const tickSpacing = p.tickSpacing ? parseInt(p.tickSpacing, 10) : null;
-    let poolType = "cl";
-    if (tickSpacing !== null) {
-      poolType = `cl${tickSpacing}`;  // e.g. "cl1", "cl100", "cl200"
-    }
+    // Derive tickSpacing from feeTier (standard Uniswap V3 mapping)
+    const feeTier = parseInt(p.feeTier, 10);
+    const tickSpacing = FEE_TIER_TO_TICK_SPACING[feeTier] ?? null;
+    const poolType = tickSpacing !== null ? `cl${tickSpacing}` : "cl";
 
     pools.push({
       poolAddress: p.id,
@@ -275,7 +280,7 @@ export async function fetchPoolsFromSubgraph(
       token1Address: p.token1.id,
       token1Symbol: p.token1.symbol,
       token1Decimals,
-      feeTier: parseInt(p.feeTier, 10),
+      feeTier,
       tickSpacing: tickSpacing ?? undefined,
       poolType,
       tvlUsd,
