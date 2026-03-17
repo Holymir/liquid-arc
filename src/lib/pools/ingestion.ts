@@ -11,6 +11,7 @@
 import { prisma } from "@/lib/db/prisma";
 import { protocolRegistry } from "@/lib/defi/registry";
 import type { RawPoolData, RawPoolDayData } from "@/lib/defi/types";
+import { fetchPoolEmissions } from "@/lib/defi/aerodrome/emissions";
 
 export interface IngestionResult {
   protocol: string;
@@ -91,11 +92,22 @@ async function runPhase1(
     pools = await adapter.fetchPools({ minTvlUsd: 50000, limit: 100 });
   }
 
+  // Fetch emissions data for protocols with gauges (Aerodrome, Velodrome)
+  const poolTvlMap = new Map<string, number>();
+  for (const pool of pools) {
+    poolTvlMap.set(pool.poolAddress.toLowerCase(), pool.tvlUsd);
+  }
+  const { emissionsAprByPool } = await fetchPoolEmissions(adapter.chainId, poolTvlMap);
+  if (emissionsAprByPool.size > 0) {
+    console.log(`[ingestion] Got emissions APR for ${emissionsAprByPool.size} pools`);
+  }
+
   // Upsert pools (no volatility data in phase 1)
   for (const pool of pools) {
     try {
       const dayData = poolDayDataMap.get(pool.poolAddress) ?? [];
       const { volume7d, fees7d, apr24h, apr7d } = computePoolMetrics(pool, dayData);
+      const emissionsApr = emissionsAprByPool.get(pool.poolAddress.toLowerCase()) ?? null;
 
       await prisma.pool.upsert({
         where: {
@@ -112,6 +124,7 @@ async function runPhase1(
           fees7dUsd: fees7d,
           apr24h,
           apr7d,
+          emissionsApr,
           poolType: pool.poolType,
           tickSpacing: pool.tickSpacing,
           currentTick: pool.currentTick,
@@ -138,6 +151,7 @@ async function runPhase1(
           fees7dUsd: fees7d,
           apr24h,
           apr7d,
+          emissionsApr,
           currentTick: pool.currentTick,
           totalLiquidity: pool.totalLiquidity,
           lastSyncedAt: new Date(),

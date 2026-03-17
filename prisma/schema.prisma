@@ -178,6 +178,7 @@ model Pool {
   fees7dUsd      Float?    @map("fees_7d_usd")
   apr24h         Float?    @map("apr_24h")
   apr7d          Float?    @map("apr_7d")
+  emissionsApr   Float?    @map("emissions_apr")
   currentTick    Int?      @map("current_tick")
   totalLiquidity String?   @map("total_liquidity")
 

@@ -30,6 +30,7 @@ interface PoolRow {
   fees7dUsd: number | null;
   apr24h: number | null;
   apr7d: number | null;
+  emissionsApr: number | null;
   token0Volatility30d: number | null;
   token1Volatility30d: number | null;
   pairCorrelation30d: number | null;
@@ -547,14 +548,32 @@ export default function PoolsPage() {
                         {formatUsd(pool.fees24hUsd)}
                       </td>
                       <td className="px-4 py-3 text-right font-mono text-xs tabular-nums">
-                        <span className={(pool.apr24h ?? 0) > 50 ? "text-emerald-400" : (pool.apr24h ?? 0) > 10 ? "text-emerald-400/80" : "text-slate-300"}>
-                          {formatPercent(pool.apr24h)}
-                        </span>
+                        {(() => {
+                          const feeApr = pool.apr24h ?? 0;
+                          const emApr = pool.emissionsApr ?? 0;
+                          const totalApr = feeApr + emApr;
+                          return (
+                            <span title={emApr > 0 ? `Fees: ${formatPercent(pool.apr24h)} + Emissions: ${formatPercent(pool.emissionsApr)}` : undefined}
+                              className={totalApr > 50 ? "text-emerald-400" : totalApr > 10 ? "text-emerald-400/80" : "text-slate-300"}>
+                              {formatPercent(totalApr || null)}
+                              {emApr > 0 && <span className="text-purple-400/60 ml-0.5">*</span>}
+                            </span>
+                          );
+                        })()}
                       </td>
                       <td className="px-4 py-3 text-right font-mono text-xs tabular-nums hidden lg:table-cell">
-                        <span className={(pool.apr7d ?? 0) > 50 ? "text-emerald-400" : (pool.apr7d ?? 0) > 10 ? "text-emerald-400/80" : "text-slate-300"}>
-                          {formatPercent(pool.apr7d)}
-                        </span>
+                        {(() => {
+                          const feeApr = pool.apr7d ?? 0;
+                          const emApr = pool.emissionsApr ?? 0;
+                          const totalApr = feeApr + emApr;
+                          return (
+                            <span title={emApr > 0 ? `Fees: ${formatPercent(pool.apr7d)} + Emissions: ${formatPercent(pool.emissionsApr)}` : undefined}
+                              className={totalApr > 50 ? "text-emerald-400" : totalApr > 10 ? "text-emerald-400/80" : "text-slate-300"}>
+                              {formatPercent(totalApr || null)}
+                              {emApr > 0 && <span className="text-purple-400/60 ml-0.5">*</span>}
+                            </span>
+                          );
+                        })()}
                       </td>
                       <td className={`px-4 py-3 text-right font-mono text-xs tabular-nums hidden xl:table-cell ${correlationColor(pool.pairCorrelation30d)}`}>
                         {correlationLabel(pool.pairCorrelation30d)}
