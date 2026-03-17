@@ -49,12 +49,17 @@ export function getSubgraphUrl(subgraphId?: string): string | null {
   return `https://gateway.thegraph.com/api/${apiKey}/subgraphs/id/${subgraphId ?? AERODROME_SUBGRAPH_ID}`;
 }
 
+interface QueryResult<T> {
+  data: T | null;
+  errors?: { message: string }[];
+}
+
 async function querySubgraph<T>(
   query: string,
   subgraphId?: string
-): Promise<T | null> {
+): Promise<QueryResult<T>> {
   const url = getSubgraphUrl(subgraphId);
-  if (!url) return null;
+  if (!url) return { data: null };
 
   const res = await fetch(url, {
     method: "POST",
@@ -65,16 +70,15 @@ async function querySubgraph<T>(
   if (!res.ok) {
     const body = await res.text().catch(() => "");
     console.warn(`[subgraph] HTTP ${res.status} for ${subgraphId ?? "default"}:`, body.slice(0, 200));
-    return null;
+    return { data: null };
   }
 
   const json = await res.json();
   if (json.errors) {
-    console.warn(`[subgraph] GraphQL errors for ${subgraphId ?? "default"}:`, json.errors);
-    return null;
+    return { data: json.data as T | null, errors: json.errors };
   }
 
-  return json.data as T;
+  return { data: json.data as T };
 }
 
 // ─── Position Entry (existing) ─────────────────────────────────────────────
@@ -92,7 +96,7 @@ export async function getPositionEntryFromSubgraph(
   token0Decimals: number,
   token1Decimals: number
 ): Promise<PositionEntryData | null> {
-  const data = await querySubgraph<{ position: SubgraphPosition | null }>(`{
+  const { data } = await querySubgraph<{ position: SubgraphPosition | null }>(`{
     position(id: "${sanitizeTokenId(nftTokenId)}") {
       id depositedToken0 depositedToken1 liquidity
       transaction { timestamp blockNumber }
@@ -169,10 +173,8 @@ export async function fetchPoolsFromSubgraph(
   const limit = options?.limit ?? 1000;
   const dayDataDays = options?.dayDataDays ?? 7;
 
-  const data = await querySubgraph<{ pools: SubgraphPool[]; bundle: { ethPriceUSD: string } | null }>(`{
-    bundle(id: "1") {
-      ethPriceUSD
-    }
+  const poolsQuery = (includeEthFields: boolean) => `{
+    ${includeEthFields ? 'bundle(id: "1") { ethPriceUSD }' : ''}
     pools(
       first: ${sanitizeNumber(limit)},
       orderBy: totalValueLockedUSD,
@@ -180,8 +182,8 @@ export async function fetchPoolsFromSubgraph(
       where: { totalValueLockedUSD_gt: "${sanitizeNumber(minTvl)}" }
     ) {
       id
-      token0 { id symbol decimals derivedETH }
-      token1 { id symbol decimals derivedETH }
+      token0 { id symbol decimals ${includeEthFields ? 'derivedETH' : ''} }
+      token1 { id symbol decimals ${includeEthFields ? 'derivedETH' : ''} }
       feeTier tick liquidity
       totalValueLockedUSD totalValueLockedToken0 totalValueLockedToken1
       token0Price token1Price
@@ -190,15 +192,35 @@ export async function fetchPoolsFromSubgraph(
         date volumeUSD feesUSD tvlUSD txCount token0Price token1Price
       }
     }
-  }`, subgraphId);
+  }`;
+
+  // Try standard Uniswap V3 schema first; fall back without ethPriceUSD/derivedETH
+  // for community subgraphs that use different field names.
+  let result = await querySubgraph<{ pools: SubgraphPool[]; bundle: { ethPriceUSD: string } | null }>(
+    poolsQuery(true), subgraphId
+  );
+
+  let hasEthFields = true;
+  if (result.errors?.some(e => e.message.includes("has no field"))) {
+    console.log(`[subgraph] Schema mismatch for ${subgraphId ?? "default"}, retrying without ethPriceUSD/derivedETH`);
+    result = await querySubgraph<{ pools: SubgraphPool[]; bundle: { ethPriceUSD: string } | null }>(
+      poolsQuery(false), subgraphId
+    );
+    hasEthFields = false;
+  }
+
+  const data = result.data;
 
   if (!data?.pools) {
+    if (result.errors) {
+      console.warn(`[subgraph] GraphQL errors for ${subgraphId ?? "default"}:`, result.errors);
+    }
     console.warn(`[subgraph] No pool data returned for subgraph ${subgraphId ?? "default"} — check API key and subgraph ID`);
     return { pools: [], dayDataByPool: new Map() };
   }
 
   // ETH price in USD from the subgraph bundle (used to derive token USD prices)
-  const ethPriceUsd = data.bundle ? parseFloat(data.bundle.ethPriceUSD) : 0;
+  const ethPriceUsd = hasEthFields && data.bundle ? parseFloat(data.bundle.ethPriceUSD) : 0;
 
   const pools: RawPoolData[] = [];
   const dayDataByPool = new Map<string, RawPoolDayData[]>();
@@ -246,8 +268,8 @@ export async function fetchPoolsFromSubgraph(
 
     const token0Decimals = parseInt(p.token0.decimals, 10);
     const token1Decimals = parseInt(p.token1.decimals, 10);
-    const token0DerivedETH = parseFloat(p.token0.derivedETH);
-    const token1DerivedETH = parseFloat(p.token1.derivedETH);
+    const token0DerivedETH = p.token0.derivedETH ? parseFloat(p.token0.derivedETH) : 0;
+    const token1DerivedETH = p.token1.derivedETH ? parseFloat(p.token1.derivedETH) : 0;
 
     // Use on-chain balanceOf for accurate token amounts, fall back to subgraph
     const bal0Raw = onChainBalances[i * 2] ?? null;
@@ -317,7 +339,7 @@ export async function fetchTokenPriceHistoryFromSubgraph(
   days: number,
   subgraphId?: string
 ): Promise<TokenPriceHistory> {
-  const data = await querySubgraph<{
+  const { data } = await querySubgraph<{
     tokenDayDatas: { date: number; priceUSD: string }[];
   }>(`{
     tokenDayDatas(
@@ -347,7 +369,7 @@ export async function fetchPoolDayDataFromSubgraph(
   days: number,
   subgraphId?: string
 ): Promise<RawPoolDayData[]> {
-  const data = await querySubgraph<{
+  const { data } = await querySubgraph<{
     poolDayDatas: {
       date: number;
       volumeUSD: string;
