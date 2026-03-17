@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { PortfolioResponse } from "@/types";
+import { usePortfolioCache } from "@/components/providers/PortfolioCacheProvider";
 
 interface UsePortfolioResult {
   data: PortfolioResponse | null;
@@ -14,13 +15,29 @@ export function usePortfolio(
   address?: string,
   chainId = "base"
 ): UsePortfolioResult {
+  const cache = usePortfolioCache();
   const [data, setData] = useState<PortfolioResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
-  const fetchPortfolio = useCallback(async () => {
+  const fetchPortfolio = useCallback(async (forceRefresh = false) => {
     if (!address) return;
+
+    // Serve from cache if fresh (unless forced)
+    if (!forceRefresh) {
+      const cached = cache.get(address, chainId);
+      if (cached && cache.isFresh(address, chainId)) {
+        setData(cached.data);
+        setIsLoading(false);
+        setError(null);
+        return;
+      }
+      // Show stale data immediately while refetching
+      if (cached) {
+        setData(cached.data);
+      }
+    }
 
     // Cancel any in-flight request
     abortRef.current?.abort();
@@ -46,6 +63,7 @@ export function usePortfolio(
 
       const portfolio = await response.json();
       if (!controller.signal.aborted) {
+        cache.set(address, chainId, portfolio);
         setData(portfolio);
         setIsLoading(false);
       }
@@ -54,13 +72,18 @@ export function usePortfolio(
       setError(err instanceof Error ? err.message : "Network error");
       setIsLoading(false);
     }
-  }, [address, chainId]);
+  }, [address, chainId, cache]);
 
-  // Fetch once on mount / when address changes — no auto-polling
+  // Fetch once on mount / when address changes
   useEffect(() => {
     fetchPortfolio();
     return () => abortRef.current?.abort();
   }, [fetchPortfolio]);
 
-  return { data, isLoading, error, refresh: fetchPortfolio };
+  const refresh = useCallback(() => {
+    if (address) cache.invalidate(address, chainId);
+    fetchPortfolio(true);
+  }, [address, chainId, cache, fetchPortfolio]);
+
+  return { data, isLoading, error, refresh };
 }
