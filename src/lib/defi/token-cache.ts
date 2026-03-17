@@ -2,11 +2,13 @@
 //
 // Resolution order:
 //   1. RPC-fetched value (if successful, cache and return)
-//   2. In-memory cache (previous successful fetch, used if current RPC fails)
+//   2. In-memory cache (previous successful fetch OR pre-warmed from DB)
 //   3. Known-decimals table (common non-18 tokens: USDC, WBTC, cbBTC, etc.)
 //   4. Return "???" — no static name fallbacks to avoid showing wrong names
 
-interface TokenMeta {
+import { prisma } from "@/lib/db/prisma";
+
+export interface TokenMeta {
   symbol: string;
   decimals: number;
 }
@@ -87,6 +89,58 @@ export function resolveTokenMeta(
 
   // 4. Nothing reliable — return "???"
   return fetched;
+}
+
+// ── Pre-warm cache from DB ──────────────────────────────────────────────────
+// On serverless cold starts the in-memory cache is empty, so RPC failures
+// always produce "???". This loads all known token symbols from the pools
+// table into the cache BEFORE adapters run, so resolveTokenMeta() has a
+// reliable fallback even on the very first request.
+
+let warmPromise: Promise<void> | null = null;
+
+export function warmTokenCacheFromDB(): Promise<void> {
+  // Deduplicate concurrent calls (e.g. multiple adapters starting in parallel)
+  if (warmPromise) return warmPromise;
+
+  warmPromise = (async () => {
+    try {
+      const pools = await prisma.pool.findMany({
+        where: {
+          token0Symbol: { not: null },
+          token1Symbol: { not: null },
+        },
+        select: {
+          token0Address: true,
+          token0Symbol: true,
+          token0Decimals: true,
+          token1Address: true,
+          token1Symbol: true,
+          token1Decimals: true,
+        },
+      });
+
+      let count = 0;
+      for (const p of pools) {
+        const addr0 = p.token0Address.toLowerCase();
+        const addr1 = p.token1Address.toLowerCase();
+        // Only set if not already in cache (don't overwrite RPC-verified data)
+        if (!cache.has(addr0) && p.token0Symbol) {
+          cache.set(addr0, { symbol: p.token0Symbol, decimals: p.token0Decimals ?? 18 });
+          count++;
+        }
+        if (!cache.has(addr1) && p.token1Symbol) {
+          cache.set(addr1, { symbol: p.token1Symbol, decimals: p.token1Decimals ?? 18 });
+          count++;
+        }
+      }
+      console.log(`[token-cache] Pre-warmed ${count} tokens from ${pools.length} DB pools`);
+    } catch (err) {
+      console.warn("[token-cache] DB pre-warm failed:", err);
+    }
+  })();
+
+  return warmPromise;
 }
 
 // Keep backward compat
