@@ -4,7 +4,7 @@
 import type { DefiProtocolAdapter } from "../types";
 import type { LPPositionData } from "@/types";
 import { resolveTokenMeta } from "../token-cache";
-import { createPublicClient, http, formatUnits } from "viem";
+import { createPublicClient, http, formatUnits, hexToString } from "viem";
 import { optimism } from "viem/chains";
 import {
   VELO_LP_SUGAR_ADDRESS,
@@ -27,6 +27,16 @@ const ERC20_ABI = [
     stateMutability: "view",
     inputs: [],
     outputs: [{ name: "", type: "uint8" }],
+  },
+] as const;
+
+const ERC20_BYTES32_ABI = [
+  {
+    name: "symbol",
+    type: "function",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "bytes32" }],
   },
 ] as const;
 
@@ -121,6 +131,7 @@ export class VelodromeAdapter implements DefiProtocolAdapter {
     });
 
     const tokenMeta = new Map<string, { symbol: string; decimals: number }>();
+    const failedSymbolTokens: `0x${string}`[] = [];
     for (let i = 0; i < uniqueTokens.length; i++) {
       const symR = metaResults[i * 2];
       const decR = metaResults[i * 2 + 1];
@@ -129,7 +140,32 @@ export class VelodromeAdapter implements DefiProtocolAdapter {
         symbol: symR.status === "success" ? (symR.result as string) : "???",
         decimals: decOk ? (decR.result as number) : 18,
       };
-      tokenMeta.set(uniqueTokens[i], resolveTokenMeta(uniqueTokens[i], fetched, decOk));
+      const resolved = resolveTokenMeta(uniqueTokens[i], fetched, decOk);
+      tokenMeta.set(uniqueTokens[i], resolved);
+      if (resolved.symbol === "???") failedSymbolTokens.push(uniqueTokens[i]);
+    }
+
+    // Retry failed symbols with bytes32 ABI (some tokens use bytes32)
+    if (failedSymbolTokens.length > 0) {
+      const b32Calls = failedSymbolTokens.map((tok) => ({
+        address: tok,
+        abi: ERC20_BYTES32_ABI,
+        functionName: "symbol" as const,
+      }));
+      const b32Results = await opClient.multicall({
+        contracts: b32Calls,
+        allowFailure: true,
+      });
+      for (let i = 0; i < failedSymbolTokens.length; i++) {
+        const r = b32Results[i];
+        if (r.status === "success" && r.result) {
+          const sym = hexToString(r.result as `0x${string}`, { size: 32 }).replace(/\0/g, "");
+          if (sym) {
+            const prev = tokenMeta.get(failedSymbolTokens[i])!;
+            tokenMeta.set(failedSymbolTokens[i], resolveTokenMeta(failedSymbolTokens[i], { symbol: sym, decimals: prev.decimals }, true));
+          }
+        }
+      }
     }
 
     // 5. Build LPPositionData
