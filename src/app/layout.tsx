@@ -4,6 +4,7 @@ import localFont from "next/font/local";
 import { Syne } from "next/font/google";
 import "./globals.css";
 import { SessionProvider } from "@/components/providers/SessionProvider";
+import { PortfolioCacheProvider } from "@/components/providers/PortfolioCacheProvider";
 import { RouteProgress } from "@/components/layout/RouteProgress";
 import { Analytics } from "@vercel/analytics/next";
 
@@ -43,7 +44,9 @@ export default function RootLayout({
         <Suspense>
           <RouteProgress />
         </Suspense>
-        <SessionProvider>{children}</SessionProvider>
+        <SessionProvider>
+          <PortfolioCacheProvider>{children}</PortfolioCacheProvider>
+        </SessionProvider>
         <Analytics />
       </body>
     </html>
