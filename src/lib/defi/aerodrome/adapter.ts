@@ -1,6 +1,7 @@
 import type { DefiProtocolAdapter } from "../types";
 import type { LPPositionData } from "@/types";
 import { resolveTokenMeta } from "../token-cache";
+import { hexToString } from "viem";
 import { baseClient } from "@/lib/chain/base/client";
 import {
   LP_SUGAR_ADDRESS,
@@ -25,6 +26,17 @@ const ERC20_ABI = [
     stateMutability: "view",
     inputs: [],
     outputs: [{ name: "", type: "uint8" }],
+  },
+] as const;
+
+// Some tokens (e.g. MKR) return bytes32 instead of string for symbol()
+const ERC20_BYTES32_ABI = [
+  {
+    name: "symbol",
+    type: "function",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "bytes32" }],
   },
 ] as const;
 
@@ -127,6 +139,7 @@ export class AerodromeAdapter implements DefiProtocolAdapter {
       string,
       { symbol: string; decimals: number }
     >();
+    const failedSymbolTokens: `0x${string}`[] = [];
     for (let i = 0; i < uniqueTokens.length; i++) {
       const symR = metaResults[i * 2];
       const decR = metaResults[i * 2 + 1];
@@ -135,7 +148,33 @@ export class AerodromeAdapter implements DefiProtocolAdapter {
         symbol: symR.status === "success" ? (symR.result as string) : "???",
         decimals: decOk ? (decR.result as number) : 18,
       };
-      tokenMeta.set(uniqueTokens[i], resolveTokenMeta(uniqueTokens[i], fetched, decOk));
+      const resolved = resolveTokenMeta(uniqueTokens[i], fetched, decOk);
+      tokenMeta.set(uniqueTokens[i], resolved);
+      if (resolved.symbol === "???") failedSymbolTokens.push(uniqueTokens[i]);
+    }
+
+    // Retry failed symbols with bytes32 ABI (some tokens like MKR use bytes32)
+    if (failedSymbolTokens.length > 0) {
+      console.warn(`[aerodrome] ${failedSymbolTokens.length} token symbol(s) failed string ABI, retrying with bytes32:`, failedSymbolTokens);
+      const b32Calls = failedSymbolTokens.map((tok) => ({
+        address: tok,
+        abi: ERC20_BYTES32_ABI,
+        functionName: "symbol" as const,
+      }));
+      const b32Results = await baseClient.multicall({
+        contracts: b32Calls,
+        allowFailure: true,
+      });
+      for (let i = 0; i < failedSymbolTokens.length; i++) {
+        const r = b32Results[i];
+        if (r.status === "success" && r.result) {
+          const sym = hexToString(r.result as `0x${string}`, { size: 32 }).replace(/\0/g, "");
+          if (sym) {
+            const prev = tokenMeta.get(failedSymbolTokens[i])!;
+            tokenMeta.set(failedSymbolTokens[i], resolveTokenMeta(failedSymbolTokens[i], { symbol: sym, decimals: prev.decimals }, true));
+          }
+        }
+      }
     }
 
     // ── 5. Build LPPositionData ───────────────────────────────────────────
