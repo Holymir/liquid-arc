@@ -250,11 +250,19 @@ export class RaydiumCLMMAdapter implements DefiProtocolAdapter {
         const tickSpacing = poolData.readUInt16LE(POOL_TICK_SPACING_OFFSET);
         const currentTick = poolData.readInt32LE(269);
 
+        // Pool total liquidity (for simulating pending reward growth)
+        const poolLiquidity = readU128LE(poolData, 237);
+
         // Fee growth globals from pool
         const feeGrowthGlobal0 = readU128LE(poolData, POOL_FEE_GROWTH_GLOBAL_0_OFFSET);
         const feeGrowthGlobal1 = readU128LE(poolData, POOL_FEE_GROWTH_GLOBAL_1_OFFSET);
 
         // Pool reward infos (up to 3)
+        // We simulate pending reward growth that hasn't been checkpointed on-chain yet.
+        // On-chain rewardGrowthGlobal is only updated on pool interactions (swaps, etc).
+        // Raydium's UI simulates the update; we do the same for accuracy.
+        const nowSec = BigInt(Math.floor(Date.now() / 1000));
+
         const poolRewardInfos: Array<{
           active: boolean;
           tokenMint: string;
@@ -273,8 +281,25 @@ export class RaydiumCLMMAdapter implements DefiProtocolAdapter {
             });
             continue;
           }
+
+          const endTime = poolData.readBigUInt64LE(base + 9);
+          const lastUpdateTime = poolData.readBigUInt64LE(base + 17);
+          const emissionsPerSecondX64 = readU128LE(poolData, base + 25);
           const rewardMint = new PublicKey(poolData.subarray(base + 57, base + 89)).toBase58();
-          const rewardGrowthGlobal = readU128LE(poolData, base + 153);
+          let rewardGrowthGlobal = readU128LE(poolData, base + 153);
+
+          // Simulate pending growth since last on-chain update
+          // This matches Raydium's UI which also simulates ahead of on-chain state
+          if (rewardState === 2 && poolLiquidity > 0n && emissionsPerSecondX64 > 0n) {
+            // Cap at endTime — no emissions after program ends
+            const effectiveNow = endTime > 0n && nowSec > endTime ? endTime : nowSec;
+            if (effectiveNow > lastUpdateTime) {
+              const timeDelta = effectiveNow - lastUpdateTime;
+              const pendingGrowth = (emissionsPerSecondX64 * timeDelta) / poolLiquidity;
+              rewardGrowthGlobal = (rewardGrowthGlobal + pendingGrowth) & MASK128;
+            }
+          }
+
           const meta = await resolveSymbol(rewardMint);
           poolRewardInfos.push({
             active: true,
