@@ -30,7 +30,7 @@ export class VelodromeStylePoolProvider implements PoolDataProvider {
   }
 
   async fetchPools(options?: { minTvlUsd?: number; limit?: number }): Promise<RawPoolData[]> {
-    const { pools } = await fetchPoolsFromSubgraph(this.subgraphId, options);
+    const { pools } = await fetchPoolsFromSubgraph(this.subgraphId, options, this.chainId);
     return pools;
   }
 
@@ -38,7 +38,7 @@ export class VelodromeStylePoolProvider implements PoolDataProvider {
     pools: RawPoolData[];
     dayDataByPool: Map<string, RawPoolDayData[]>;
   }> {
-    return fetchPoolsFromSubgraph(this.subgraphId, options);
+    return fetchPoolsFromSubgraph(this.subgraphId, options, this.chainId);
   }
 
   async fetchPoolDayData(poolAddress: string, days: number): Promise<RawPoolDayData[]> {

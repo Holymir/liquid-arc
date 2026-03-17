@@ -5,8 +5,8 @@
 
 import type { PositionEntryData } from "./events";
 import type { RawPoolData, RawPoolDayData, TokenPriceHistory } from "../types";
-import { baseClient } from "@/lib/chain/base/client";
-import { erc20Abi, formatUnits } from "viem";
+import { EVM_CHAINS } from "@/lib/chain/evm/chains";
+import { createPublicClient, http, erc20Abi, formatUnits } from "viem";
 
 const AERODROME_SUBGRAPH_ID = "GENunSHWLBXm59mBSgPzQ8metBEp9YDfdqwFr91Av1UM";
 
@@ -155,7 +155,8 @@ interface SubgraphPool {
  */
 export async function fetchPoolsFromSubgraph(
   subgraphId?: string,
-  options?: { minTvlUsd?: number; limit?: number; dayDataDays?: number }
+  options?: { minTvlUsd?: number; limit?: number; dayDataDays?: number },
+  chainId?: string
 ): Promise<{ pools: RawPoolData[]; dayDataByPool: Map<string, RawPoolDayData[]> }> {
   const minTvl = options?.minTvlUsd ?? 1000;
   const limit = options?.limit ?? 1000;
@@ -197,6 +198,9 @@ export async function fetchPoolsFromSubgraph(
 
   // Batch on-chain balanceOf calls for accurate TVL.
   // The subgraph's totalValueLockedToken0/Token1 are inflated (doesn't track removals).
+  // Only run multicall if we can resolve the correct chain client.
+  const chainConfig = chainId ? EVM_CHAINS[chainId] : EVM_CHAINS["base"];
+
   const balanceCalls = data.pools.flatMap((p) => [
     {
       address: p.token0.id as `0x${string}`,
@@ -213,11 +217,18 @@ export async function fetchPoolsFromSubgraph(
   ]);
 
   let onChainBalances: (bigint | null)[] = [];
-  try {
-    const results = await baseClient.multicall({ contracts: balanceCalls });
-    onChainBalances = results.map((r) => (r.status === "success" ? r.result as bigint : null));
-  } catch (err) {
-    console.warn("[subgraph] multicall balanceOf failed, falling back to subgraph TVL:", err);
+  if (chainConfig) {
+    try {
+      const rpcUrl = process.env[chainConfig.rpcEnvVar] || chainConfig.defaultRpcUrl;
+      const client = createPublicClient({
+        chain: chainConfig.viemChain,
+        transport: http(rpcUrl),
+      });
+      const results = await client.multicall({ contracts: balanceCalls });
+      onChainBalances = results.map((r) => (r.status === "success" ? r.result as bigint : null));
+    } catch (err) {
+      console.warn(`[subgraph] multicall balanceOf failed for ${chainId ?? "base"}, falling back to subgraph TVL:`, err);
+    }
   }
 
   for (let i = 0; i < data.pools.length; i++) {
@@ -232,8 +243,8 @@ export async function fetchPoolsFromSubgraph(
     const token1DerivedETH = parseFloat(p.token1.derivedETH);
 
     // Use on-chain balanceOf for accurate token amounts, fall back to subgraph
-    const bal0Raw = onChainBalances[i * 2];
-    const bal1Raw = onChainBalances[i * 2 + 1];
+    const bal0Raw = onChainBalances[i * 2] ?? null;
+    const bal1Raw = onChainBalances[i * 2 + 1] ?? null;
 
     let tvlUsd: number;
     if (bal0Raw !== null && bal1Raw !== null && ethPriceUsd > 0) {
