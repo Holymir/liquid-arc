@@ -196,6 +196,8 @@ model Pool {
   @@unique([chainId, poolAddress])
   @@index([protocolId])
   @@index([token0Address, token1Address])
+  @@index([token0Address])
+  @@index([token1Address])
   @@index([tvlUsd(sort: Desc)])
   @@index([fees24hUsd(sort: Desc)])
   @@map("pools")
