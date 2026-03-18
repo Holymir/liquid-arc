@@ -1,24 +1,33 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BarChart3,
   BookOpen,
-  LayoutDashboard,
+  Calculator,
+  ChevronDown,
   Menu,
+  PieChart,
+  Shield,
+  TrendingUp,
   X,
 } from "lucide-react";
 import { ConnectButton } from "@/components/wallet/ConnectButton";
 
-// ─────────────────────────────────────────
-// Nav config — main top-bar links
-// ─────────────────────────────────────────
-const NAV_LINKS = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/pools",      label: "Pools",     icon: BarChart3 },
-  { href: "/knowledge",  label: "Knowledge", icon: BookOpen },
+// ── Tier 1: Hero features — elevated visual weight
+const PRIMARY_NAV = [
+  { href: "/pools",      label: "Pools",      icon: BarChart3 },
+  { href: "/dashboard",  label: "Portfolio",  icon: PieChart },
+];
+
+// ── Tier 2: Supporting features — text-only, compact
+const SECONDARY_NAV = [
+  { href: "/market",     label: "Market",     icon: TrendingUp },
+  { href: "/protocols",  label: "Protocols",  icon: Shield },
+  { href: "/simulator",  label: "Simulator",  icon: Calculator },
+  { href: "/knowledge",  label: "Learn",      icon: BookOpen },
 ];
 
 // ─────────────────────────────────────────
@@ -50,37 +59,7 @@ function LogoMark() {
   );
 }
 
-// ─────────────────────────────────────────
-// Top nav link
-// ─────────────────────────────────────────
-function TopNavLink({
-  href,
-  label,
-  icon: Icon,
-  active,
-  onClick,
-}: {
-  href: string;
-  label: string;
-  icon: React.ElementType;
-  active: boolean;
-  onClick?: () => void;
-}) {
-  return (
-    <Link
-      href={href}
-      onClick={onClick}
-      className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg transition-all ${
-        active
-          ? "text-arc-400 bg-arc-500/10"
-          : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/30"
-      }`}
-    >
-      <Icon className="w-3.5 h-3.5" />
-      <span className="hidden sm:inline">{label}</span>
-    </Link>
-  );
-}
+// (nav rendering is inline in the header below)
 
 // ─────────────────────────────────────────
 // AppLayout
@@ -95,10 +74,28 @@ interface AppLayoutProps {
 
 export function AppLayout({ children, sidebarSlot, sidebarTitle }: AppLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const moreRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const hasSidebar = !!sidebarSlot;
 
   const close = () => setSidebarOpen(false);
+
+  const isActive = (href: string) =>
+    pathname === href || pathname.startsWith(href + "/");
+
+  const secondaryActive = SECONDARY_NAV.some((l) => isActive(l.href));
+
+  // Close "More" dropdown on click outside
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (moreRef.current && !moreRef.current.contains(e.target as Node)) {
+        setMoreOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: "#030b14" }}>
@@ -112,7 +109,7 @@ export function AppLayout({ children, sidebarSlot, sidebarTitle }: AppLayoutProp
           borderBottom: "1px solid rgba(255,255,255,0.05)",
         }}
       >
-        {/* Left — hamburger (mobile, only when sidebar exists) + logo + nav */}
+        {/* Left — hamburger + logo + nav */}
         <div className="flex items-center gap-3">
           {hasSidebar && (
             <button
@@ -134,21 +131,144 @@ export function AppLayout({ children, sidebarSlot, sidebarTitle }: AppLayoutProp
             </span>
           </Link>
 
-          {/* Main navigation */}
-          <nav className="flex items-center gap-0.5">
-            {NAV_LINKS.map(({ href, label, icon }) => {
-              const isActive =
-                pathname === href || pathname.startsWith(href + "/");
+          {/* ── Desktop navigation ── */}
+          <nav className="hidden sm:flex items-center gap-1">
+            {/* Tier 1 — Hero features: icon + label, accent border */}
+            {PRIMARY_NAV.map(({ href, label, icon: Icon }) => {
+              const active = isActive(href);
               return (
-                <TopNavLink
+                <Link
                   key={href}
                   href={href}
-                  label={label}
-                  icon={icon}
-                  active={isActive}
-                />
+                  className="relative flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all duration-200"
+                  style={{
+                    background: active
+                      ? "rgba(0,229,196,0.1)"
+                      : "rgba(255,255,255,0.03)",
+                    border: active
+                      ? "1px solid rgba(0,229,196,0.3)"
+                      : "1px solid rgba(255,255,255,0.06)",
+                    color: active ? "#00e5c4" : "#e2e8f0",
+                    boxShadow: active
+                      ? "0 0 12px rgba(0,229,196,0.15)"
+                      : "none",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!active) {
+                      e.currentTarget.style.borderColor = "rgba(0,229,196,0.2)";
+                      e.currentTarget.style.background = "rgba(0,229,196,0.05)";
+                      e.currentTarget.style.color = "#00e5c4";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!active) {
+                      e.currentTarget.style.borderColor = "rgba(255,255,255,0.06)";
+                      e.currentTarget.style.background = "rgba(255,255,255,0.03)";
+                      e.currentTarget.style.color = "#e2e8f0";
+                    }
+                  }}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  {label}
+                </Link>
               );
             })}
+
+            {/* Separator */}
+            <div
+              className="w-px h-4 mx-1.5 shrink-0"
+              style={{ background: "rgba(255,255,255,0.08)" }}
+            />
+
+            {/* Tier 2 — Secondary: text-only, muted, compact */}
+            {SECONDARY_NAV.map(({ href, label }) => {
+              const active = isActive(href);
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={`text-[11px] font-medium px-2 py-1.5 rounded-md transition-all duration-200 ${
+                    active
+                      ? "text-arc-400"
+                      : "text-slate-500 hover:text-slate-300"
+                  }`}
+                >
+                  {label}
+                </Link>
+              );
+            })}
+          </nav>
+
+          {/* ── Mobile navigation ── */}
+          <nav className="flex sm:hidden items-center gap-0.5 ml-1">
+            {/* Tier 1 — always visible */}
+            {PRIMARY_NAV.map(({ href, label, icon: Icon }) => {
+              const active = isActive(href);
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className="flex items-center gap-1 text-[10px] font-semibold px-2 py-1.5 rounded-lg transition-all"
+                  style={{
+                    background: active ? "rgba(0,229,196,0.1)" : "transparent",
+                    border: active
+                      ? "1px solid rgba(0,229,196,0.25)"
+                      : "1px solid transparent",
+                    color: active ? "#00e5c4" : "#94a3b8",
+                  }}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  {label}
+                </Link>
+              );
+            })}
+
+            {/* Tier 2 — "More" dropdown */}
+            <div ref={moreRef} className="relative">
+              <button
+                onClick={() => setMoreOpen((v) => !v)}
+                className={`flex items-center gap-0.5 text-[10px] font-medium px-2 py-1.5 rounded-lg transition-all ${
+                  secondaryActive || moreOpen ? "text-arc-400" : "text-slate-500"
+                }`}
+              >
+                More
+                <ChevronDown
+                  className={`w-3 h-3 transition-transform duration-200 ${
+                    moreOpen ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+
+              {moreOpen && (
+                <div
+                  className="absolute top-full left-0 mt-2 w-40 rounded-xl py-1.5 z-50"
+                  style={{
+                    background: "linear-gradient(145deg, #0c1a30, #081222)",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                    boxShadow: "0 12px 40px rgba(0,0,0,0.5), 0 0 1px rgba(255,255,255,0.1)",
+                  }}
+                >
+                  {SECONDARY_NAV.map(({ href, label, icon: Icon }) => {
+                    const active = isActive(href);
+                    return (
+                      <Link
+                        key={href}
+                        href={href}
+                        onClick={() => setMoreOpen(false)}
+                        className={`flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium transition-all ${
+                          active
+                            ? "text-arc-400 bg-arc-500/8"
+                            : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/40"
+                        }`}
+                      >
+                        <Icon className="w-3.5 h-3.5" />
+                        {label}
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </nav>
         </div>
 
