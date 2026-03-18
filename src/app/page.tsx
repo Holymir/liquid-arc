@@ -1,22 +1,26 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AppHeader } from "@/components/layout/AppHeader";
 import {
   ArrowRight,
   BarChart3,
+  BookOpen,
   ChevronRight,
+  Eye,
+  ExternalLink,
   Gift,
-  History,
-  Layers,
+  Globe,
+  Lock,
   TrendingUp,
-  Wallet,
   Zap,
 } from "lucide-react";
+import type { CoinMarketData } from "@/lib/market/types";
 
-// ─────────────────────────────────────────
-// LP Range Card — hero preview mockup
-// ─────────────────────────────────────────
+// -----------------------------------------------
+// LP Range Card -- hero preview mockup
+// -----------------------------------------------
 function LPRangeCard() {
   const bars = [28, 42, 35, 55, 48, 72, 65, 88, 78, 92, 85, 76, 82, 68, 95];
 
@@ -49,7 +53,7 @@ function LPRangeCard() {
               fontFamily: "var(--font-geist-mono)",
             }}
           >
-            WETH / USDC · 0.05%
+            WETH / USDC &middot; 0.05%
           </div>
           <div
             className="text-3xl font-bold"
@@ -242,78 +246,132 @@ function LPRangeCard() {
   );
 }
 
-// ─────────────────────────────────────────
+// -----------------------------------------------
 // Data
-// ─────────────────────────────────────────
-const features = [
+// -----------------------------------------------
+const valueProps = [
   {
     icon: BarChart3,
-    title: "Real-time P&L",
-    desc: "Instant profit & loss across all positions. See exactly what each LP is earning, in dollars.",
+    title: "Portfolio Tracking",
+    desc: "All your DeFi positions in one dashboard. Multi-chain, multi-protocol, real-time P&L.",
     accent: "#00e5c4",
-  },
-  {
-    icon: Layers,
-    title: "Range Visualization",
-    desc: "Visualize your concentrated liquidity range relative to the current price at a glance.",
-    accent: "#3b82f6",
+    href: "/dashboard",
   },
   {
     icon: TrendingUp,
-    title: "Impermanent Loss",
-    desc: "Track IL in real-time and compare against fee income to understand your true yield.",
+    title: "Yield Discovery",
+    desc: "Compare APRs across 20+ protocols. Find the best yields with our pool analytics.",
+    accent: "#3b82f6",
+    href: "/pools",
+  },
+  {
+    icon: Zap,
+    title: "Strategy Simulator",
+    desc: "Test LP strategies with real data before committing capital. Simulate fees vs impermanent loss.",
     accent: "#a78bfa",
-  },
-  {
-    icon: Gift,
-    title: "Claimable Rewards",
-    desc: "Never miss a reward. All pending emissions and fees aggregated across every position.",
-    accent: "#f59e0b",
-  },
-  {
-    icon: Wallet,
-    title: "Multi-Wallet",
-    desc: "Add multiple wallets and track your entire DeFi footprint from a single dashboard.",
-    accent: "#34d399",
-  },
-  {
-    icon: History,
-    title: "Portfolio History",
-    desc: "Time-travel through your portfolio. Snapshots, performance charts, and event history.",
-    accent: "#f87171",
+    href: "/simulator",
   },
 ];
 
 const steps = [
   {
     n: "01",
-    title: "Connect your wallet",
-    desc: "Sign in with your Ethereum wallet or email. We support all major Web3 wallets.",
+    title: "Connect or explore",
+    desc: "Connect your wallet or enter any address. Explore pools and market data with no signup.",
   },
   {
     n: "02",
-    title: "Positions appear instantly",
-    desc: "Your LP positions are pulled automatically. No manual entry, no configuration needed.",
+    title: "See everything live",
+    desc: "Positions, P&L, fees, rewards — all updated in real-time across chains.",
   },
   {
     n: "03",
-    title: "Optimize your yield",
-    desc: "Use P&L insights, IL data, and fee analytics to make smarter liquidity decisions.",
+    title: "Optimize with data",
+    desc: "Simulate strategies, compare protocols, make smarter liquidity decisions.",
   },
 ];
 
-// ─────────────────────────────────────────
+const protocols = [
+  { name: "Aerodrome", live: true },
+  { name: "Uniswap", live: true },
+  { name: "Velodrome", live: true },
+  { name: "Raydium", live: true },
+  { name: "Orca", live: true },
+  { name: "Meteora", live: true },
+  { name: "Aave", live: false },
+  { name: "Lido", live: false },
+  { name: "Curve", live: false },
+  { name: "Compound", live: false },
+  { name: "GMX", live: false },
+  { name: "Pendle", live: false },
+  { name: "Yearn", live: false },
+  { name: "Morpho", live: false },
+];
+
+const trustSignals = [
+  {
+    icon: Lock,
+    title: "Non-custodial",
+    desc: "We never touch your funds. Read-only access to public blockchain data.",
+  },
+  {
+    icon: Globe,
+    title: "Multi-chain",
+    desc: "Base, Ethereum, Arbitrum, Optimism, Solana — and growing.",
+  },
+  {
+    icon: Eye,
+    title: "Open Analytics",
+    desc: "Pool data, market trends, and protocol comparisons — free for everyone.",
+  },
+];
+
+// -----------------------------------------------
+// Helpers
+// -----------------------------------------------
+function formatPrice(price: number): string {
+  if (price >= 1) return price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  if (price >= 0.01) return price.toFixed(4);
+  return price.toFixed(6);
+}
+
+// -----------------------------------------------
 // Page
-// ─────────────────────────────────────────
+// -----------------------------------------------
 export default function Home() {
+  const [coins, setCoins] = useState<CoinMarketData[]>([]);
+
+  useEffect(() => {
+    fetch("/api/market?perPage=10")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.coins) setCoins(data.coins);
+      })
+      .catch(() => {});
+  }, []);
+
   return (
     <div
       className="min-h-screen overflow-x-hidden"
       style={{ background: "#030b14" }}
     >
+      {/* Ticker animation keyframes */}
+      <style>{`
+        @keyframes scroll-ticker {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+        .animate-scroll {
+          animation: scroll-ticker 30s linear infinite;
+        }
+        .animate-scroll:hover {
+          animation-play-state: paused;
+        }
+      `}</style>
+
       <AppHeader />
 
-      {/* ── Hero ─────────────────────────────────────── */}
+      {/* -- Hero ------------------------------------------ */}
       <section className="relative min-h-[calc(100vh-72px)] flex items-center">
         {/* Dot grid background */}
         <div
@@ -354,7 +412,7 @@ export default function Home() {
 
         <div className="relative z-10 w-full max-w-7xl mx-auto px-6 lg:px-8 pt-16 pb-24">
           <div className="grid lg:grid-cols-[1fr,1.1fr] gap-12 xl:gap-20 items-center">
-            {/* ── Copy ── */}
+            {/* -- Copy -- */}
             <div>
               {/* Eyebrow badge */}
               <div
@@ -379,7 +437,7 @@ export default function Home() {
                     fontFamily: "var(--font-geist-mono)",
                   }}
                 >
-                  Live on Base · Aerodrome
+                  Live Data &middot; 20+ Protocols &middot; 8+ Chains
                 </span>
               </div>
 
@@ -392,7 +450,7 @@ export default function Home() {
                     "var(--font-syne), var(--font-geist-sans), sans-serif",
                 }}
               >
-                Your LP,
+                DeFi Analytics,
                 <br />
                 <span
                   style={{
@@ -400,23 +458,20 @@ export default function Home() {
                     textShadow: "0 0 40px rgba(0,229,196,0.4)",
                   }}
                 >
-                  Crystal
+                  Simplified.
                 </span>
-                <br />
-                Clear.
               </h1>
 
               <p
                 className="text-lg leading-relaxed mb-10 max-w-[480px]"
                 style={{ color: "rgba(240,244,255,0.5)" }}
               >
-                Real-time analytics for concentrated liquidity positions. Track
-                P&L, monitor impermanent loss, and claim rewards — starting with
-                Aerodrome on Base.
+                Track positions, discover yields, simulate strategies — all in
+                one dashboard.
               </p>
 
-              {/* CTAs */}
-              <div className="flex flex-wrap items-center gap-4 mb-14">
+              {/* Single primary CTA */}
+              <div className="mb-3">
                 <Link
                   href="/register"
                   className="inline-flex items-center gap-2.5 px-7 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-[1.02] active:scale-[0.98]"
@@ -426,52 +481,43 @@ export default function Home() {
                     boxShadow: "0 0 28px rgba(0,229,196,0.4)",
                   }}
                 >
-                  Start Tracking Free
+                  Start Free
                   <ArrowRight className="w-4 h-4" />
                 </Link>
-                <Link
-                  href="/login"
-                  className="inline-flex items-center gap-2 text-sm transition-all hover:opacity-80"
-                  style={{ color: "rgba(240,244,255,0.45)" }}
-                >
-                  Already have an account
-                  <ChevronRight className="w-4 h-4" />
-                </Link>
               </div>
+              <p
+                className="text-xs mb-10"
+                style={{
+                  color: "rgba(240,244,255,0.35)",
+                  fontFamily: "var(--font-geist-mono)",
+                }}
+              >
+                No wallet required to explore
+              </p>
 
-              {/* Stats */}
-              <div className="flex flex-wrap gap-x-10 gap-y-5">
-                {[
-                  { v: "3+", l: "Protocols" },
-                  { v: "Base", l: "Network" },
-                  { v: "Live", l: "Real-time sync" },
-                ].map(({ v, l }) => (
-                  <div key={l}>
-                    <div
-                      className="text-2xl font-bold"
-                      style={{
-                        color: "#f0f4ff",
-                        fontFamily:
-                          "var(--font-syne), var(--font-geist-sans), sans-serif",
-                      }}
-                    >
-                      {v}
-                    </div>
-                    <div
-                      className="text-xs tracking-widest uppercase mt-0.5"
+              {/* Trust signals row */}
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+                {["Non-custodial", "Read-only", "No seed phrase"].map((t) => (
+                  <div key={t} className="flex items-center gap-2">
+                    <span
+                      className="w-1 h-1 rounded-full"
+                      style={{ background: "rgba(0,229,196,0.5)" }}
+                    />
+                    <span
+                      className="text-xs tracking-wide"
                       style={{
                         color: "rgba(240,244,255,0.28)",
                         fontFamily: "var(--font-geist-mono)",
                       }}
                     >
-                      {l}
-                    </div>
+                      {t}
+                    </span>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* ── Dashboard preview ── */}
+            {/* -- Dashboard preview -- */}
             <div className="relative hidden lg:block">
               <div
                 className="absolute -inset-8 pointer-events-none"
@@ -518,57 +564,80 @@ export default function Home() {
               </div>
             </div>
           </div>
-
-          {/* Protocol strip */}
-          <div
-            className="mt-16 pt-8 flex items-center gap-3 flex-wrap"
-            style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}
-          >
-            <span
-              className="text-xs tracking-widest uppercase mr-2"
-              style={{
-                color: "rgba(240,244,255,0.22)",
-                fontFamily: "var(--font-geist-mono)",
-              }}
-            >
-              Supported
-            </span>
-            {[
-              { name: "Aerodrome", live: true },
-              { name: "Uniswap V3", live: false },
-              { name: "Velodrome", live: false },
-              { name: "Solana", live: false },
-            ].map(({ name, live }) => (
-              <div
-                key={name}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs"
-                style={{
-                  background: "rgba(255,255,255,0.03)",
-                  border: "1px solid rgba(255,255,255,0.06)",
-                  fontFamily: "var(--font-geist-mono)",
-                  color: live ? "#f0f4ff" : "rgba(240,244,255,0.28)",
-                }}
-              >
-                {name}
-                {live && (
-                  <span
-                    className="px-1.5 py-0.5 rounded-full uppercase tracking-wide"
-                    style={{
-                      background: "rgba(0,229,196,0.12)",
-                      color: "#00e5c4",
-                      fontSize: "9px",
-                    }}
-                  >
-                    live
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
         </div>
       </section>
 
-      {/* ── Features ─────────────────────────────────── */}
+      {/* -- Live Market Ticker ----------------------------- */}
+      {coins.length > 0 && (
+        <section
+          className="py-4 px-6 lg:px-8"
+          style={{ borderTop: "1px solid rgba(255,255,255,0.05)", borderBottom: "1px solid rgba(255,255,255,0.05)" }}
+        >
+          <div className="max-w-7xl mx-auto">
+            <div className="overflow-hidden">
+              <div className="flex items-center gap-8 animate-scroll" style={{ width: "max-content" }}>
+                {/* Duplicate for seamless loop */}
+                {[...coins, ...coins].map((coin, idx) => (
+                  <Link
+                    key={`${coin.id}-${idx}`}
+                    href={`/market/${coin.id}`}
+                    className="flex items-center gap-2 shrink-0 transition-opacity hover:opacity-80"
+                  >
+                    <img
+                      src={coin.image}
+                      alt={coin.name}
+                      className="w-5 h-5 rounded-full"
+                    />
+                    <span
+                      className="text-sm font-medium"
+                      style={{ color: "rgba(240,244,255,0.7)" }}
+                    >
+                      {coin.symbol.toUpperCase()}
+                    </span>
+                    <span
+                      className="text-sm"
+                      style={{
+                        color: "rgba(240,244,255,0.45)",
+                        fontFamily: "var(--font-geist-mono)",
+                      }}
+                    >
+                      ${formatPrice(coin.currentPrice)}
+                    </span>
+                    <span
+                      className="text-xs"
+                      style={{
+                        fontFamily: "var(--font-geist-mono)",
+                        color:
+                          coin.priceChangePercentage24h >= 0
+                            ? "#34d399"
+                            : "#f87171",
+                      }}
+                    >
+                      {coin.priceChangePercentage24h >= 0 ? "+" : ""}
+                      {coin.priceChangePercentage24h.toFixed(1)}%
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+            <div className="mt-3 text-right">
+              <Link
+                href="/market"
+                className="inline-flex items-center gap-1.5 text-xs transition-all hover:opacity-80"
+                style={{
+                  color: "#00e5c4",
+                  fontFamily: "var(--font-geist-mono)",
+                }}
+              >
+                View Full Market
+                <ArrowRight className="w-3 h-3" />
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* -- Value Propositions (3 cards) ------------------- */}
       <section
         className="py-24 px-6 lg:px-8"
         style={{
@@ -599,10 +668,11 @@ export default function Home() {
           </div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {features.map(({ icon: Icon, title, desc, accent }) => (
-              <div
+            {valueProps.map(({ icon: Icon, title, desc, accent, href }) => (
+              <Link
                 key={title}
-                className="group rounded-2xl p-6 transition-all duration-300 cursor-default"
+                href={href}
+                className="group rounded-2xl p-6 transition-all duration-300 block"
                 style={{
                   background:
                     "linear-gradient(145deg, rgba(10,22,40,0.8), rgba(6,14,28,0.6))",
@@ -618,14 +688,20 @@ export default function Home() {
                   e.currentTarget.style.boxShadow = "none";
                 }}
               >
-                <div
-                  className="w-10 h-10 rounded-xl flex items-center justify-center mb-4"
-                  style={{
-                    background: `${accent}12`,
-                    border: `1px solid ${accent}20`,
-                  }}
-                >
-                  <Icon className="w-5 h-5" style={{ color: accent }} />
+                <div className="flex items-start justify-between mb-4">
+                  <div
+                    className="w-10 h-10 rounded-xl flex items-center justify-center"
+                    style={{
+                      background: `${accent}12`,
+                      border: `1px solid ${accent}20`,
+                    }}
+                  >
+                    <Icon className="w-5 h-5" style={{ color: accent }} />
+                  </div>
+                  <ArrowRight
+                    className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                    style={{ color: accent }}
+                  />
                 </div>
                 <h3
                   className="text-base font-bold mb-2"
@@ -643,13 +719,13 @@ export default function Home() {
                 >
                   {desc}
                 </p>
-              </div>
+              </Link>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── How it Works ─────────────────────────────── */}
+      {/* -- How it Works ---------------------------------- */}
       <section className="py-24 px-6 lg:px-8">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
@@ -734,7 +810,129 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── CTA ──────────────────────────────────────── */}
+      {/* -- Protocol Trust Strip --------------------------- */}
+      <section
+        className="py-20 px-6 lg:px-8"
+        style={{
+          background: "linear-gradient(180deg, #030b14 0%, #040d18 100%)",
+        }}
+      >
+        <div className="max-w-5xl mx-auto text-center">
+          <p
+            className="text-xs tracking-widest uppercase mb-4"
+            style={{
+              color: "#00e5c4",
+              fontFamily: "var(--font-geist-mono)",
+            }}
+          >
+            Ecosystem
+          </p>
+          <h2
+            className="text-3xl sm:text-4xl font-bold mb-4"
+            style={{
+              color: "#f0f4ff",
+              fontFamily:
+                "var(--font-syne), var(--font-geist-sans), sans-serif",
+            }}
+          >
+            Supporting 20+ protocols across 8+ chains
+          </h2>
+          <p
+            className="text-sm mb-12"
+            style={{ color: "rgba(240,244,255,0.38)" }}
+          >
+            From blue-chip DeFi to emerging yield aggregators.
+          </p>
+
+          <div className="flex flex-wrap justify-center gap-3 mb-8">
+            {protocols.map(({ name, live }) => (
+              <div
+                key={name}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm"
+                style={{
+                  background: "rgba(255,255,255,0.03)",
+                  border: "1px solid rgba(255,255,255,0.06)",
+                  fontFamily: "var(--font-geist-mono)",
+                  color: live ? "#f0f4ff" : "rgba(240,244,255,0.28)",
+                }}
+              >
+                {name}
+                {live && (
+                  <span
+                    className="px-1.5 py-0.5 rounded-full uppercase tracking-wide"
+                    style={{
+                      background: "rgba(0,229,196,0.12)",
+                      color: "#00e5c4",
+                      fontSize: "9px",
+                    }}
+                  >
+                    live
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <Link
+            href="/protocols"
+            className="inline-flex items-center gap-1.5 text-sm transition-all hover:opacity-80"
+            style={{
+              color: "#00e5c4",
+              fontFamily: "var(--font-geist-mono)",
+            }}
+          >
+            See all protocols
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+      </section>
+
+      {/* -- Social Proof / Trust Signals ------------------- */}
+      <section className="py-20 px-6 lg:px-8">
+        <div className="max-w-5xl mx-auto">
+          <div className="grid sm:grid-cols-3 gap-4">
+            {trustSignals.map(({ icon: Icon, title, desc }) => (
+              <div
+                key={title}
+                className="rounded-2xl p-5 text-center"
+                style={{
+                  background:
+                    "linear-gradient(145deg, rgba(10,22,40,0.8), rgba(6,14,28,0.6))",
+                  border: "1px solid rgba(255,255,255,0.06)",
+                }}
+              >
+                <div
+                  className="w-10 h-10 rounded-xl flex items-center justify-center mx-auto mb-4"
+                  style={{
+                    background: "rgba(0,229,196,0.08)",
+                    border: "1px solid rgba(0,229,196,0.15)",
+                  }}
+                >
+                  <Icon className="w-5 h-5" style={{ color: "#00e5c4" }} />
+                </div>
+                <h3
+                  className="text-sm font-bold mb-2"
+                  style={{
+                    color: "#f0f4ff",
+                    fontFamily:
+                      "var(--font-syne), var(--font-geist-sans), sans-serif",
+                  }}
+                >
+                  {title}
+                </h3>
+                <p
+                  className="text-xs leading-relaxed"
+                  style={{ color: "rgba(240,244,255,0.42)" }}
+                >
+                  {desc}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* -- Bottom CTA ------------------------------------- */}
       <section className="py-20 px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">
           <div
@@ -772,18 +970,17 @@ export default function Home() {
                     "var(--font-syne), var(--font-geist-sans), sans-serif",
                 }}
               >
-                Take control of your
+                Ready to optimize your
                 <br />
-                <span style={{ color: "#00e5c4" }}>liquidity positions.</span>
+                <span style={{ color: "#00e5c4" }}>DeFi?</span>
               </h2>
               <p
                 className="text-lg mb-10 max-w-lg mx-auto"
                 style={{ color: "rgba(240,244,255,0.45)" }}
               >
-                Join liquidity providers who track their DeFi positions with
-                LiquidArc.
+                Join liquidity providers who make data-driven decisions.
               </p>
-              <div className="flex flex-wrap justify-center gap-4">
+              <div className="flex flex-col items-center gap-4">
                 <Link
                   href="/register"
                   className="inline-flex items-center gap-2.5 px-8 py-4 rounded-xl font-bold text-sm transition-all hover:scale-[1.02] active:scale-[0.98]"
@@ -793,18 +990,16 @@ export default function Home() {
                     boxShadow: "0 0 32px rgba(0,229,196,0.4)",
                   }}
                 >
-                  Create Free Account
+                  Get Started Free
                   <ArrowRight className="w-4 h-4" />
                 </Link>
                 <Link
                   href="/pools"
-                  className="inline-flex items-center gap-2 px-8 py-4 rounded-xl text-sm font-medium transition-all hover:opacity-80"
-                  style={{
-                    border: "1px solid rgba(255,255,255,0.1)",
-                    color: "rgba(240,244,255,0.55)",
-                  }}
+                  className="inline-flex items-center gap-1.5 text-sm transition-all hover:opacity-80"
+                  style={{ color: "rgba(240,244,255,0.45)" }}
                 >
-                  Explore Pools First
+                  Explore Pools
+                  <ChevronRight className="w-4 h-4" />
                 </Link>
               </div>
             </div>
@@ -812,46 +1007,136 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── Footer ───────────────────────────────────── */}
+      {/* -- Footer ----------------------------------------- */}
       <footer
-        className="py-10 px-6 lg:px-8"
+        className="py-12 px-6 lg:px-8"
         style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}
       >
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div
-            className="text-base font-bold"
-            style={{
-              color: "#f0f4ff",
-              fontFamily:
-                "var(--font-syne), var(--font-geist-sans), sans-serif",
-            }}
-          >
-            LiquidArc
-          </div>
-          <div
-            className="text-xs"
-            style={{
-              color: "rgba(240,244,255,0.22)",
-              fontFamily: "var(--font-geist-mono)",
-            }}
-          >
-            Built on Base · More chains coming
-          </div>
-          <div className="flex gap-6">
-            {[
-              { href: "/login", label: "Sign in" },
-              { href: "/register", label: "Register" },
-              { href: "/pools", label: "Pools" },
-            ].map(({ href, label }) => (
-              <Link
-                key={href}
-                href={href}
-                className="text-xs transition-all hover:text-white"
-                style={{ color: "rgba(240,244,255,0.28)" }}
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 mb-10">
+            {/* Logo column */}
+            <div>
+              <div
+                className="text-base font-bold mb-3"
+                style={{
+                  color: "#f0f4ff",
+                  fontFamily:
+                    "var(--font-syne), var(--font-geist-sans), sans-serif",
+                }}
               >
-                {label}
-              </Link>
-            ))}
+                LiquidArc
+              </div>
+              <p
+                className="text-xs leading-relaxed"
+                style={{
+                  color: "rgba(240,244,255,0.22)",
+                  fontFamily: "var(--font-geist-mono)",
+                }}
+              >
+                Built on Base &middot; Expanding to 8+ chains
+              </p>
+            </div>
+
+            {/* Product */}
+            <div>
+              <div
+                className="text-xs tracking-widest uppercase mb-3"
+                style={{
+                  color: "rgba(240,244,255,0.35)",
+                  fontFamily: "var(--font-geist-mono)",
+                }}
+              >
+                Product
+              </div>
+              <div className="flex flex-col gap-2">
+                {[
+                  { href: "/market", label: "Market" },
+                  { href: "/pools", label: "Pools" },
+                  { href: "/protocols", label: "Protocols" },
+                  { href: "/simulator", label: "Simulator" },
+                ].map(({ href, label }) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    className="text-xs transition-all hover:text-white"
+                    style={{ color: "rgba(240,244,255,0.28)" }}
+                  >
+                    {label}
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            {/* Resources */}
+            <div>
+              <div
+                className="text-xs tracking-widest uppercase mb-3"
+                style={{
+                  color: "rgba(240,244,255,0.35)",
+                  fontFamily: "var(--font-geist-mono)",
+                }}
+              >
+                Resources
+              </div>
+              <div className="flex flex-col gap-2">
+                {[
+                  { href: "/knowledge", label: "Knowledge" },
+                  { href: "/dashboard", label: "Portfolio" },
+                ].map(({ href, label }) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    className="text-xs transition-all hover:text-white"
+                    style={{ color: "rgba(240,244,255,0.28)" }}
+                  >
+                    {label}
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            {/* Account */}
+            <div>
+              <div
+                className="text-xs tracking-widest uppercase mb-3"
+                style={{
+                  color: "rgba(240,244,255,0.35)",
+                  fontFamily: "var(--font-geist-mono)",
+                }}
+              >
+                Account
+              </div>
+              <div className="flex flex-col gap-2">
+                {[
+                  { href: "/login", label: "Sign in" },
+                  { href: "/register", label: "Register" },
+                ].map(({ href, label }) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    className="text-xs transition-all hover:text-white"
+                    style={{ color: "rgba(240,244,255,0.28)" }}
+                  >
+                    {label}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div
+            className="pt-6 flex items-center justify-center"
+            style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}
+          >
+            <span
+              className="text-xs"
+              style={{
+                color: "rgba(240,244,255,0.15)",
+                fontFamily: "var(--font-geist-mono)",
+              }}
+            >
+              &copy; {new Date().getFullYear()} LiquidArc. All rights reserved.
+            </span>
           </div>
         </div>
       </footer>
