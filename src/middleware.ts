@@ -51,7 +51,8 @@ export async function middleware(req: NextRequest) {
     pathname === "/forgot-password" ||
     pathname === "/reset-password" ||
     pathname === "/verify-email" ||
-    pathname === "/pools"
+    pathname === "/pools" ||
+    pathname.startsWith("/knowledge")
   ) {
     return res;
   }
