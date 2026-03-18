@@ -3,6 +3,7 @@
 import { protocolRegistry } from "./registry";
 import { aerodromePoolProvider, velodromePoolProvider } from "./aerodrome/pool-provider";
 import { uniswapV3PoolProviders } from "./uniswap-v3/pool-provider";
+import { uniswapV4PoolProviders } from "./uniswap-v4/pool-provider";
 import { raydiumPoolProvider } from "./raydium/pool-provider";
 import { orcaPoolProvider } from "./orca/pool-provider";
 
@@ -11,6 +12,9 @@ protocolRegistry.registerPoolProvider(aerodromePoolProvider);
 protocolRegistry.registerPoolProvider(velodromePoolProvider);
 
 for (const provider of Object.values(uniswapV3PoolProviders)) {
+  protocolRegistry.registerPoolProvider(provider);
+}
+for (const provider of Object.values(uniswapV4PoolProviders)) {
   protocolRegistry.registerPoolProvider(provider);
 }
 
