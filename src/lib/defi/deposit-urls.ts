@@ -1,9 +1,8 @@
 // Generate protocol-specific deposit URLs for pool rows.
 
-import { EVM_CHAINS } from "@/lib/chain/evm/chains";
-
-const CHAIN_NAMES: Record<string, string> = {
-  ethereum: "mainnet",
+// Uniswap explore page chain slugs (used in /explore/pools/{chain}/{address})
+const UNISWAP_CHAIN_SLUGS: Record<string, string> = {
+  ethereum: "ethereum",
   arbitrum: "arbitrum",
   polygon: "polygon",
   base: "base",
@@ -19,20 +18,6 @@ const BLOCK_EXPLORERS: Record<string, string> = {
   solana: "https://solscan.io/account",
 };
 
-/**
- * Replace the wrapped native token address with the native symbol
- * that the protocol's UI expects (e.g. Uniswap wants "ETH" not the WETH address).
- * Looks up the chain config dynamically instead of hardcoding addresses.
- */
-function nativeCurrencyId(chainId: string, tokenAddress: string): string {
-  const chain = EVM_CHAINS[chainId];
-  if (!chain) return tokenAddress;
-  if (tokenAddress.toLowerCase() === chain.wrappedNativeAddress.toLowerCase()) {
-    return chain.nativeSymbol;
-  }
-  return tokenAddress;
-}
-
 export function getDepositUrl(pool: {
   protocol: string;
   chainId: string;
@@ -44,19 +29,16 @@ export function getDepositUrl(pool: {
   const slug = pool.protocol;
 
   if (slug === "aerodrome") {
-    return `https://aerodrome.finance/deposit?token0=${pool.token0.address}&token1=${pool.token1.address}`;
+    return `https://aerodrome.finance/pools?token0=${pool.token0.address}&token1=${pool.token1.address}`;
   }
 
   if (slug === "velodrome") {
-    return `https://velodrome.finance/deposit?token0=${pool.token0.address}&token1=${pool.token1.address}`;
+    return `https://velodrome.finance/pools?token0=${pool.token0.address}&token1=${pool.token1.address}`;
   }
 
-  if (slug === "uniswap-v3") {
-    const chain = CHAIN_NAMES[pool.chainId] ?? "mainnet";
-    const fee = pool.feeTier ?? 3000;
-    const t0 = nativeCurrencyId(pool.chainId, pool.token0.address);
-    const t1 = nativeCurrencyId(pool.chainId, pool.token1.address);
-    return `https://app.uniswap.org/add/${t0}/${t1}/${fee}?chain=${chain}`;
+  if (slug === "uniswap-v3" || slug === "uniswap-v4") {
+    const chain = UNISWAP_CHAIN_SLUGS[pool.chainId] ?? "ethereum";
+    return `https://app.uniswap.org/explore/pools/${chain}/${pool.poolAddress}`;
   }
 
   if (slug === "raydium") {

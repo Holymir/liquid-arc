@@ -126,12 +126,12 @@ async function runPhase1(adapter: PoolAdapter, result: IngestionResult) {
   let poolDayDataMap = new Map<string, RawPoolDayData[]>();
 
   if (adapter.fetchPoolsWithDayData) {
-    const data = await adapter.fetchPoolsWithDayData({ minTvlUsd: 50000, limit: 100 });
+    const data = await adapter.fetchPoolsWithDayData({ minTvlUsd: 50000, limit: 200 });
     pools = data.pools;
     poolDayDataMap = data.dayDataByPool;
     console.log(`[ingestion] Got ${pools.length} pools with embedded day data`);
   } else {
-    pools = await adapter.fetchPools({ minTvlUsd: 50000, limit: 100 });
+    pools = await adapter.fetchPools({ minTvlUsd: 50000, limit: 200 });
   }
 
   // Filter out spam / dead / fake-TVL pools

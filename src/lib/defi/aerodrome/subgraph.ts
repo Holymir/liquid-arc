@@ -270,23 +270,32 @@ export async function fetchPoolsFromSubgraph(
     const token1Decimals = parseInt(p.token1.decimals, 10);
     const token0DerivedETH = p.token0.derivedETH ? parseFloat(p.token0.derivedETH) : 0;
     const token1DerivedETH = p.token1.derivedETH ? parseFloat(p.token1.derivedETH) : 0;
+    const subgraphTvl = parseFloat(p.totalValueLockedUSD);
 
     // Use on-chain balanceOf for accurate token amounts, fall back to subgraph
     const bal0Raw = onChainBalances[i * 2] ?? null;
     const bal1Raw = onChainBalances[i * 2 + 1] ?? null;
 
     let tvlUsd: number;
-    if (bal0Raw !== null && bal1Raw !== null && ethPriceUsd > 0) {
-      // On-chain balances — the ground truth
+    if (bal0Raw !== null && bal1Raw !== null && ethPriceUsd > 0
+        && token0DerivedETH > 0 && token1DerivedETH > 0) {
+      // On-chain balances × derived prices — the most accurate path
       const lockedToken0 = parseFloat(formatUnits(bal0Raw, token0Decimals));
       const lockedToken1 = parseFloat(formatUnits(bal1Raw, token1Decimals));
       const token0Usd = token0DerivedETH * ethPriceUsd;
       const token1Usd = token1DerivedETH * ethPriceUsd;
-      tvlUsd = lockedToken0 * token0Usd + lockedToken1 * token1Usd;
-    } else if (day1) {
-      tvlUsd = parseFloat(day1.tvlUSD);
+      const computedTvl = lockedToken0 * token0Usd + lockedToken1 * token1Usd;
+
+      // Sanity check: if computed TVL diverges > 5x from subgraph value,
+      // derivedETH is likely stale — prefer the subgraph's direct value.
+      if (subgraphTvl > 0 && (computedTvl > subgraphTvl * 5 || computedTvl < subgraphTvl / 5)) {
+        tvlUsd = subgraphTvl;
+      } else {
+        tvlUsd = computedTvl;
+      }
     } else {
-      tvlUsd = parseFloat(p.totalValueLockedUSD);
+      // Missing on-chain data or derivedETH — use subgraph value directly
+      tvlUsd = subgraphTvl;
     }
 
     // Derive tickSpacing from feeTier (standard Uniswap V3 mapping)
