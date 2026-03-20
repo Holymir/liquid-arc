@@ -32,16 +32,24 @@ export async function GET(request: NextRequest) {
         )
       : protocols;
 
-    // Compute total TVL
-    const totalTvl = chain
-      ? filteredProtocols.reduce((sum, p) => sum + p.tvl, 0)
-      : historicalTvl.length > 0
-        ? historicalTvl[historicalTvl.length - 1].tvl
-        : protocols.reduce((sum, p) => sum + p.tvl, 0);
+    // Compute total TVL — historicalTvl is already chain-specific when chain param is set
+    const totalTvl = historicalTvl.length > 0
+      ? historicalTvl[historicalTvl.length - 1].tvl
+      : filteredProtocols.reduce((sum, p) => sum + p.tvl, 0);
 
-    // Compute weighted 24h change
+    // Compute 24h change from historical data (works for both global and chain-specific)
     let tvlChange24h = 0;
-    if (filteredProtocols.length > 0) {
+    if (historicalTvl.length >= 2) {
+      const latest = historicalTvl[historicalTvl.length - 1];
+      const oneDayAgo = latest.date - 86400;
+      let prevTvl = historicalTvl[0].tvl;
+      for (const point of historicalTvl) {
+        if (point.date <= oneDayAgo) prevTvl = point.tvl;
+        else break;
+      }
+      tvlChange24h = prevTvl > 0 ? ((latest.tvl - prevTvl) / prevTvl) * 100 : 0;
+    } else if (filteredProtocols.length > 0) {
+      // Fallback to weighted protocol change
       let weightedSum = 0;
       let totalWeight = 0;
       for (const p of filteredProtocols) {
