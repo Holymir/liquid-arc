@@ -8,6 +8,7 @@ import {
   BookOpen,
   Calculator,
   ChevronDown,
+  Layers,
   Menu,
   PieChart,
   Shield,
@@ -25,6 +26,7 @@ const PRIMARY_NAV = [
 // ── Tier 2: Supporting features — text-only, compact
 const SECONDARY_NAV = [
   { href: "/market",     label: "Market",     icon: TrendingUp },
+  { href: "/defi",       label: "DeFi",       icon: Layers },
   { href: "/protocols",  label: "Protocols",  icon: Shield },
   { href: "/simulator",  label: "Simulator",  icon: Calculator },
   { href: "/knowledge",  label: "Learn",      icon: BookOpen },
