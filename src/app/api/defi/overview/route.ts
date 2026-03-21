@@ -23,19 +23,10 @@ export async function GET(request: NextRequest) {
         getStablecoinMcap(),
       ]);
 
-    // Filter protocols by chain if specified
-    const filteredProtocols = chain
-      ? protocols.filter(
-          (p) =>
-            p.chain.toLowerCase() === chain.toLowerCase() ||
-            p.chains.some((c) => c.toLowerCase() === chain.toLowerCase())
-        )
-      : protocols;
-
-    // Compute total TVL — historicalTvl is already chain-specific when chain param is set
+    // Compute total TVL from historical data (chain-specific when chain param is set)
     const totalTvl = historicalTvl.length > 0
       ? historicalTvl[historicalTvl.length - 1].tvl
-      : filteredProtocols.reduce((sum, p) => sum + p.tvl, 0);
+      : protocols.reduce((sum, p) => sum + p.tvl, 0);
 
     // Compute 24h change from historical data (works for both global and chain-specific)
     let tvlChange24h = 0;
@@ -48,24 +39,15 @@ export async function GET(request: NextRequest) {
         else break;
       }
       tvlChange24h = prevTvl > 0 ? ((latest.tvl - prevTvl) / prevTvl) * 100 : 0;
-    } else if (filteredProtocols.length > 0) {
-      // Fallback to weighted protocol change
-      let weightedSum = 0;
-      let totalWeight = 0;
-      for (const p of filteredProtocols) {
-        if (p.change1d != null && p.tvl > 0) {
-          weightedSum += p.change1d * p.tvl;
-          totalWeight += p.tvl;
-        }
-      }
-      tvlChange24h = totalWeight > 0 ? weightedSum / totalWeight : 0;
     }
 
+    // Always return ALL protocols — chain + category filtering happens client-side
+    // so the crossfilter between chains and categories works properly
     const response: DefiOverviewResponse = {
       totalTvl,
       tvlChange24h,
       historicalTvl,
-      protocols: filteredProtocols,
+      protocols,
       chains,
       stablecoinMcap,
       dexVolume24h: dexVolume,

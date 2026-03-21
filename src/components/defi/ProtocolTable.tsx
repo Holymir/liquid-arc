@@ -35,6 +35,7 @@ type SortField = "tvl" | "change1d" | "change7d" | "mcap";
 interface ProtocolTableProps {
   protocols: DefiProtocol[];
   loading: boolean;
+  selectedChain: string | null;
   selectedCategory: string | null;
 }
 
@@ -43,6 +44,7 @@ const PER_PAGE = 50;
 export function ProtocolTable({
   protocols,
   loading,
+  selectedChain,
   selectedCategory,
 }: ProtocolTableProps) {
   const [searchInput, setSearchInput] = useState("");
@@ -50,9 +52,17 @@ export function ProtocolTable({
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [page, setPage] = useState(1);
 
-  // Filter by category + search
+  // Filter by chain + category + search (all client-side for proper crossfiltering)
   const filtered = useMemo(() => {
     let result = protocols;
+    if (selectedChain) {
+      const chainLower = selectedChain.toLowerCase();
+      result = result.filter(
+        (p) =>
+          p.chain.toLowerCase() === chainLower ||
+          p.chains.some((c) => c.toLowerCase() === chainLower)
+      );
+    }
     if (selectedCategory) {
       result = result.filter(
         (p) => p.category.toLowerCase() === selectedCategory.toLowerCase()
@@ -68,7 +78,7 @@ export function ProtocolTable({
       );
     }
     return result;
-  }, [protocols, selectedCategory, searchInput]);
+  }, [protocols, selectedChain, selectedCategory, searchInput]);
 
   // Sort
   const sorted = useMemo(() => {

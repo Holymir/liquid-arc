@@ -286,6 +286,7 @@ export default function DefiPage() {
         <ProtocolTable
           protocols={overview?.protocols ?? []}
           loading={loading}
+          selectedChain={selectedChain}
           selectedCategory={selectedCategory}
         />
       </div>
