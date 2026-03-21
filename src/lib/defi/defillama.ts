@@ -51,26 +51,57 @@ function downsample<T>(data: T[], maxPoints: number): T[] {
 
 export async function getProtocols(): Promise<DefiProtocol[]> {
   return cached("defillama:protocols", 300, async () => {
+    // Use /protocols (not /v2/protocols) — the well-documented endpoint
+    // that reliably includes chains[] and chainTvls fields.
     const raw = await fetchJson<DefiLlamaProtocolRaw[]>(
-      `${LLAMA_API}/v2/protocols`
+      `${LLAMA_API}/protocols`
     );
     if (!raw) return [];
 
     return raw
       .filter((p) => p.tvl > 0)
-      .map((p) => ({
-        name: p.name,
-        slug: p.slug,
-        logo: p.logo ?? "",
-        chain: p.chain ?? "",
-        chains: p.chains ?? [],
-        tvl: p.tvl ?? 0,
-        change1d: p.change_1d ?? null,
-        change7d: p.change_7d ?? null,
-        category: p.category ?? "",
-        url: p.url ?? "",
-        mcap: p.mcap ?? null,
-      }));
+      .map((p) => {
+        // Derive chains from chainTvls keys as primary source (most reliable),
+        // fall back to chains array, then to primary chain field.
+        // chainTvls can contain compound keys like "Ethereum-staking",
+        // "Ethereum-borrowed", "Ethereum-pool2" — filter to base chain names only.
+        const SUBCATEGORY_SUFFIXES = [
+          "-staking", "-borrowed", "-pool2", "-vesting",
+          "-treasury", "-offers", "-masterchef", "-governance",
+        ];
+        const STANDALONE_SUBCATEGORIES = new Set([
+          "staking", "pool2", "borrowed", "treasury", "offers",
+        ]);
+        const chainTvlKeys = p.chainTvls
+          ? Object.keys(p.chainTvls).filter(
+              (k) =>
+                !STANDALONE_SUBCATEGORIES.has(k) &&
+                !SUBCATEGORY_SUFFIXES.some((s) => k.endsWith(s))
+            )
+          : [];
+        const chains =
+          chainTvlKeys.length > 0
+            ? chainTvlKeys
+            : p.chains?.length
+              ? p.chains
+              : p.chain
+                ? [p.chain]
+                : [];
+
+        return {
+          name: p.name,
+          slug: p.slug,
+          logo: p.logo ?? "",
+          chain: p.chain ?? "",
+          chains,
+          tvl: p.tvl ?? 0,
+          change1d: p.change_1d ?? null,
+          change7d: p.change_7d ?? null,
+          category: p.category ?? "",
+          url: p.url ?? "",
+          mcap: p.mcap ?? null,
+        };
+      });
   });
 }
 

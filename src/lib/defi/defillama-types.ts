@@ -9,6 +9,8 @@ export interface DefiLlamaProtocolRaw {
   logo: string;
   chain: string;
   chains: string[];
+  /** Flat mapping of chain name → current TVL (always present on /protocols list endpoint) */
+  chainTvls: Record<string, number>;
   tvl: number;
   change_1h: number | null;
   change_1d: number | null;

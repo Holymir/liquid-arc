@@ -107,10 +107,7 @@ export default function DefiPage() {
       sidebarTitle="DeFi"
       sidebarSlot={
         <DefiSidebar
-          chains={overview?.chains ?? []}
           protocols={overview?.protocols ?? []}
-          selectedChain={selectedChain}
-          onSelectChain={setSelectedChain}
           selectedCategory={selectedCategory}
           onSelectCategory={setSelectedCategory}
         />
