@@ -26,7 +26,6 @@ services:
   #     - "3000:3000"
   #   environment:
   #     - DATABASE_URL=postgresql://liquidark:liquidark@postgres:5432/liquidark
-  #     - NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=${NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID}
   #     - BASE_RPC_URL=${BASE_RPC_URL}
   #   depends_on:
   #     postgres:

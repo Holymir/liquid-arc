@@ -28,14 +28,13 @@ Personal DeFi portfolio tracker that connects to Web3 wallets and displays real-
 
 - Node.js 20+
 - Docker (for local PostgreSQL)
-- WalletConnect Project ID — get one at [cloud.walletconnect.com](https://cloud.walletconnect.com)
 
 ## Quick Start
 
 ```bash
 # 1. Copy environment variables
 cp .env.example .env
-# Edit .env and add your NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID
+# Edit .env with your database and RPC settings
 
 # 2. Start postgres + dev server
 make dev
@@ -67,8 +66,8 @@ src/
 │   ├── knowledge/          # Educational articles
 │   └── api/                # REST API (auth, portfolio, wallets, prices, pools, market)
 ├── components/             # React components
-│   ├── providers/          # Web3Provider, SessionProvider, PortfolioCacheProvider
-│   ├── wallet/             # ConnectButton, WalletPanel, NetworkBadge
+│   ├── providers/          # SessionProvider, PortfolioCacheProvider
+│   ├── wallet/             # ConnectButton (auth), WalletPanel (address tracking)
 │   ├── dashboard/          # Portfolio UI, TokenList, LPPositions, Charts
 │   └── layout/             # AppHeader, AppLayout, RouteProgress
 ├── hooks/                  # usePortfolio, useAuth, usePrices, useTrackedWallets, etc.
@@ -99,11 +98,10 @@ src/
 ## Tech Stack
 
 - **Next.js 16** (App Router) + React 19 + TypeScript
-- **wagmi v2 + RainbowKit** — EVM wallet connection
 - **viem** — on-chain reads (Base, Optimism, Arbitrum, Ethereum)
 - **@solana/web3.js + @solana/spl-token** — Solana wallet & token reads
 - **PostgreSQL 16 + Prisma 5** — persistence & snapshots
-- **TailwindCSS + shadcn/ui** — UI components
+- **TailwindCSS** — UI styling
 - **Recharts** — portfolio charts & data visualization
 - **CoinGecko + Jupiter + DexScreener** — price feeds
 - **iron-session** — encrypted cookie-based sessions
@@ -115,7 +113,6 @@ src/
 
 ```env
 DATABASE_URL=postgresql://liquidark:liquidark@localhost:5433/liquidark
-NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=   # Required
 BASE_RPC_URL=https://mainnet.base.org
 COINGECKO_API_KEY=                      # Optional
 COINGECKO_API_URL=https://api.coingecko.com/api/v3
@@ -135,4 +132,4 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 - **Phase 2** ✅ Multi-chain — Solana (Orca, Raydium, Meteora), Optimism (Velodrome), Uniswap V3
 - **Phase 3:** LP Automation — rebalancing, range adjustments via smart contract proxy
 - **Phase 4:** Alerts — price alerts, IL warnings, out-of-range notifications
-- **Phase 5:** Multi-user SaaS — SIWE auth, Stripe billing
+- **Phase 5:** Multi-user SaaS — Stripe billing, expanded tiers

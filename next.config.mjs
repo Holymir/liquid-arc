@@ -12,25 +12,6 @@ const nextConfig = {
     minimumCacheTTL: 86400, // cache optimized images for 24h
   },
 
-  // Turbopack equivalent of the webpack resolve.fallback for pino-pretty
-  // (optional dep of pino, used by WalletConnect — not needed in Next.js)
-  experimental: {
-    turbo: {
-      resolveAlias: {
-        "pino-pretty": "",
-      },
-    },
-  },
-
-  // Keep webpack config for production builds (next build still uses webpack)
-  webpack: (config) => {
-    config.resolve.fallback = {
-      ...config.resolve.fallback,
-      "pino-pretty": false,
-    };
-    return config;
-  },
-
   async headers() {
     return [
       {
