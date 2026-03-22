@@ -27,8 +27,37 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "LiquidArc",
-  description: "Track your DeFi portfolio across chains",
+  title: "LiquidArc — DeFi Portfolio Tracker & LP Analytics",
+  description:
+    "Track DeFi positions, LP fees, and P&L across Base, Ethereum, Solana, Arbitrum & Optimism. Real-time analytics for Aerodrome, Uniswap, Orca, Raydium, Velodrome & Meteora.",
+  keywords: [
+    "DeFi portfolio tracker",
+    "LP analytics",
+    "impermanent loss",
+    "liquidity pool",
+    "Aerodrome",
+    "Uniswap V3",
+    "Orca",
+    "Raydium",
+    "Velodrome",
+    "Meteora",
+    "Base",
+    "Solana",
+    "yield farming",
+  ],
+  openGraph: {
+    title: "LiquidArc — DeFi Portfolio Tracker & LP Analytics",
+    description:
+      "Multi-chain DeFi dashboard. Track LP positions, fees earned, emissions, and P&L across 6 protocols and 5 chains.",
+    siteName: "LiquidArc",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "LiquidArc — DeFi Portfolio Tracker",
+    description:
+      "Real-time LP analytics across Base, Ethereum, Solana, Arbitrum & Optimism. Fees, P&L, APR — all in one dashboard.",
+  },
 };
 
 export default function RootLayout({
