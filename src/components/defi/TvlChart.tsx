@@ -104,9 +104,9 @@ export function TvlChart({ data, isLoading }: TvlChartProps) {
   const handlePeriodChange = useCallback((p: Period) => setPeriod(p), []);
 
   return (
-    <div className="glass-card rounded-2xl p-6 animate-fade-in-up">
+    <div className="glass-card rounded-2xl p-4 animate-fade-in-up">
       {/* Header */}
-      <div className="flex items-start justify-between mb-5 gap-4">
+      <div className="flex items-start justify-between mb-3 gap-4">
         <div className="min-w-0">
           <h2 className="text-slate-400 font-semibold text-xs uppercase tracking-widest">
             Historical TVL
@@ -143,18 +143,18 @@ export function TvlChart({ data, isLoading }: TvlChartProps) {
 
       {/* Chart */}
       {isLoading ? (
-        <div className="h-[300px] flex items-center justify-center">
+        <div className="h-[220px] flex items-center justify-center">
           <div className="flex items-center gap-2 text-slate-500 text-sm">
             <div className="w-4 h-4 border-2 border-slate-600 border-t-slate-400 rounded-full animate-spin" />
             Loading chart...
           </div>
         </div>
       ) : filteredData.length < 2 ? (
-        <div className="h-[300px] flex items-center justify-center">
+        <div className="h-[220px] flex items-center justify-center">
           <p className="text-slate-500 text-sm">No historical data available</p>
         </div>
       ) : (
-        <ResponsiveContainer width="100%" height={300}>
+        <ResponsiveContainer width="100%" height={220}>
           <AreaChart
             data={filteredData}
             margin={{ top: 12, right: 4, left: 0, bottom: 4 }}
