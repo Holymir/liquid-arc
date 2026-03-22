@@ -260,18 +260,20 @@ export default function DefiPage() {
           </div>
         )}
 
-        {/* ── ROW 3: Chart + Table — side-by-side on desktop ─── */}
-        <div className="flex-1 min-h-0 grid grid-cols-1 xl:grid-cols-[minmax(320px,420px)_1fr] gap-3">
-          {/* Left: TVL Chart */}
-          <div className="min-h-0 xl:max-h-[calc(100vh-180px)] xl:overflow-hidden">
-            <TvlChart
-              data={overview?.historicalTvl ?? []}
-              isLoading={loading}
-            />
+        {/* ── ROW 3: Chart + Table — proportional side-by-side ── */}
+        <div className="flex-1 min-h-0 grid grid-cols-1 xl:grid-cols-[2fr_3fr] gap-3 items-start">
+          {/* Left: TVL Chart — proportional width, natural aspect ratio */}
+          <div className="min-h-0 xl:sticky xl:top-0">
+            <div style={{ aspectRatio: "5 / 3" }}>
+              <TvlChart
+                data={overview?.historicalTvl ?? []}
+                isLoading={loading}
+              />
+            </div>
           </div>
 
-          {/* Right: Protocol Table */}
-          <div className="min-h-0 xl:max-h-[calc(100vh-180px)] xl:overflow-y-auto scrollbar-hide">
+          {/* Right: Protocol Table — scrolls independently */}
+          <div className="min-h-0 xl:max-h-[calc(100vh-160px)] xl:overflow-y-auto scrollbar-hide">
             <ProtocolTable
               protocols={overview?.protocols ?? []}
               loading={loading}
