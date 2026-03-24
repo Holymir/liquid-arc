@@ -2,41 +2,73 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import Image from "next/image";
 import {
   BarChart3,
   BookOpen,
   Calculator,
   ChevronDown,
+  HelpCircle,
+  LayoutDashboard,
+  LogOut,
   Menu,
-  PieChart,
+  PlusCircle,
+  Settings,
   Shield,
   TrendingUp,
+  Wallet,
+  Waves,
   X,
 } from "lucide-react";
-import { ConnectButton } from "@/components/wallet/ConnectButton";
+import { useSession } from "@/components/providers/SessionProvider";
+import { useTrackedWallets, type TrackedWallet } from "@/hooks/useTrackedWallets";
 
-// ── Tier 1: Hero features — elevated visual weight
-const PRIMARY_NAV = [
-  { href: "/pools",      label: "Pools",      icon: BarChart3 },
-  { href: "/dashboard",  label: "Portfolio",  icon: PieChart },
-];
+// ─────────────────────────────────────────
+// Navigation config
+// ─────────────────────────────────────────
 
-// ── Tier 2: Supporting features — text-only, compact
-const SECONDARY_NAV = [
-  { href: "/market",     label: "Market",     icon: TrendingUp },
+// Top navbar links
+const TOP_NAV = [
+  { href: "/",           label: "Market",     icon: TrendingUp },
   { href: "/protocols",  label: "Protocols",  icon: Shield },
   { href: "/simulator",  label: "Simulator",  icon: Calculator },
+  { href: "/knowledge",  label: "Learn",      icon: BookOpen },
+];
+
+// Sidebar primary nav
+const SIDEBAR_NAV = [
+  { href: "/dashboard",  label: "Dashboard",  icon: LayoutDashboard },
+  { href: "/defi",       label: "DeFi",       icon: BarChart3 },
+  { href: "/pools",      label: "Pools",      icon: Waves },
+];
+
+// Sidebar categories (link to protocols with category filter)
+const CATEGORIES = [
+  { label: "DEXes",       href: "/protocols?category=dex" },
+  { label: "Lending",     href: "/protocols?category=lending" },
+  { label: "Bridges",     href: "/protocols?category=bridge" },
+  { label: "Yield",       href: "/protocols?category=yield" },
+  { label: "Derivatives", href: "/protocols?category=derivatives" },
+];
+
+// Mobile bottom nav
+const MOBILE_NAV = [
+  { href: "/dashboard",  label: "Dashboard",  icon: LayoutDashboard },
+  { href: "/pools",      label: "Pools",      icon: Waves },
+  { href: "/",           label: "Market",     icon: TrendingUp },
   { href: "/knowledge",  label: "Learn",      icon: BookOpen },
 ];
 
 // ─────────────────────────────────────────
 // Logo mark
 // ─────────────────────────────────────────
-function LogoMark() {
+function LogoMark({ size = "md" }: { size?: "sm" | "md" }) {
+  const s = size === "sm" ? "w-6 h-6" : "w-7 h-7";
+  const i = size === "sm" ? "w-3 h-3" : "w-3.5 h-3.5";
   return (
     <div
-      className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+      className={`${s} rounded-lg flex items-center justify-center shrink-0`}
       style={{
         background: "rgba(0,229,196,0.1)",
         border: "1px solid rgba(0,229,196,0.2)",
@@ -45,7 +77,7 @@ function LogoMark() {
       <svg
         viewBox="0 0 24 24"
         fill="none"
-        className="w-3.5 h-3.5 text-arc-400"
+        className={`${i} text-arc-400`}
         stroke="currentColor"
         strokeWidth={1.5}
       >
@@ -59,38 +91,82 @@ function LogoMark() {
   );
 }
 
-// (nav rendering is inline in the header below)
+// ─────────────────────────────────────────
+// Truncate address helper
+// ─────────────────────────────────────────
+function truncAddr(addr: string) {
+  if (addr.length <= 12) return addr;
+  return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+}
+
+// ─────────────────────────────────────────
+// Avatar initials helper
+// ─────────────────────────────────────────
+function getInitials(displayName?: string | null, email?: string): string {
+  if (displayName) {
+    return displayName
+      .split(/\s+/)
+      .map((w) => w[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  }
+  if (email) return email[0].toUpperCase();
+  return "?";
+}
+
+// ─────────────────────────────────────────
+// User avatar component
+// ─────────────────────────────────────────
+function UserAvatar({ photoURL, displayName, email }: { photoURL?: string | null; displayName?: string | null; email?: string }) {
+  if (photoURL) {
+    return (
+      <Image
+        src={photoURL}
+        alt="Avatar"
+        width={28}
+        height={28}
+        className="w-7 h-7 rounded-full object-cover border border-outline-variant/20"
+        unoptimized
+      />
+    );
+  }
+  return (
+    <div className="w-7 h-7 rounded-full bg-arc-400/10 flex items-center justify-center border border-outline-variant/20">
+      <span className="text-arc-400 text-xs font-bold">{getInitials(displayName, email)}</span>
+    </div>
+  );
+}
 
 // ─────────────────────────────────────────
 // AppLayout
 // ─────────────────────────────────────────
 interface AppLayoutProps {
   children: React.ReactNode;
-  /** Contextual sub-navigation for the left sidebar (e.g. WalletPanel, PoolsSidebar) */
-  sidebarSlot?: React.ReactNode;
-  /** Optional title shown above sidebar content */
-  sidebarTitle?: string;
 }
 
-export function AppLayout({ children, sidebarSlot, sidebarTitle }: AppLayoutProps) {
+export function AppLayout({ children }: AppLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [moreOpen, setMoreOpen] = useState(false);
-  const moreRef = useRef<HTMLDivElement>(null);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
-  const hasSidebar = !!sidebarSlot;
+  const router = useRouter();
+  const { user, status, logout } = useSession();
+  const isAuthed = status === "authenticated";
+  const { wallets } = useTrackedWallets();
 
   const close = () => setSidebarOpen(false);
 
-  const isActive = (href: string) =>
-    pathname === href || pathname.startsWith(href + "/");
+  const isActive = (href: string) => {
+    if (href === "/") return pathname === "/";
+    return pathname === href || pathname.startsWith(href + "/");
+  };
 
-  const secondaryActive = SECONDARY_NAV.some((l) => isActive(l.href));
-
-  // Close "More" dropdown on click outside
+  // Close user menu on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (moreRef.current && !moreRef.current.contains(e.target as Node)) {
-        setMoreOpen(false);
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setUserMenuOpen(false);
       }
     };
     document.addEventListener("mousedown", handler);
@@ -98,261 +174,351 @@ export function AppLayout({ children, sidebarSlot, sidebarTitle }: AppLayoutProp
   }, []);
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: "#030b14" }}>
-
-      {/* ── Top bar ──────────────────────────── */}
-      <header
-        className="sticky top-0 z-30 h-14 flex items-center justify-between px-4 sm:px-6 shrink-0"
+    <div className="min-h-screen flex flex-col" style={{ background: "#0a141d" }}>
+      {/* ── Top Navbar ──────────────────────────── */}
+      <nav
+        className="fixed top-0 w-full z-50 flex items-center justify-between h-20 px-4 lg:px-8"
         style={{
-          background: "rgba(3,11,20,0.88)",
-          backdropFilter: "blur(14px)",
-          borderBottom: "1px solid rgba(255,255,255,0.05)",
+          background: "rgba(10, 20, 29, 0.80)",
+          backdropFilter: "blur(16px)",
+          WebkitBackdropFilter: "blur(16px)",
+          borderBottom: "1px solid rgba(255, 255, 255, 0.05)",
         }}
       >
-        {/* Left — hamburger + logo + nav */}
+        {/* Left: hamburger + logo */}
         <div className="flex items-center gap-3">
-          {hasSidebar && (
-            <button
-              onClick={() => setSidebarOpen((v) => !v)}
-              className="lg:hidden p-1.5 rounded-lg text-slate-500 hover:text-slate-200 hover:bg-slate-800/40 transition-all"
-              aria-label="Toggle sidebar"
-            >
-              <Menu className="w-5 h-5" />
-            </button>
-          )}
-
-          <Link href="/" className="flex items-center gap-2 mr-2">
+          <button
+            onClick={() => setSidebarOpen((v) => !v)}
+            className="lg:hidden p-2 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high/50 transition-all"
+            aria-label="Toggle sidebar"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+          <Link href="/" className="flex items-center gap-2.5">
             <LogoMark />
             <span
-              className="font-extrabold text-sm tracking-tight text-slate-100 hidden sm:inline"
+              className="text-2xl font-bold tracking-tighter text-on-surface hidden sm:inline"
               style={{ fontFamily: "var(--font-syne), sans-serif" }}
             >
               LiquidArc
             </span>
           </Link>
+        </div>
 
-          {/* ── Desktop navigation ── */}
-          <nav className="hidden sm:flex items-center gap-1">
-            {/* Tier 1 — Hero features: icon + label, accent border */}
-            {PRIMARY_NAV.map(({ href, label, icon: Icon }) => {
-              const active = isActive(href);
-              return (
-                <Link
-                  key={href}
-                  href={href}
-                  className="relative flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all duration-200"
-                  style={{
-                    background: active
-                      ? "rgba(0,229,196,0.1)"
-                      : "rgba(255,255,255,0.03)",
-                    border: active
-                      ? "1px solid rgba(0,229,196,0.3)"
-                      : "1px solid rgba(255,255,255,0.06)",
-                    color: active ? "#00e5c4" : "#e2e8f0",
-                    boxShadow: active
-                      ? "0 0 12px rgba(0,229,196,0.15)"
-                      : "none",
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!active) {
-                      e.currentTarget.style.borderColor = "rgba(0,229,196,0.2)";
-                      e.currentTarget.style.background = "rgba(0,229,196,0.05)";
-                      e.currentTarget.style.color = "#00e5c4";
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!active) {
-                      e.currentTarget.style.borderColor = "rgba(255,255,255,0.06)";
-                      e.currentTarget.style.background = "rgba(255,255,255,0.03)";
-                      e.currentTarget.style.color = "#e2e8f0";
-                    }
-                  }}
-                >
-                  <Icon className="w-3.5 h-3.5" />
-                  {label}
-                </Link>
-              );
-            })}
-
-            {/* Separator */}
-            <div
-              className="w-px h-4 mx-1.5 shrink-0"
-              style={{ background: "rgba(255,255,255,0.08)" }}
-            />
-
-            {/* Tier 2 — Secondary: text-only, muted, compact */}
-            {SECONDARY_NAV.map(({ href, label }) => {
-              const active = isActive(href);
-              return (
-                <Link
-                  key={href}
-                  href={href}
-                  className={`text-[11px] font-medium px-2 py-1.5 rounded-md transition-all duration-200 ${
-                    active
-                      ? "text-arc-400"
-                      : "text-slate-500 hover:text-slate-300"
-                  }`}
-                >
-                  {label}
-                </Link>
-              );
-            })}
-          </nav>
-
-          {/* ── Mobile navigation ── */}
-          <nav className="flex sm:hidden items-center gap-0.5 ml-1">
-            {/* Tier 1 — always visible */}
-            {PRIMARY_NAV.map(({ href, label, icon: Icon }) => {
-              const active = isActive(href);
-              return (
-                <Link
-                  key={href}
-                  href={href}
-                  className="flex items-center gap-1 text-[10px] font-semibold px-2 py-1.5 rounded-lg transition-all"
-                  style={{
-                    background: active ? "rgba(0,229,196,0.1)" : "transparent",
-                    border: active
-                      ? "1px solid rgba(0,229,196,0.25)"
-                      : "1px solid transparent",
-                    color: active ? "#00e5c4" : "#94a3b8",
-                  }}
-                >
-                  <Icon className="w-3.5 h-3.5" />
-                  {label}
-                </Link>
-              );
-            })}
-
-            {/* Tier 2 — "More" dropdown */}
-            <div ref={moreRef} className="relative">
-              <button
-                onClick={() => setMoreOpen((v) => !v)}
-                className={`flex items-center gap-0.5 text-[10px] font-medium px-2 py-1.5 rounded-lg transition-all ${
-                  secondaryActive || moreOpen ? "text-arc-400" : "text-slate-500"
+        {/* Center: top nav links (desktop) */}
+        <div className="hidden md:flex items-center gap-6">
+          {TOP_NAV.map(({ href, label }) => {
+            const active = isActive(href);
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={`text-sm font-medium tracking-tight transition-colors pb-1 ${
+                  active
+                    ? "text-on-surface border-b-2 border-arc-400"
+                    : "text-on-surface/50 hover:text-on-surface border-b-2 border-transparent"
                 }`}
+                style={{ fontFamily: "var(--font-geist-sans)" }}
               >
-                More
-                <ChevronDown
-                  className={`w-3 h-3 transition-transform duration-200 ${
-                    moreOpen ? "rotate-180" : ""
-                  }`}
-                />
-              </button>
+                {label}
+              </Link>
+            );
+          })}
+        </div>
 
-              {moreOpen && (
+        {/* Right: auth */}
+        <div className="flex items-center gap-3">
+          {status === "loading" && (
+            <div className="w-20 h-9 bg-surface-container-high/50 rounded-xl animate-pulse" />
+          )}
+          {status === "unauthenticated" && (
+            <button
+              onClick={() => router.push("/login")}
+              className="px-6 py-2 bg-arc-400 text-surface font-bold text-sm rounded-lg active:scale-95 transition-all"
+              style={{ fontFamily: "var(--font-geist-sans)" }}
+            >
+              Sign In
+            </button>
+          )}
+          {isAuthed && user && (
+            <div className="relative" ref={userMenuRef}>
+              <button
+                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm transition-all"
+                style={{
+                  background: "rgba(33, 43, 53, 0.5)",
+                  border: "1px solid rgba(255, 255, 255, 0.05)",
+                }}
+                title={user.email}
+              >
+                <UserAvatar photoURL={user.photoURL} displayName={user.displayName} email={user.email} />
+                <span className="max-w-[120px] truncate text-on-surface text-sm">
+                  {user.displayName || user.email}
+                </span>
+                <ChevronDown className={`w-3.5 h-3.5 text-on-surface-variant transition-transform ${userMenuOpen ? "rotate-180" : ""}`} />
+              </button>
+              {userMenuOpen && (
                 <div
-                  className="absolute top-full left-0 mt-2 w-40 rounded-xl py-1.5 z-50"
+                  className="absolute right-0 mt-2 w-56 rounded-xl py-1 z-50"
                   style={{
-                    background: "linear-gradient(145deg, #0c1a30, #081222)",
-                    border: "1px solid rgba(255,255,255,0.08)",
-                    boxShadow: "0 12px 40px rgba(0,0,0,0.5), 0 0 1px rgba(255,255,255,0.1)",
+                    background: "#131c26",
+                    border: "1px solid rgba(255, 255, 255, 0.05)",
+                    boxShadow: "0 12px 40px rgba(0,0,0,0.5)",
                   }}
                 >
-                  {SECONDARY_NAV.map(({ href, label, icon: Icon }) => {
-                    const active = isActive(href);
-                    return (
-                      <Link
-                        key={href}
-                        href={href}
-                        onClick={() => setMoreOpen(false)}
-                        className={`flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium transition-all ${
-                          active
-                            ? "text-arc-400 bg-arc-500/8"
-                            : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/40"
-                        }`}
+                  <div className="px-3 py-2.5 flex items-center gap-2.5" style={{ borderBottom: "1px solid rgba(59, 74, 69, 0.15)" }}>
+                    <UserAvatar photoURL={user.photoURL} displayName={user.displayName} email={user.email} />
+                    <div className="min-w-0 flex-1">
+                      {user.displayName && (
+                        <p className="text-xs font-bold text-on-surface truncate">{user.displayName}</p>
+                      )}
+                      <p className="text-xs text-on-surface-variant truncate">{user.email}</p>
+                      <p
+                        className="text-[10px] text-arc-400 uppercase tracking-wider mt-0.5"
+                        style={{ fontFamily: "var(--font-geist-mono)" }}
                       >
-                        <Icon className="w-3.5 h-3.5" />
-                        {label}
-                      </Link>
-                    );
-                  })}
+                        {user.tier}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => { setUserMenuOpen(false); router.push("/settings"); }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high/40 transition-colors"
+                  >
+                    <Settings className="w-3.5 h-3.5" />
+                    Settings
+                  </button>
+                  <button
+                    onClick={async () => { setUserMenuOpen(false); await logout(); router.push("/"); }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high/40 transition-colors"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    Sign out
+                  </button>
                 </div>
               )}
             </div>
-          </nav>
+          )}
         </div>
+      </nav>
 
-        {/* Right — connect */}
-        <ConnectButton />
-      </header>
-
-      {/* ── Below header ─────────────────────── */}
-      <div className="flex flex-1 min-h-0">
-
+      {/* ── Below navbar ─────────────────────── */}
+      <div className="flex flex-1 pt-20">
         {/* Mobile backdrop */}
-        {hasSidebar && sidebarOpen && (
+        {sidebarOpen && (
           <div
             className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
             onClick={close}
           />
         )}
 
-        {/* ── Contextual Sidebar ──────────────────────── */}
-        {hasSidebar && (
-          <aside
-            className={`
-              fixed top-14 left-0 z-50 w-56 h-[calc(100vh-56px)]
-              flex flex-col overflow-y-auto
-              transform transition-transform duration-300 ease-out
-              lg:sticky lg:top-14 lg:h-[calc(100vh-56px)] lg:translate-x-0 lg:flex lg:shrink-0
-              ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
-            `}
-            style={{
-              background: "linear-gradient(180deg, #060e1f 0%, #040c1a 100%)",
-              borderRight: "1px solid rgba(255,255,255,0.05)",
-            }}
-          >
-            {/* Sidebar header */}
-            <div
-              className="flex items-center justify-between px-5 py-4 shrink-0"
-              style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}
-            >
-              {sidebarTitle && (
+        {/* ── Left Sidebar ("The Vault") ──────── */}
+        <aside
+          className={`
+            fixed top-20 left-0 z-50 w-64 h-[calc(100vh-5rem)]
+            flex flex-col overflow-y-auto overflow-x-hidden
+            transform transition-transform duration-300 ease-out
+            lg:sticky lg:top-20 lg:translate-x-0 lg:flex lg:shrink-0
+            ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
+          `}
+          style={{
+            background: "var(--background, #0a141d)",
+            borderRight: "1px solid rgba(255, 255, 255, 0.05)",
+          }}
+        >
+          {/* Vault header */}
+          <div className="px-6 pt-6 pb-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2
+                  className="text-lg font-extrabold text-on-surface"
+                  style={{ fontFamily: "var(--font-syne), sans-serif" }}
+                >
+                  The Vault
+                </h2>
                 <p
-                  className="text-[10px] uppercase tracking-widest text-slate-500 font-medium"
+                  className="uppercase tracking-widest text-[10px] text-arc-400"
                   style={{ fontFamily: "var(--font-geist-mono)" }}
                 >
-                  {sidebarTitle}
+                  Institutional Grade
                 </p>
-              )}
+              </div>
               <button
                 onClick={close}
-                className="lg:hidden p-1.5 rounded-lg text-slate-500 hover:text-slate-300 transition-colors ml-auto"
+                className="lg:hidden p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
+          </div>
 
-            {/* Sidebar content (page-specific) */}
-            <div className="flex-1 px-3 py-4 overflow-y-auto">
-              {sidebarSlot}
-            </div>
-
-            {/* Live status */}
-            <div
-              className="px-5 py-4 shrink-0"
-              style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}
-            >
-              <div className="flex items-center gap-2">
-                <span
-                  className="w-1.5 h-1.5 rounded-full bg-arc-400 pulse-teal"
-                />
-                <span
-                  className="text-[10px] uppercase tracking-widest text-arc-400/60"
-                  style={{ fontFamily: "var(--font-geist-mono)" }}
+          {/* Primary nav */}
+          <nav className="px-2 space-y-1">
+            {SIDEBAR_NAV.map(({ href, label, icon: Icon }) => {
+              const active = isActive(href);
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  onClick={close}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-r-lg transition-all duration-200 ${
+                    active
+                      ? "bg-white/5 text-arc-400 border-l-4 border-arc-400"
+                      : "text-on-surface/50 hover:bg-white/5 hover:text-on-surface border-l-4 border-transparent hover:translate-x-1"
+                  }`}
                 >
-                  Live · Base
-                </span>
+                  <Icon className="w-5 h-5" />
+                  <span
+                    className="uppercase tracking-widest text-xs font-medium"
+                    style={{ fontFamily: "var(--font-geist-sans)" }}
+                  >
+                    {label}
+                  </span>
+                </Link>
+              );
+            })}
+          </nav>
+
+          {/* Categories */}
+          <div className="px-6 mt-8">
+            <p
+              className="text-[10px] uppercase tracking-widest text-on-surface-variant/60 font-medium mb-3"
+              style={{ fontFamily: "var(--font-geist-mono)" }}
+            >
+              Categories
+            </p>
+            <div className="space-y-0.5">
+              {CATEGORIES.map(({ label, href }) => (
+                <Link
+                  key={label}
+                  href={href}
+                  onClick={close}
+                  className="block px-4 py-2 text-xs text-on-surface-variant hover:text-arc-400 rounded-lg transition-all cursor-pointer"
+                >
+                  {label}
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* Wallets section (only when authenticated) */}
+          {isAuthed && (
+            <div className="px-4 mt-8">
+              <div
+                className="rounded-xl p-4"
+                style={{
+                  background: "rgba(6, 15, 24, 0.5)",
+                  border: "1px solid rgba(255, 255, 255, 0.05)",
+                }}
+              >
+                <div className="flex justify-between items-center mb-3">
+                  <span
+                    className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant"
+                    style={{ fontFamily: "var(--font-geist-mono)" }}
+                  >
+                    Wallets
+                  </span>
+                  <Link href="/dashboard" onClick={close}>
+                    <PlusCircle className="w-4 h-4 text-on-surface-variant hover:text-arc-400 transition-colors cursor-pointer" />
+                  </Link>
+                </div>
+                <div className="space-y-2">
+                  {wallets.length === 0 && (
+                    <p className="text-[11px] text-on-surface-variant/40">No wallets tracked</p>
+                  )}
+                  {wallets.map((w: TrackedWallet) => (
+                    <Link
+                      key={w.address}
+                      href="/dashboard"
+                      onClick={close}
+                      className="group flex items-center gap-2 p-2 rounded-lg hover:bg-surface-container-high/40 transition-colors cursor-pointer"
+                    >
+                      <div className="w-2 h-2 rounded-full bg-arc-400/60" />
+                      <span
+                        className="text-[11px] truncate text-on-surface-variant group-hover:text-on-surface transition-colors"
+                        style={{ fontFamily: "var(--font-geist-mono)" }}
+                      >
+                        {w.label || truncAddr(w.address)}
+                      </span>
+                    </Link>
+                  ))}
+                </div>
               </div>
             </div>
-          </aside>
-        )}
+          )}
+
+          {/* Spacer */}
+          <div className="flex-1" />
+
+          {/* Connect Wallet / Bottom actions */}
+          <div className="px-4 pb-4 space-y-1">
+            {!isAuthed && (
+              <button
+                onClick={() => { close(); router.push("/login"); }}
+                className="w-full mb-4 py-3 rounded-xl text-arc-400 font-bold text-sm flex items-center justify-center gap-2 transition-colors"
+                style={{
+                  background: "rgba(33, 43, 53, 0.5)",
+                  border: "1px solid rgba(255, 255, 255, 0.05)",
+                }}
+              >
+                <Wallet className="w-4 h-4" />
+                Connect Wallet
+              </button>
+            )}
+            <Link
+              href="/settings"
+              onClick={close}
+              className="flex items-center gap-3 text-on-surface/40 px-4 py-2.5 hover:bg-surface-container-high/40 hover:text-on-surface transition-all rounded-lg"
+            >
+              <Settings className="w-4 h-4" />
+              <span className="uppercase tracking-widest text-xs">Settings</span>
+            </Link>
+            <a
+              href="#"
+              className="flex items-center gap-3 text-on-surface/40 px-4 py-2.5 hover:bg-surface-container-high/40 hover:text-on-surface transition-all rounded-lg"
+            >
+              <HelpCircle className="w-4 h-4" />
+              <span className="uppercase tracking-widest text-xs">Support</span>
+            </a>
+          </div>
+        </aside>
 
         {/* ── Main content ─────────────────── */}
-        <main className="flex-1 min-w-0 overflow-y-auto">
-          {children}
+        <main className="flex-1 min-w-0 overflow-y-auto relative">
+          {/* Background glow effects */}
+          <div className="fixed top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full pointer-events-none opacity-50 z-0" style={{ background: "radial-gradient(circle, rgba(0,229,196,0.04) 0%, transparent 70%)" }} />
+          <div className="fixed bottom-0 right-0 w-[400px] h-[400px] rounded-full pointer-events-none opacity-50 z-0" style={{ background: "radial-gradient(circle, rgba(0,229,196,0.04) 0%, transparent 70%)" }} />
+          <div className="relative z-10">
+            {children}
+          </div>
         </main>
       </div>
+
+      {/* ── Mobile Bottom Nav ─────────────────── */}
+      <nav
+        className="fixed bottom-0 left-0 right-0 z-40 lg:hidden flex items-center justify-around h-14"
+        style={{
+          background: "rgba(10, 20, 29, 0.95)",
+          backdropFilter: "blur(20px)",
+          borderTop: "1px solid rgba(255, 255, 255, 0.05)",
+        }}
+      >
+        {MOBILE_NAV.map(({ href, label, icon: Icon }) => {
+          const active = isActive(href);
+          return (
+            <Link
+              key={href}
+              href={href}
+              className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-all ${
+                active ? "text-arc-400" : "text-on-surface/40"
+              }`}
+            >
+              <Icon className="w-5 h-5" />
+              <span className="text-[10px] font-medium">{label}</span>
+            </Link>
+          );
+        })}
+      </nav>
     </div>
   );
 }

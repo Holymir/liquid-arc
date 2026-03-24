@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>LiquidArc | Institutional DeFi Vault</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&amp;family=Space+Grotesk:wght@400;500;700&amp;family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary-fixed": "#41fddb",
+                        "surface-dim": "#0a141d",
+                        "on-surface-variant": "#b9cac4",
+                        "on-background": "#dae3f1",
+                        "on-surface": "#dae3f1",
+                        "background": "#0a141d",
+                        "on-secondary": "#283042",
+                        "tertiary-fixed-dim": "#45dfa4",
+                        "on-secondary-container": "#b0b8ce",
+                        "outline": "#84948f",
+                        "surface-container-lowest": "#060f18",
+                        "error-container": "#93000a",
+                        "on-error-container": "#ffdad6",
+                        "on-error": "#690005",
+                        "on-secondary-fixed": "#131c2c",
+                        "on-primary-fixed-variant": "#005144",
+                        "on-tertiary-container": "#006244",
+                        "surface-container-high": "#212b35",
+                        "error": "#f87171",
+                        "surface-container": "#17202a",
+                        "tertiary": "#80ffc7",
+                        "secondary-container": "#40495b",
+                        "tertiary-fixed": "#68fcbf",
+                        "surface-container-highest": "#2c3640",
+                        "on-primary-container": "#006152",
+                        "primary-fixed-dim": "#00dfbf",
+                        "secondary-fixed": "#dae2f9",
+                        "on-tertiary-fixed": "#002114",
+                        "outline-variant": "#3b4a45",
+                        "surface-container-low": "#131c26",
+                        "surface-bright": "#313a44",
+                        "on-tertiary-fixed-variant": "#005137",
+                        "on-primary": "#00382e",
+                        "tertiary-container": "#4ce4a9",
+                        "secondary-fixed-dim": "#bec6dd",
+                        "surface-variant": "#2c3640",
+                        "inverse-primary": "#006b5b",
+                        "on-primary-fixed": "#00201a",
+                        "secondary": "#bec6dd",
+                        "primary-container": "#00e5c4",
+                        "primary": "#70ffe1",
+                        "inverse-surface": "#dae3f1",
+                        "surface": "#0a141d",
+                        "on-tertiary": "#003825",
+                        "surface-tint": "#00dfbf",
+                        "inverse-on-surface": "#28313b",
+                        "on-secondary-fixed-variant": "#3e4759",
+                        "success": "#34d399"
+                    },
+                    fontFamily: {
+                        "headline": ["Space Grotesk"],
+                        "body": ["Inter"],
+                        "label": ["Inter"],
+                        "syne": ["Syne"],
+                        "mono": ["JetBrains Mono"]
+                    },
+                    borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            background-color: #0a141d;
+            color: #dae3f1;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+        .glass-panel {
+            background: rgba(33, 43, 53, 0.4);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .glow-hint {
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(112, 255, 225, 0.05) 0%, rgba(112, 255, 225, 0) 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+    </style>
+</head>
+<body class="bg-surface">
+<!-- TopNavBar Implementation -->
+<nav class="fixed top-0 w-full z-50 flex justify-between items-center px-8 h-20 bg-[#0a141d]/80 backdrop-blur-xl border-b border-[#212b35]/20">
+<div class="text-2xl font-bold tracking-tighter text-[#dae3f1] font-syne">LiquidArc</div>
+<div class="hidden md:flex items-center gap-8 font-headline font-medium tracking-tight">
+<a class="text-[#dae3f1]/60 hover:text-[#dae3f1] transition-colors" href="#">Market</a>
+<a class="text-[#dae3f1]/60 hover:text-[#dae3f1] transition-colors" href="#">Protocols</a>
+<a class="text-[#dae3f1]/60 hover:text-[#dae3f1] transition-colors" href="#">Simulator</a>
+<a class="text-[#dae3f1]/60 hover:text-[#dae3f1] transition-colors" href="#">Learn</a>
+</div>
+<div class="flex items-center gap-4">
+<button class="px-6 py-2 bg-primary-container text-on-primary-container font-headline font-bold rounded-xl scale-95 active:scale-90 transition-transform">Sign In</button>
+</div>
+</nav>
+<!-- SideNavBar Implementation -->
+<aside class="fixed left-0 top-20 h-[calc(100vh-5rem)] flex flex-col py-6 bg-[#131c26] w-64 border-r border-[#212b35]/30 shadow-[40px_0_40px_rgba(0,0,0,0.3)] z-40">
+<div class="px-6 mb-8">
+<h2 class="text-lg font-extrabold text-[#dae3f1] font-syne">The Vault</h2>
+<p class="font-['Geist_Sans'] uppercase tracking-widest text-[10px] text-[#00e5c4]">Institutional Grade</p>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center gap-3 bg-[#212b35] text-[#00e5c4] border-l-4 border-[#00e5c4] px-4 py-3 ml-2 rounded-l-lg transition-transform duration-200" href="/dashboard">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-['Geist_Sans'] uppercase tracking-widest text-xs">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 text-[#dae3f1]/50 px-4 py-3 hover:bg-[#212b35]/50 transition-all hover:translate-x-1" href="#">
+<span class="material-symbols-outlined">account_balance_wallet</span>
+<span class="font-['Geist_Sans'] uppercase tracking-widest text-xs">DeFi</span>
+</a>
+<a class="flex items-center gap-3 text-[#dae3f1]/50 px-4 py-3 hover:bg-[#212b35]/50 transition-all hover:translate-x-1" href="#">
+<span class="material-symbols-outlined">waves</span>
+<span class="font-['Geist_Sans'] uppercase tracking-widest text-xs">Pools</span>
+</a>
+</nav>
+<!-- Sidebar Extension: Tracked Wallets -->
+<div class="px-4 mt-8">
+<div class="bg-surface-container-lowest/50 rounded-xl p-4 border border-outline-variant/10">
+<div class="flex justify-between items-center mb-4">
+<span class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Wallets</span>
+<span class="material-symbols-outlined text-sm cursor-pointer hover:text-primary transition-colors">add_circle</span>
+</div>
+<div class="space-y-3">
+<div class="group flex items-center justify-between p-2 rounded-lg bg-surface-container-high border border-primary/20 cursor-pointer">
+<div class="flex items-center gap-2 overflow-hidden">
+<div class="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
+<span class="font-mono text-[11px] truncate text-primary">Main_Vault.eth</span>
+</div>
+<span class="material-symbols-outlined text-xs opacity-0 group-hover:opacity-100">content_copy</span>
+</div>
+<div class="group flex items-center justify-between p-2 rounded-lg hover:bg-surface-container-high/40 transition-colors cursor-pointer border border-transparent">
+<div class="flex items-center gap-2 overflow-hidden">
+<div class="w-2 h-2 rounded-full bg-on-surface-variant/30"></div>
+<span class="font-mono text-[11px] truncate text-on-surface-variant">Arbitrum_LP...9f2</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="mt-auto px-4 space-y-1">
+<button class="w-full mb-6 py-3 bg-surface-container-high border border-outline-variant/20 rounded-xl text-primary font-headline font-bold text-sm flex items-center justify-center gap-2 hover:bg-primary/5 transition-colors">
+<span class="material-symbols-outlined text-lg">account_balance_wallet</span>
+                Connect Wallet
+            </button>
+<a class="flex items-center gap-3 text-[#dae3f1]/50 px-4 py-3 hover:bg-[#212b35]/50 transition-all" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-['Geist_Sans'] uppercase tracking-widest text-xs">Settings</span>
+</a>
+<a class="flex items-center gap-3 text-[#dae3f1]/50 px-4 py-3 hover:bg-[#212b35]/50 transition-all" href="#">
+<span class="material-symbols-outlined">help</span>
+<span class="font-['Geist_Sans'] uppercase tracking-widest text-xs">Support</span>
+</a>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="ml-64 pt-20 min-h-screen pb-24 md:pb-8">
+<div class="max-w-7xl mx-auto px-8 py-8">
+<!-- Dashboard Header: Portfolio Summary -->
+<header class="mb-10 relative">
+<div class="glow-hint -top-20 -left-20"></div>
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
+<div>
+<p class="font-mono text-primary text-sm tracking-wider mb-1 uppercase">Global Portfolio Balance</p>
+<h1 class="text-6xl font-syne font-extrabold tracking-tighter text-on-surface">$1,482,904.62</h1>
+</div>
+<div class="flex gap-4">
+<div class="bg-surface-container-low p-4 rounded-xl border border-outline-variant/10 min-w-[120px]">
+<p class="text-[10px] font-mono text-on-surface-variant uppercase mb-1">24h Change</p>
+<div class="flex items-center gap-1 text-success font-mono font-bold">
+<span class="material-symbols-outlined text-sm">trending_up</span>
+                                +$12,402
+                            </div>
+</div>
+<div class="bg-surface-container-low p-4 rounded-xl border border-outline-variant/10 min-w-[120px]">
+<p class="text-[10px] font-mono text-on-surface-variant uppercase mb-1">7d Profit</p>
+<div class="flex items-center gap-1 text-success font-mono font-bold">
+<span class="material-symbols-outlined text-sm">trending_up</span>
+                                +4.2%
+                            </div>
+</div>
+<div class="bg-surface-container-low p-4 rounded-xl border border-outline-variant/10 min-w-[120px]">
+<p class="text-[10px] font-mono text-on-surface-variant uppercase mb-1">30d Delta</p>
+<div class="flex items-center gap-1 text-error font-mono font-bold">
+<span class="material-symbols-outlined text-sm">trending_down</span>
+                                -$8,190
+                            </div>
+</div>
+</div>
+</div>
+</header>
+<!-- Bento Grid Content -->
+<div class="grid grid-cols-12 gap-6">
+<!-- Chart Section -->
+<div class="col-span-12 lg:col-span-8 bg-surface-container-high rounded-2xl p-6 relative overflow-hidden">
+<div class="flex items-center justify-between mb-8 relative z-10">
+<h3 class="font-syne text-xl text-on-surface">Value Projection</h3>
+<div class="flex bg-surface-container-lowest p-1 rounded-lg">
+<button class="px-3 py-1 rounded-md text-[10px] font-mono bg-surface-bright text-primary">1D</button>
+<button class="px-3 py-1 rounded-md text-[10px] font-mono text-on-surface-variant hover:text-on-surface">1W</button>
+<button class="px-3 py-1 rounded-md text-[10px] font-mono text-on-surface-variant hover:text-on-surface">1M</button>
+<button class="px-3 py-1 rounded-md text-[10px] font-mono text-on-surface-variant hover:text-on-surface">ALL</button>
+</div>
+</div>
+<!-- Placeholder for Chart -->
+<div class="h-64 flex items-end gap-2 relative z-10">
+<div class="w-full h-full absolute flex flex-col justify-between pointer-events-none">
+<div class="w-full border-t border-outline-variant/10"></div>
+<div class="w-full border-t border-outline-variant/10"></div>
+<div class="w-full border-t border-outline-variant/10"></div>
+</div>
+<div class="flex-1 bg-gradient-to-t from-primary/20 to-primary/5 h-[40%] rounded-t-sm"></div>
+<div class="flex-1 bg-gradient-to-t from-primary/20 to-primary/5 h-[45%] rounded-t-sm"></div>
+<div class="flex-1 bg-gradient-to-t from-primary/20 to-primary/5 h-[38%] rounded-t-sm"></div>
+<div class="flex-1 bg-gradient-to-t from-primary/20 to-primary/5 h-[50%] rounded-t-sm"></div>
+<div class="flex-1 bg-gradient-to-t from-primary/20 to-primary/5 h-[62%] rounded-t-sm"></div>
+<div class="flex-1 bg-gradient-to-t from-primary/20 to-primary/10 h-[75%] rounded-t-sm border-t-2 border-primary"></div>
+<div class="flex-1 bg-gradient-to-t from-primary/20 to-primary/5 h-[68%] rounded-t-sm"></div>
+<div class="flex-1 bg-gradient-to-t from-primary/20 to-primary/5 h-[80%] rounded-t-sm border-t-2 border-primary"></div>
+</div>
+<div class="flex justify-between mt-4 text-[10px] font-mono text-on-surface-variant">
+<span>00:00</span>
+<span>06:00</span>
+<span>12:00</span>
+<span>18:00</span>
+<span>23:59</span>
+</div>
+</div>
+<!-- Live Market Feed / Stats -->
+<div class="col-span-12 lg:col-span-4 flex flex-col gap-6">
+<div class="flex-1 bg-surface-container-high rounded-2xl p-6 border-l-4 border-tertiary">
+<div class="flex items-center gap-2 mb-4">
+<div class="w-2 h-2 bg-tertiary rounded-full animate-ping"></div>
+<span class="text-[10px] font-mono text-tertiary uppercase font-bold">Network Connectivity: High</span>
+</div>
+<h4 class="text-on-surface-variant text-xs uppercase font-mono mb-2">Gas Tracker</h4>
+<div class="flex items-baseline gap-2">
+<span class="text-3xl font-mono text-on-surface">12</span>
+<span class="text-sm font-mono text-on-surface-variant">GWEI</span>
+</div>
+<div class="mt-6 pt-6 border-t border-outline-variant/10">
+<h4 class="text-on-surface-variant text-xs uppercase font-mono mb-4">Trending Protocols</h4>
+<div class="space-y-3">
+<div class="flex items-center justify-between">
+<span class="text-sm font-medium">Aerodrome</span>
+<span class="text-success font-mono text-xs">+12.4% APR</span>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-sm font-medium">Velodrome</span>
+<span class="text-on-surface-variant font-mono text-xs">+8.1% APR</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- LP Positions Cards -->
+<div class="col-span-12">
+<div class="flex items-center justify-between mb-6">
+<h3 class="font-syne text-2xl text-on-surface">Active LP Positions</h3>
+<button class="text-primary text-sm font-mono hover:underline">Manage All</button>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+<!-- Position Card 1 -->
+<div class="bg-surface-container-high rounded-2xl overflow-hidden group hover:scale-[1.02] transition-transform duration-300">
+<div class="p-6">
+<div class="flex justify-between items-start mb-6">
+<div class="flex items-center gap-3">
+<div class="relative w-10 h-10">
+<img class="w-8 h-8 rounded-full absolute top-0 left-0 border-2 border-surface-container-high z-10" data-alt="Aerodrome protocol blue logo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAldZTuwmklsch3b-Lm3UUzoOBR38CgZFJEw9zojDYvf68tEvsTMCXIrjEIrr-5Vmr1q-GD9h_qpEQN8pekn6c4yajUe6R-qPtEdbWl_7aVbYAOLXZ1OJOerCyQo3sWLOFP6BVTRqJXTMI24Wa0rlpiy9JBqgb2_hHWSd1EG5CHPAfwnnSZmB3R42qpzhPIlaznlBf0Z4q9GKf6KYIEi3mZSoTmR9rsn6cU6hWU9W95PHHEfvPmXDvQafOntTmCfxWyMbQzKMgpUFY"/>
+<img class="w-8 h-8 rounded-full absolute bottom-0 right-0 border-2 border-surface-container-high" data-alt="Ethereum token silver icon" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAvk71ePb-kHsj47pUBKjDAi28Wu0gmkU57i2iSnKcJirq_7OlxAi9H4hTdNRaBo-KQWLnenRnH9V3N6_BKbKTuREAuuKo4_V6j3TAR7-Un03gvNa5ZOhaODjy0aaevV1_LO2fdnPHwEDqycZ1eFnC4iHyaS8MoIg-cIqK8Xiiq-dpuT_AdrdiUkifZwg97yUrfcLJ0L6VOb-o6QsCKpG-89hRbJUXAjOM3-zQWaH1Ev14dh2-fNgatwWiylM3-OZiW14Qn47ta-Ag"/>
+</div>
+<div>
+<p class="font-bold text-on-surface leading-none">WETH / USDC</p>
+<p class="text-[10px] text-on-surface-variant font-mono">Aerodrome V2</p>
+</div>
+</div>
+<span class="bg-success/10 text-success px-2 py-1 rounded text-[10px] font-mono font-bold">IN RANGE</span>
+</div>
+<div class="grid grid-cols-2 gap-4 mb-6">
+<div>
+<p class="text-[10px] text-on-surface-variant font-mono uppercase mb-1">Liquidity</p>
+<p class="text-lg font-mono text-on-surface">$412,052</p>
+</div>
+<div>
+<p class="text-[10px] text-on-surface-variant font-mono uppercase mb-1">Fees Earned</p>
+<p class="text-lg font-mono text-primary">$1,294.10</p>
+</div>
+</div>
+<div class="flex items-center justify-between pt-4 border-t border-outline-variant/10">
+<div class="flex items-center gap-2">
+<span class="text-[10px] font-mono text-on-surface-variant uppercase">APR</span>
+<span class="text-sm font-mono font-bold text-success">84.2%</span>
+</div>
+<div class="flex gap-1">
+<span class="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-mono">AERO</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Position Card 2 -->
+<div class="bg-surface-container-high rounded-2xl overflow-hidden group hover:scale-[1.02] transition-transform duration-300">
+<div class="p-6">
+<div class="flex justify-between items-start mb-6">
+<div class="flex items-center gap-3">
+<div class="relative w-10 h-10">
+<img class="w-8 h-8 rounded-full absolute top-0 left-0 border-2 border-surface-container-high z-10" data-alt="Velodrome protocol red logo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDH0NpfB9fYbZ3u4ndh6_gc4otXXDremE9BR1TbpdqVVtxBVppN9gMSeIRqQInwcNr-Qm70TzfUZZkDI6wyKXwXxr3ulyAdvd1N1mgI_YBYwIn40QhrZoBeCkBPN2xqcNU8Q7UbDGIQy75-iHgyscQdRsrI0AJA8cXlTL1RRi443kx-4DUew9NIOxyudZi-pxGSoYrR05z3zHcnrkMoq6TKsPWxAeT8-SVc92MRkA1yo5dFdgU87BRZtXI7-ZPvOI46Imth3bFIqYw"/>
+<img class="w-8 h-8 rounded-full absolute bottom-0 right-0 border-2 border-surface-container-high" data-alt="Optimism token red logo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD3yKjT-NGuM-fZDJjhUxO6CPfWWx8XEcQGZf4HxvDkX3684o_aGU1iTklQdX_2WrlIFAWmYfxGj4bR0qQADqeM2e3ErrC7Xs589AC2vqUlAWfA4zbAQMjwbOveJdizXkt_imkdgIIF7MdjKE-eRa2KNHeCyEPsaaOaq2HAs5u6yiZW6Y2n5uKbYl0lmO5F-XoDiyKJdQVt4ov3C-CUrMlFef0oJDwDjpzYbDbMxCpFatWNx7x29G_YocNs6ttuayaGjza4IT91Etc"/>
+</div>
+<div>
+<p class="font-bold text-on-surface leading-none">OP / VELO</p>
+<p class="text-[10px] text-on-surface-variant font-mono">Velodrome Slip</p>
+</div>
+</div>
+<span class="bg-error/10 text-error px-2 py-1 rounded text-[10px] font-mono font-bold">OUT RANGE</span>
+</div>
+<div class="grid grid-cols-2 gap-4 mb-6">
+<div>
+<p class="text-[10px] text-on-surface-variant font-mono uppercase mb-1">Liquidity</p>
+<p class="text-lg font-mono text-on-surface">$128,400</p>
+</div>
+<div>
+<p class="text-[10px] text-on-surface-variant font-mono uppercase mb-1">Fees Earned</p>
+<p class="text-lg font-mono text-primary">$442.20</p>
+</div>
+</div>
+<div class="flex items-center justify-between pt-4 border-t border-outline-variant/10">
+<div class="flex items-center gap-2">
+<span class="text-[10px] font-mono text-on-surface-variant uppercase">APR</span>
+<span class="text-sm font-mono font-bold text-success">112.5%</span>
+</div>
+<div class="flex gap-1">
+<span class="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-mono">VELO</span>
+<span class="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-mono">OP</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Position Card 3 -->
+<div class="bg-surface-container-high rounded-2xl overflow-hidden group hover:scale-[1.02] transition-transform duration-300">
+<div class="p-6">
+<div class="flex justify-between items-start mb-6">
+<div class="flex items-center gap-3">
+<div class="relative w-10 h-10">
+<img class="w-8 h-8 rounded-full absolute top-0 left-0 border-2 border-surface-container-high z-10" data-alt="Raydium protocol purple logo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCCLuLlqUQEweyxjY9q-oY0DUQsYr7QVjL7aWNihLsGcwLCZO_KQ_hEI0cR7leRFRkfJYvoA6cUam7-5biPHwwmwUsbbNVF08Z6j65ZF16T7r1dTid2kd9Bm_k0LpyC2n0dv4eIaibYQXZ2O5VJ6IZCkpHJnlPqtAsx1rYTo8tfiGw0bSCaWyH-LVIdyjDWbrh_Eala43NndCafyV0lTEF0jjyER81g-bf6xB8SW0E_eUEFY7fVLyeJqDxTgwc8RodoNGt8MpfB5pc"/>
+<img class="w-8 h-8 rounded-full absolute bottom-0 right-0 border-2 border-surface-container-high" data-alt="Solana token gradient logo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA6dby6llwrDKSp8Tu_LjSUX-CVKIylcdFn5lKHmknGC0ZOr_a9bTPGSRCvS-111phpwdJv95PTAqDYmRFaidAjCSJcMUWn25VclB6lLKVow-UH5r2oKuVt1I-H6yh0LxEIY2mWpsDkBKKxBWrCoMMBCZJL-RWo66_VXMUD2uMUldh-L3l_fVZ3bUUU7L8i4rrIPpFvvuGhqCtBd1HeJG-EYEChlsZ0P2NjANWL8hxq4LZ8VGJrlPNn4KG-eGZt_bEUYP1F4wHSn0o"/>
+</div>
+<div>
+<p class="font-bold text-on-surface leading-none">SOL / USDC</p>
+<p class="text-[10px] text-on-surface-variant font-mono">Raydium CLMM</p>
+</div>
+</div>
+<span class="bg-success/10 text-success px-2 py-1 rounded text-[10px] font-mono font-bold">IN RANGE</span>
+</div>
+<div class="grid grid-cols-2 gap-4 mb-6">
+<div>
+<p class="text-[10px] text-on-surface-variant font-mono uppercase mb-1">Liquidity</p>
+<p class="text-lg font-mono text-on-surface">$205,110</p>
+</div>
+<div>
+<p class="text-[10px] text-on-surface-variant font-mono uppercase mb-1">Fees Earned</p>
+<p class="text-lg font-mono text-primary">$812.90</p>
+</div>
+</div>
+<div class="flex items-center justify-between pt-4 border-t border-outline-variant/10">
+<div class="flex items-center gap-2">
+<span class="text-[10px] font-mono text-on-surface-variant uppercase">APR</span>
+<span class="text-sm font-mono font-bold text-success">45.8%</span>
+</div>
+<div class="flex gap-1">
+<span class="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-mono">RAY</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Assets Table -->
+<div class="col-span-12">
+<div class="bg-surface-container-high rounded-2xl overflow-hidden">
+<div class="p-6 flex justify-between items-center border-b border-outline-variant/10">
+<h3 class="font-syne text-xl text-on-surface">Token Balances</h3>
+<span class="text-xs font-mono text-on-surface-variant">Showing 4 Assets</span>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left">
+<thead>
+<tr class="text-[10px] uppercase font-mono text-on-surface-variant border-b border-outline-variant/5">
+<th class="px-6 py-4">Asset</th>
+<th class="px-6 py-4">Balance</th>
+<th class="px-6 py-4">Price</th>
+<th class="px-6 py-4">Value (USD)</th>
+<th class="px-6 py-4">24h Change</th>
+<th class="px-6 py-4"></th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/5">
+<tr class="hover:bg-surface-bright/20 transition-colors">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-container-lowest flex items-center justify-center">
+<img class="w-6 h-6 rounded-full" data-alt="Ethereum asset icon" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBttT3VfiWWcSO3GAYrz_Rk1BJAHWE4ROqSf1bFWTZiXIzeZS1Qh9eliAf-Skpeqo7R3jGIMqW3vb-e1W_ARgQiXAa9K5RzVO-CZxiwVY6dEzJlDCOXQDQh7Bz9yej6iaMsXmlaV1hN1z7dEvkLEL9VVnwFEoyBNhJvIRmzNJyMv09SPo6cmPYKCL439tgUCKWhBzJ7yYmaSkNNec_BytQpTQAs-60pUcfBc-LVgXqSmysamPQpCKMwXzqXcvkFyHEZ3ph4d5IaZEk"/>
+</div>
+<div>
+<p class="text-sm font-bold">Ethereum</p>
+<p class="text-[10px] font-mono text-on-surface-variant">ETH</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 font-mono text-sm">142.48</td>
+<td class="px-6 py-4 font-mono text-sm">$3,412.00</td>
+<td class="px-6 py-4 font-mono text-sm font-bold">$486,141.76</td>
+<td class="px-6 py-4">
+<span class="text-success font-mono text-sm">+2.4%</span>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="material-symbols-outlined text-on-surface-variant hover:text-primary">more_vert</button>
+</td>
+</tr>
+<tr class="hover:bg-surface-bright/20 transition-colors">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-container-lowest flex items-center justify-center">
+<img class="w-6 h-6 rounded-full" data-alt="USDC stablecoin icon" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCjlI44HzrcdTgxIgctfxC9OTQ84JeLRnFcz-5Y_E7E73xfqe7jV4xlGLZI6_4pfrdd4ifkFwjHT9RlMq0pXqnY3z70HsLCGAsf5fMhjwsWUaJSck09LuH0GIFfdIehWGtRhfO3ENbGTe3jtbIQpExK2VpzYfjgmond_W6Os1VHJzMX89PGJKoF2IFZQi7HgcoaHnHKllIM_AhNEXCA4e-jLVjmEVfORyi5wWJzzMd2cMoTiv4THFbFpupRCfHcJtE8jCGDl_L0aMI"/>
+</div>
+<div>
+<p class="text-sm font-bold">USD Coin</p>
+<p class="text-[10px] font-mono text-on-surface-variant">USDC</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 font-mono text-sm">250,000.00</td>
+<td class="px-6 py-4 font-mono text-sm">$1.00</td>
+<td class="px-6 py-4 font-mono text-sm font-bold">$250,000.00</td>
+<td class="px-6 py-4">
+<span class="text-on-surface-variant font-mono text-sm">0.0%</span>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="material-symbols-outlined text-on-surface-variant hover:text-primary">more_vert</button>
+</td>
+</tr>
+<tr class="hover:bg-surface-bright/20 transition-colors">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-container-lowest flex items-center justify-center">
+<img class="w-6 h-6 rounded-full" data-alt="Optimism asset icon" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBDWW-YuiftzJ_HGMGxUkFc013JS_ZtywFb6f227GFatQVMicc4wdJDkt2_YBnkxvqYnBX-31vXkUNFh_apro_OEV0VtaYxqeDWNilVDN46gtgqvogNcww06TdkM5N6_uSpkcppsaO215kwqKexT0pp7-gAczMMpkSc_rLWwnMnqkBfluxPUMSwDakUgqgOcS58r8LV-hSRJBmb0xnWP--QtqWMm5LVPh4ep5IlMGRH1bpWSmD4j6H2eMD3KO3TqL5FEe5uXDYIXbk"/>
+</div>
+<div>
+<p class="text-sm font-bold">Optimism</p>
+<p class="text-[10px] font-mono text-on-surface-variant">OP</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 font-mono text-sm">42,900.00</td>
+<td class="px-6 py-4 font-mono text-sm">$3.14</td>
+<td class="px-6 py-4 font-mono text-sm font-bold">$134,706.00</td>
+<td class="px-6 py-4">
+<span class="text-error font-mono text-sm">-4.1%</span>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="material-symbols-outlined text-on-surface-variant hover:text-primary">more_vert</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar Implementation (Mobile Only) -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 py-3 md:hidden bg-[#0a141d]/90 backdrop-blur-2xl border-t border-[#00e5c4]/10 shadow-[0_-10px_30px_rgba(0,229,196,0.05)]">
+<a class="flex flex-col items-center justify-center text-[#dae3f1]/40 px-6 py-2 hover:text-[#00e5c4] transition-colors active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined">water_drop</span>
+<span class="font-['Geist_Mono'] text-[10px] uppercase">Pools</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-[#00e5c4] text-[#0a141d] rounded-xl px-6 py-2 shadow-[0_0_15px_rgba(0,229,196,0.4)] active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">pie_chart</span>
+<span class="font-['Geist_Mono'] text-[10px] uppercase">Portfolio</span>
+</a>
+</nav>
+</body></html>

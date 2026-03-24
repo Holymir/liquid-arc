@@ -15,10 +15,10 @@ export default function SubtopicPage() {
       <AppLayout>
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center">
-            <p className="text-lg font-semibold text-slate-300 mb-2">
+            <p className="text-lg font-semibold text-on-surface mb-2">
               Topic not found
             </p>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-[#94a3b8]">
               The article you&rsquo;re looking for doesn&rsquo;t exist.
             </p>
           </div>
@@ -30,17 +30,28 @@ export default function SubtopicPage() {
   const { topic, category, subtopic } = result;
 
   return (
-    <AppLayout
-      sidebarTitle="Knowledge"
-      sidebarSlot={<KnowledgeSidebar topicSlug={topic.slug} />}
-    >
-      <ArticleLayout
-        topic={topic}
-        subtopic={subtopic}
-        categoryLabel={category.label}
-      >
-        {subtopic.content()}
-      </ArticleLayout>
+    <AppLayout>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 pb-20">
+        <div className="grid grid-cols-12 gap-6 lg:gap-8">
+          {/* Inline sidebar — hidden on mobile, shown on lg */}
+          <aside className="hidden lg:block col-span-3">
+            <div className="sticky top-24">
+              <KnowledgeSidebar topicSlug={params.topic} />
+            </div>
+          </aside>
+
+          {/* Article content */}
+          <div className="col-span-12 lg:col-span-9">
+            <ArticleLayout
+              topic={topic}
+              subtopic={subtopic}
+              categoryLabel={category.label}
+            >
+              {subtopic.content()}
+            </ArticleLayout>
+          </div>
+        </div>
+      </div>
     </AppLayout>
   );
 }

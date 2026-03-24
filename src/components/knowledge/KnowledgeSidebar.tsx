@@ -19,10 +19,7 @@ export function KnowledgeSidebar({ topicSlug }: KnowledgeSidebarProps) {
       {topic.categories.map((category) => (
         <div key={category.label}>
           {/* Category header */}
-          <p
-            className="text-[10px] uppercase tracking-widest text-slate-600 font-medium mb-2 px-3"
-            style={{ fontFamily: "var(--font-geist-mono)" }}
-          >
+          <p className="text-[10px] font-mono uppercase tracking-widest text-on-surface-variant font-medium mb-2 px-3">
             {category.label}
           </p>
 
@@ -39,7 +36,7 @@ export function KnowledgeSidebar({ topicSlug }: KnowledgeSidebarProps) {
                   className={`block px-3 py-2 rounded-xl text-xs font-medium transition-all ${
                     isActive
                       ? "bg-arc-500/10 text-arc-400 border border-arc-500/25"
-                      : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 border border-transparent"
+                      : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high/40 border border-transparent"
                   }`}
                 >
                   {subtopic.title}

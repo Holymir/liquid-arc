@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import {
   AreaChart,
   Area,
@@ -9,7 +9,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend,
 } from "recharts";
 import {
   Calculator,
@@ -20,10 +19,38 @@ import {
   BarChart3,
   AlertTriangle,
   Zap,
+  BookmarkPlus,
+  Download,
+  Share2,
+  Trash2,
+  X,
+  Check,
 } from "lucide-react";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { runSimulation } from "@/lib/simulator/engine";
 import type { SimulatorInput, SimulatorResult } from "@/lib/simulator/types";
+
+// ─────────────────────────────────────────────────────────
+// Types
+// ─────────────────────────────────────────────────────────
+
+interface SavedStrategy {
+  id: string;
+  title: string;
+  pair: string;
+  protocol: string;
+  chainId: string;
+  investment: number;
+  priceLower: number;
+  priceUpper: number;
+  duration: number;
+  riskLevel: string;
+  projectedApr: number | null;
+  projectedFees: number | null;
+  projectedIL: number | null;
+  netResult: number | null;
+  createdAt: string;
+}
 
 // ─────────────────────────────────────────────────────────
 // Helpers
@@ -70,14 +97,7 @@ function GlassCard({
   className?: string;
 }) {
   return (
-    <div
-      className={`rounded-2xl p-6 ${className}`}
-      style={{
-        background:
-          "linear-gradient(145deg, rgba(10,22,40,0.8), rgba(6,14,28,0.6))",
-        border: "1px solid rgba(255,255,255,0.06)",
-      }}
-    >
+    <div className={`glass-card rounded-2xl p-6 ${className}`}>
       {children}
     </div>
   );
@@ -116,28 +136,15 @@ function PriceRangeBar({
   return (
     <div className="mt-3">
       <div className="flex justify-between items-center mb-1.5">
-        <span
-          className="text-xs"
-          style={{
-            color: "rgba(240,244,255,0.3)",
-            fontFamily: "var(--font-geist-mono)",
-          }}
-        >
+        <span className="text-xs font-mono text-on-surface-variant/50">
           ${lower.toLocaleString()} min
         </span>
-        <span
-          className="text-xs"
-          style={{
-            color: "rgba(240,244,255,0.3)",
-            fontFamily: "var(--font-geist-mono)",
-          }}
-        >
+        <span className="text-xs font-mono text-on-surface-variant/50">
           ${upper.toLocaleString()} max
         </span>
       </div>
       <div
-        className="relative h-9 rounded-xl overflow-hidden"
-        style={{ background: "#060e1c" }}
+        className="relative h-9 rounded-xl overflow-hidden bg-surface-container-lowest"
       >
         {/* Liquidity zone */}
         <div
@@ -190,19 +197,18 @@ function PriceRangeBar({
 
 function RiskBadge({ level }: { level: "low" | "medium" | "high" }) {
   const config = {
-    low: { color: "#00e5c4", bg: "rgba(0,229,196,0.1)", label: "Low" },
+    low: { color: "#80ffc7", bg: "rgba(128,255,199,0.1)", label: "Low" },
     medium: { color: "#f59e0b", bg: "rgba(245,158,11,0.1)", label: "Medium" },
-    high: { color: "#ff6b8a", bg: "rgba(255,107,138,0.1)", label: "High" },
+    high: { color: "#ffb4ab", bg: "rgba(255,180,171,0.1)", label: "High" },
   };
   const c = config[level];
   return (
     <span
-      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
+      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium font-mono"
       style={{
         background: c.bg,
         border: `1px solid ${c.color}30`,
         color: c.color,
-        fontFamily: "var(--font-geist-mono)",
       }}
     >
       <span
@@ -237,13 +243,11 @@ function StrategyCard({
 }) {
   return (
     <div
-      className="relative rounded-xl p-5 transition-all duration-300"
+      className="relative glass-card rounded-xl p-5 transition-all duration-300"
       style={{
-        background:
-          "linear-gradient(145deg, rgba(10,22,40,0.8), rgba(6,14,28,0.6))",
         border: isBest
           ? `1px solid ${accent}40`
-          : "1px solid rgba(255,255,255,0.06)",
+          : undefined,
         boxShadow: isBest ? `0 0 40px ${accent}10` : "none",
       }}
     >
@@ -270,30 +274,22 @@ function StrategyCard({
           <Icon className="w-4 h-4" style={{ color: accent }} />
         </div>
         <span
-          className="text-sm font-semibold"
+          className="text-sm font-semibold text-on-surface"
           style={{
-            color: "#f0f4ff",
-            fontFamily: "var(--font-syne), var(--font-geist-sans), sans-serif",
+            fontFamily: "var(--font-syne), sans-serif",
           }}
         >
           {name}
         </span>
       </div>
 
-      <div
-        className="text-2xl font-bold mb-1"
-        style={{
-          color: "#f0f4ff",
-          fontFamily: "var(--font-geist-mono)",
-        }}
-      >
+      <div className="text-2xl font-bold text-on-surface mb-1 font-mono">
         {formatUsd(finalValue)}
       </div>
       <div
-        className="text-sm font-medium"
+        className="text-sm font-medium font-mono"
         style={{
-          color: returnPct >= 0 ? "#00e5c4" : "#ff6b8a",
-          fontFamily: "var(--font-geist-mono)",
+          color: returnPct >= 0 ? "#80ffc7" : "#ffb4ab",
         }}
       >
         {formatPct(returnPct)}
@@ -309,12 +305,10 @@ function StrategyCard({
               key={d.label}
               className="flex justify-between items-center text-xs"
             >
-              <span style={{ color: "rgba(240,244,255,0.4)" }}>{d.label}</span>
+              <span className="text-on-surface-variant/60">{d.label}</span>
               <span
-                style={{
-                  color: d.color,
-                  fontFamily: "var(--font-geist-mono)",
-                }}
+                className="font-mono"
+                style={{ color: d.color }}
               >
                 {d.value}
               </span>
@@ -334,20 +328,12 @@ function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: 
   if (!active || !payload?.length) return null;
   return (
     <div
-      className="rounded-xl p-3"
+      className="glass-panel rounded-xl p-3"
       style={{
-        background: "#0a1628",
-        border: "1px solid rgba(255,255,255,0.1)",
         boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
       }}
     >
-      <div
-        className="text-xs mb-2"
-        style={{
-          color: "rgba(240,244,255,0.4)",
-          fontFamily: "var(--font-geist-mono)",
-        }}
-      >
+      <div className="text-xs mb-2 font-mono text-on-surface-variant/60">
         Day {label}
       </div>
       {payload.map((entry) => (
@@ -356,18 +342,194 @@ function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: 
             className="w-2 h-2 rounded-full shrink-0"
             style={{ background: entry.color }}
           />
-          <span style={{ color: "rgba(240,244,255,0.6)" }}>{entry.name}</span>
-          <span
-            className="ml-auto font-medium"
-            style={{
-              color: "#f0f4ff",
-              fontFamily: "var(--font-geist-mono)",
-            }}
-          >
+          <span className="text-on-surface-variant">{entry.name}</span>
+          <span className="ml-auto font-medium font-mono text-on-surface">
             ${entry.value.toLocaleString()}
           </span>
         </div>
       ))}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────
+// Save Strategy Modal
+// ─────────────────────────────────────────────────────────
+
+function SaveStrategyModal({
+  onSave,
+  onClose,
+  saving,
+}: {
+  onSave: (title: string) => void;
+  onClose: () => void;
+  saving: boolean;
+}) {
+  const [title, setTitle] = useState("");
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        onClick={onClose}
+      />
+
+      {/* Modal */}
+      <div
+        className="glass-panel rounded-2xl p-6 max-w-md w-full relative z-10"
+        style={{
+          boxShadow: "0 8px 64px rgba(0,0,0,0.5)",
+        }}
+      >
+        <div className="flex items-center justify-between mb-5">
+          <h3
+            className="text-lg font-bold text-on-surface"
+            style={{ fontFamily: "var(--font-syne), sans-serif" }}
+          >
+            Save Strategy
+          </h3>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg hover:bg-surface-container-high transition-colors"
+          >
+            <X className="w-4 h-4 text-on-surface-variant" />
+          </button>
+        </div>
+
+        <label className="block text-[10px] font-mono uppercase tracking-widest mb-2 text-on-surface-variant">
+          Strategy Name
+        </label>
+        <input
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="My ETH/USDC Strategy"
+          className="w-full px-4 py-3 bg-surface-container-lowest border border-outline-variant/30 rounded-lg text-sm text-on-surface focus:outline-none focus:border-arc-400/50 focus:ring-1 focus:ring-arc-400/20 transition-all font-mono mb-5"
+          autoFocus
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && title.trim()) onSave(title.trim());
+          }}
+        />
+
+        <div className="flex gap-3">
+          <button
+            onClick={onClose}
+            className="btn-secondary px-5 py-2.5 text-sm flex-1"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => title.trim() && onSave(title.trim())}
+            disabled={!title.trim() || saving}
+            className="btn-primary px-5 py-2.5 text-sm flex-1 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {saving ? "Saving..." : "Save"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────
+// Saved Strategy Card
+// ─────────────────────────────────────────────────────────
+
+function SavedStrategyCard({
+  strategy,
+  onDelete,
+}: {
+  strategy: SavedStrategy;
+  onDelete: (id: string) => void;
+}) {
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const riskLevel = (strategy.riskLevel || "medium") as "low" | "medium" | "high";
+
+  return (
+    <div className="glass-card rounded-2xl p-5 group relative transition-all duration-200 hover:border-outline-variant/20">
+      {/* Delete button */}
+      <div className="absolute top-3 right-3">
+        {confirmDelete ? (
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => onDelete(strategy.id)}
+              className="p-1.5 rounded-lg transition-colors"
+              style={{
+                background: "rgba(255,180,171,0.1)",
+                border: "1px solid rgba(255,180,171,0.2)",
+              }}
+              title="Confirm delete"
+            >
+              <Check className="w-3.5 h-3.5" style={{ color: "#ffb4ab" }} />
+            </button>
+            <button
+              onClick={() => setConfirmDelete(false)}
+              className="p-1.5 rounded-lg hover:bg-surface-container-high transition-colors"
+              title="Cancel"
+            >
+              <X className="w-3.5 h-3.5 text-on-surface-variant" />
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setConfirmDelete(true)}
+            className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-surface-container-high transition-all"
+            title="Delete strategy"
+          >
+            <Trash2
+              className="w-3.5 h-3.5 text-on-surface-variant hover:text-[#ffb4ab] transition-colors"
+            />
+          </button>
+        )}
+      </div>
+
+      {/* Title */}
+      <h4
+        className="text-sm font-bold text-on-surface mb-3 pr-10"
+        style={{ fontFamily: "var(--font-syne), sans-serif" }}
+      >
+        {strategy.title}
+      </h4>
+
+      {/* Pair + Protocol */}
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-xs font-mono px-2 py-0.5 rounded-md bg-surface-container-high text-on-surface">
+          {strategy.pair}
+        </span>
+        <span className="text-xs font-mono text-on-surface-variant/50">
+          {strategy.protocol}
+        </span>
+      </div>
+
+      {/* Projected APR */}
+      {strategy.projectedApr != null && (
+        <div className="mb-3">
+          <div className="text-[10px] font-mono uppercase tracking-widest text-on-surface-variant mb-1">
+            Projected APR
+          </div>
+          <div
+            className="text-lg font-bold font-mono"
+            style={{
+              color: strategy.projectedApr >= 0 ? "#80ffc7" : "#ffb4ab",
+            }}
+          >
+            {formatPct(strategy.projectedApr)}
+          </div>
+        </div>
+      )}
+
+      {/* Risk + Date row */}
+      <div
+        className="flex items-center justify-between pt-3"
+        style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
+      >
+        <RiskBadge level={riskLevel} />
+        <span className="text-[10px] font-mono text-on-surface-variant/40">
+          {new Date(strategy.createdAt).toLocaleDateString()}
+        </span>
+      </div>
     </div>
   );
 }
@@ -392,6 +554,35 @@ export default function SimulatorPage() {
   // ── Result State ──
   const [result, setResult] = useState<SimulatorResult | null>(null);
   const [hasRun, setHasRun] = useState(false);
+
+  // ── Save/Share State ──
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveNotification, setSaveNotification] = useState<string | null>(null);
+  const [shareNotification, setShareNotification] = useState(false);
+
+  // ── Saved Strategies State ──
+  const [savedStrategies, setSavedStrategies] = useState<SavedStrategy[]>([]);
+  const [loadingStrategies, setLoadingStrategies] = useState(true);
+
+  // ── Fetch saved strategies on mount ──
+  const fetchStrategies = useCallback(async () => {
+    try {
+      const res = await fetch("/api/strategies");
+      if (res.ok) {
+        const data = await res.json();
+        setSavedStrategies(data.strategies || []);
+      }
+    } catch {
+      // Not logged in or fetch failed — silent
+    } finally {
+      setLoadingStrategies(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchStrategies();
+  }, [fetchStrategies]);
 
   // ── Parsed Inputs ──
   const parsed = useMemo(
@@ -472,8 +663,154 @@ export default function SimulatorPage() {
     );
   }, [parsed]);
 
+  // ── Save Strategy ──
+  async function handleSave(title: string) {
+    if (!liveResult) return;
+    setSaving(true);
+    try {
+      const res = await fetch("/api/strategies", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title,
+          pair: `${token0}/${token1}`,
+          protocol: "Concentrated Liquidity",
+          chainId: "base",
+          investment: parsed.investmentUsd,
+          priceLower: parsed.priceLower,
+          priceUpper: parsed.priceUpper,
+          duration: timeframeDays,
+          riskLevel: liveResult.riskLevel,
+          projectedApr: liveResult.lpApr,
+          projectedFees: liveResult.lpFeeIncome,
+          projectedIL: liveResult.impermanentLoss,
+          netResult: liveResult.lpNetValue,
+          strategyConfig: {
+            token0,
+            token1,
+            investment: parsed.investmentUsd,
+            currentPrice: parsed.currentPrice,
+            priceLower: parsed.priceLower,
+            priceUpper: parsed.priceUpper,
+            feeTier,
+            dailyVolume: parsed.dailyVolume,
+            timeframeDays,
+            priceChangePct,
+          },
+        }),
+      });
+
+      if (res.ok) {
+        setShowSaveModal(false);
+        setSaveNotification("Strategy saved!");
+        setTimeout(() => setSaveNotification(null), 3000);
+        fetchStrategies();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setSaveNotification(data.error || "Failed to save. Please sign in.");
+        setTimeout(() => setSaveNotification(null), 4000);
+      }
+    } catch {
+      setSaveNotification("Failed to save strategy");
+      setTimeout(() => setSaveNotification(null), 4000);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  // ── Delete Strategy ──
+  async function handleDelete(id: string) {
+    try {
+      const res = await fetch(`/api/strategies/${id}`, { method: "DELETE" });
+      if (res.ok || res.status === 204) {
+        setSavedStrategies((prev) => prev.filter((s) => s.id !== id));
+      }
+    } catch {
+      // silent
+    }
+  }
+
+  // ── Download Results ──
+  function handleDownload() {
+    if (!liveResult) return;
+    const summary = {
+      exportedAt: new Date().toISOString(),
+      pair: `${token0}/${token1}`,
+      protocol: "Concentrated Liquidity",
+      parameters: {
+        investment: parsed.investmentUsd,
+        currentPrice: parsed.currentPrice,
+        priceLower: parsed.priceLower,
+        priceUpper: parsed.priceUpper,
+        feeTier,
+        dailyVolume: parsed.dailyVolume,
+        timeframeDays,
+        priceChangePct,
+      },
+      results: {
+        lpNetValue: liveResult.lpNetValue,
+        lpApr: liveResult.lpApr,
+        lpReturnPct: liveResult.lpReturnPct,
+        feeIncome: liveResult.lpFeeIncome,
+        impermanentLoss: liveResult.impermanentLoss,
+        hodlValue: liveResult.hodlValue,
+        hodlReturnPct: liveResult.hodlReturnPct,
+        lendingValue: liveResult.lendingValue,
+        lendingReturnPct: liveResult.lendingReturnPct,
+        riskLevel: liveResult.riskLevel,
+        rangeUtilization: liveResult.priceRangeUtilization,
+      },
+    };
+
+    const blob = new Blob([JSON.stringify(summary, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `liquidarc-sim-${token0}-${token1}-${Date.now()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  // ── Share / Copy ──
+  async function handleShare() {
+    if (!liveResult) return;
+
+    const text = [
+      `LiquidArc Simulation: ${token0}/${token1}`,
+      `Investment: ${formatUsd(parsed.investmentUsd)}`,
+      `Range: ${formatUsd(parsed.priceLower)} - ${formatUsd(parsed.priceUpper)}`,
+      `Duration: ${timeframeDays} days`,
+      ``,
+      `LP Net Value: ${formatUsd(liveResult.lpNetValue)} (${formatPct(liveResult.lpReturnPct)})`,
+      `Fee Income: ${formatUsd(liveResult.lpFeeIncome)}`,
+      `Impermanent Loss: ${formatUsd(liveResult.impermanentLoss)}`,
+      `APR: ${formatPct(liveResult.lpApr)}`,
+      `Risk: ${liveResult.riskLevel}`,
+      ``,
+      `HODL Value: ${formatUsd(liveResult.hodlValue)} (${formatPct(liveResult.hodlReturnPct)})`,
+      `Lending Value: ${formatUsd(liveResult.lendingValue)} (${formatPct(liveResult.lendingReturnPct)})`,
+      ``,
+      `Simulated with LiquidArc`,
+    ].join("\n");
+
+    try {
+      await navigator.clipboard.writeText(text);
+      setShareNotification(true);
+      setTimeout(() => setShareNotification(false), 2000);
+    } catch {
+      // Fallback: silent fail
+    }
+  }
+
+  const inputClass = "w-full pl-9 pr-3 py-2.5 bg-surface-container-lowest border border-outline-variant/30 rounded-lg text-sm text-on-surface focus:outline-none focus:border-arc-400/50 focus:ring-1 focus:ring-arc-400/20 transition-all font-mono";
+  const inputPairClass = "bg-surface-container-lowest border border-outline-variant/30 rounded-lg px-3 py-2.5 text-sm text-on-surface focus:outline-none focus:border-arc-400/50 focus:ring-1 focus:ring-arc-400/20 transition-all font-mono";
+
   return (
-    <div className="min-h-screen" style={{ background: "#030b14" }}>
+    <div className="min-h-screen bg-surface">
       <AppHeader />
 
       {/* Ambient glow */}
@@ -485,7 +822,7 @@ export default function SimulatorPage() {
         }}
       />
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-20">
         {/* Page Header */}
         <div className="mb-8">
           <div
@@ -495,31 +832,20 @@ export default function SimulatorPage() {
               border: "1px solid rgba(0,229,196,0.18)",
             }}
           >
-            <Calculator className="w-3.5 h-3.5" style={{ color: "#00e5c4" }} />
-            <span
-              className="text-xs tracking-widest uppercase"
-              style={{
-                color: "#00e5c4",
-                fontFamily: "var(--font-geist-mono)",
-              }}
-            >
+            <Calculator className="w-3.5 h-3.5 text-arc-400" />
+            <span className="text-xs tracking-widest uppercase font-mono text-arc-400">
               Yield Simulator
             </span>
           </div>
           <h1
-            className="text-3xl sm:text-4xl font-bold mb-2"
+            className="text-3xl sm:text-4xl font-bold text-on-surface mb-2"
             style={{
-              color: "#f0f4ff",
-              fontFamily:
-                "var(--font-syne), var(--font-geist-sans), sans-serif",
+              fontFamily: "var(--font-syne), sans-serif",
             }}
           >
             Simulate Your LP Returns
           </h1>
-          <p
-            className="text-sm max-w-xl"
-            style={{ color: "rgba(240,244,255,0.45)" }}
-          >
+          <p className="text-sm max-w-xl text-on-surface-variant/60">
             Compare concentrated liquidity against HODL and lending strategies.
             Adjust parameters to find the optimal range for your position.
           </p>
@@ -532,13 +858,7 @@ export default function SimulatorPage() {
             <div className="space-y-5">
               {/* Token Pair */}
               <div>
-                <label
-                  className="block text-[10px] uppercase tracking-widest mb-2"
-                  style={{
-                    color: "rgba(240,244,255,0.35)",
-                    fontFamily: "var(--font-geist-mono)",
-                  }}
-                >
+                <label className="block text-[10px] font-mono uppercase tracking-widest mb-2 text-on-surface-variant">
                   Token Pair
                 </label>
                 <div className="grid grid-cols-2 gap-3">
@@ -546,16 +866,14 @@ export default function SimulatorPage() {
                     type="text"
                     value={token0}
                     onChange={(e) => setToken0(e.target.value.toUpperCase())}
-                    className="bg-slate-800/30 border border-slate-700/40 rounded-lg px-3 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-[rgba(0,229,196,0.5)] focus:ring-1 focus:ring-[rgba(0,229,196,0.2)] transition-all"
-                    style={{ fontFamily: "var(--font-geist-mono)" }}
+                    className={inputPairClass}
                     placeholder="ETH"
                   />
                   <input
                     type="text"
                     value={token1}
                     onChange={(e) => setToken1(e.target.value.toUpperCase())}
-                    className="bg-slate-800/30 border border-slate-700/40 rounded-lg px-3 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-[rgba(0,229,196,0.5)] focus:ring-1 focus:ring-[rgba(0,229,196,0.2)] transition-all"
-                    style={{ fontFamily: "var(--font-geist-mono)" }}
+                    className={inputPairClass}
                     placeholder="USDC"
                   />
                 </div>
@@ -563,20 +881,11 @@ export default function SimulatorPage() {
 
               {/* Investment Amount */}
               <div>
-                <label
-                  className="block text-[10px] uppercase tracking-widest mb-2"
-                  style={{
-                    color: "rgba(240,244,255,0.35)",
-                    fontFamily: "var(--font-geist-mono)",
-                  }}
-                >
+                <label className="block text-[10px] font-mono uppercase tracking-widest mb-2 text-on-surface-variant">
                   Investment Amount
                 </label>
                 <div className="relative">
-                  <DollarSign
-                    className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4"
-                    style={{ color: "rgba(240,244,255,0.25)" }}
-                  />
+                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#475569]" />
                   <input
                     type="text"
                     inputMode="decimal"
@@ -585,8 +894,7 @@ export default function SimulatorPage() {
                       if (/^\d*\.?\d*$/.test(e.target.value))
                         setInvestment(e.target.value);
                     }}
-                    className="w-full pl-9 pr-3 py-2.5 bg-slate-800/30 border border-slate-700/40 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-[rgba(0,229,196,0.5)] focus:ring-1 focus:ring-[rgba(0,229,196,0.2)] transition-all"
-                    style={{ fontFamily: "var(--font-geist-mono)" }}
+                    className={inputClass}
                     placeholder="10000"
                   />
                 </div>
@@ -594,20 +902,11 @@ export default function SimulatorPage() {
 
               {/* Current Price */}
               <div>
-                <label
-                  className="block text-[10px] uppercase tracking-widest mb-2"
-                  style={{
-                    color: "rgba(240,244,255,0.35)",
-                    fontFamily: "var(--font-geist-mono)",
-                  }}
-                >
+                <label className="block text-[10px] font-mono uppercase tracking-widest mb-2 text-on-surface-variant">
                   Current Price
                 </label>
                 <div className="relative">
-                  <DollarSign
-                    className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4"
-                    style={{ color: "rgba(240,244,255,0.25)" }}
-                  />
+                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#475569]" />
                   <input
                     type="text"
                     inputMode="decimal"
@@ -616,8 +915,7 @@ export default function SimulatorPage() {
                       if (/^\d*\.?\d*$/.test(e.target.value))
                         setCurrentPrice(e.target.value);
                     }}
-                    className="w-full pl-9 pr-3 py-2.5 bg-slate-800/30 border border-slate-700/40 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-[rgba(0,229,196,0.5)] focus:ring-1 focus:ring-[rgba(0,229,196,0.2)] transition-all"
-                    style={{ fontFamily: "var(--font-geist-mono)" }}
+                    className={inputClass}
                     placeholder="3200"
                   />
                 </div>
@@ -625,21 +923,12 @@ export default function SimulatorPage() {
 
               {/* Price Range */}
               <div>
-                <label
-                  className="block text-[10px] uppercase tracking-widest mb-2"
-                  style={{
-                    color: "rgba(240,244,255,0.35)",
-                    fontFamily: "var(--font-geist-mono)",
-                  }}
-                >
+                <label className="block text-[10px] font-mono uppercase tracking-widest mb-2 text-on-surface-variant">
                   Price Range (Min / Max)
                 </label>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="relative">
-                    <DollarSign
-                      className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4"
-                      style={{ color: "rgba(240,244,255,0.25)" }}
-                    />
+                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#475569]" />
                     <input
                       type="text"
                       inputMode="decimal"
@@ -648,16 +937,12 @@ export default function SimulatorPage() {
                         if (/^\d*\.?\d*$/.test(e.target.value))
                           setPriceLower(e.target.value);
                       }}
-                      className="w-full pl-9 pr-3 py-2.5 bg-slate-800/30 border border-slate-700/40 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-[rgba(0,229,196,0.5)] focus:ring-1 focus:ring-[rgba(0,229,196,0.2)] transition-all"
-                      style={{ fontFamily: "var(--font-geist-mono)" }}
+                      className={inputClass}
                       placeholder="2800"
                     />
                   </div>
                   <div className="relative">
-                    <DollarSign
-                      className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4"
-                      style={{ color: "rgba(240,244,255,0.25)" }}
-                    />
+                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#475569]" />
                     <input
                       type="text"
                       inputMode="decimal"
@@ -666,8 +951,7 @@ export default function SimulatorPage() {
                         if (/^\d*\.?\d*$/.test(e.target.value))
                           setPriceUpper(e.target.value);
                       }}
-                      className="w-full pl-9 pr-3 py-2.5 bg-slate-800/30 border border-slate-700/40 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-[rgba(0,229,196,0.5)] focus:ring-1 focus:ring-[rgba(0,229,196,0.2)] transition-all"
-                      style={{ fontFamily: "var(--font-geist-mono)" }}
+                      className={inputClass}
                       placeholder="4200"
                     />
                   </div>
@@ -686,20 +970,13 @@ export default function SimulatorPage() {
 
               {/* Fee Tier */}
               <div>
-                <label
-                  className="block text-[10px] uppercase tracking-widest mb-2"
-                  style={{
-                    color: "rgba(240,244,255,0.35)",
-                    fontFamily: "var(--font-geist-mono)",
-                  }}
-                >
+                <label className="block text-[10px] font-mono uppercase tracking-widest mb-2 text-on-surface-variant">
                   Fee Tier
                 </label>
                 <select
                   value={feeTier}
                   onChange={(e) => setFeeTier(parseFloat(e.target.value))}
-                  className="w-full px-3 py-2.5 bg-slate-800/30 border border-slate-700/40 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-[rgba(0,229,196,0.5)] focus:ring-1 focus:ring-[rgba(0,229,196,0.2)] transition-all appearance-none cursor-pointer"
-                  style={{ fontFamily: "var(--font-geist-mono)" }}
+                  className="w-full px-3 py-2.5 bg-surface-container-lowest border border-outline-variant/30 rounded-lg text-sm text-on-surface focus:outline-none focus:border-arc-400/50 focus:ring-1 focus:ring-arc-400/20 transition-all appearance-none cursor-pointer font-mono"
                 >
                   {FEE_TIERS.map((ft) => (
                     <option key={ft.value} value={ft.value}>
@@ -711,20 +988,11 @@ export default function SimulatorPage() {
 
               {/* Daily Pool Volume */}
               <div>
-                <label
-                  className="block text-[10px] uppercase tracking-widest mb-2"
-                  style={{
-                    color: "rgba(240,244,255,0.35)",
-                    fontFamily: "var(--font-geist-mono)",
-                  }}
-                >
+                <label className="block text-[10px] font-mono uppercase tracking-widest mb-2 text-on-surface-variant">
                   Daily Pool Volume
                 </label>
                 <div className="relative">
-                  <DollarSign
-                    className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4"
-                    style={{ color: "rgba(240,244,255,0.25)" }}
-                  />
+                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#475569]" />
                   <input
                     type="text"
                     inputMode="decimal"
@@ -733,8 +1001,7 @@ export default function SimulatorPage() {
                       if (/^\d*\.?\d*$/.test(e.target.value))
                         setDailyVolume(e.target.value);
                     }}
-                    className="w-full pl-9 pr-3 py-2.5 bg-slate-800/30 border border-slate-700/40 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-[rgba(0,229,196,0.5)] focus:ring-1 focus:ring-[rgba(0,229,196,0.2)] transition-all"
-                    style={{ fontFamily: "var(--font-geist-mono)" }}
+                    className={inputClass}
                     placeholder="1000000"
                   />
                 </div>
@@ -742,13 +1009,7 @@ export default function SimulatorPage() {
 
               {/* Time Period */}
               <div>
-                <label
-                  className="block text-[10px] uppercase tracking-widest mb-2"
-                  style={{
-                    color: "rgba(240,244,255,0.35)",
-                    fontFamily: "var(--font-geist-mono)",
-                  }}
-                >
+                <label className="block text-[10px] font-mono uppercase tracking-widest mb-2 text-on-surface-variant">
                   Time Period
                 </label>
                 <div className="grid grid-cols-4 gap-2">
@@ -756,22 +1017,11 @@ export default function SimulatorPage() {
                     <button
                       key={tf.days}
                       onClick={() => setTimeframeDays(tf.days)}
-                      className="py-2 rounded-lg text-xs font-medium transition-all"
-                      style={{
-                        background:
-                          timeframeDays === tf.days
-                            ? "rgba(0,229,196,0.15)"
-                            : "rgba(255,255,255,0.03)",
-                        border:
-                          timeframeDays === tf.days
-                            ? "1px solid rgba(0,229,196,0.35)"
-                            : "1px solid rgba(255,255,255,0.06)",
-                        color:
-                          timeframeDays === tf.days
-                            ? "#00e5c4"
-                            : "rgba(240,244,255,0.45)",
-                        fontFamily: "var(--font-geist-mono)",
-                      }}
+                      className={`py-2 rounded-lg text-xs font-medium font-mono transition-all ${
+                        timeframeDays === tf.days
+                          ? "bg-arc-400/15 border border-arc-400/35 text-arc-400"
+                          : "bg-surface-container-high border border-outline-variant/20 text-on-surface-variant"
+                      }`}
                     >
                       {tf.label}
                     </button>
@@ -797,10 +1047,7 @@ export default function SimulatorPage() {
               </button>
 
               {!isValid && parsed.priceUpper <= parsed.priceLower && parsed.priceLower > 0 && (
-                <p
-                  className="text-xs flex items-center gap-1.5"
-                  style={{ color: "#ff6b8a" }}
-                >
+                <p className="text-xs flex items-center gap-1.5 text-[#ffb4ab]">
                   <AlertTriangle className="w-3 h-3" />
                   Max price must be greater than min price
                 </p>
@@ -826,25 +1073,74 @@ export default function SimulatorPage() {
                   />
                 </div>
                 <h3
-                  className="text-lg font-bold mb-2"
+                  className="text-lg font-bold text-on-surface mb-2"
                   style={{
-                    color: "#f0f4ff",
-                    fontFamily:
-                      "var(--font-syne), var(--font-geist-sans), sans-serif",
+                    fontFamily: "var(--font-syne), sans-serif",
                   }}
                 >
                   Configure &amp; Simulate
                 </h3>
-                <p
-                  className="text-sm max-w-sm"
-                  style={{ color: "rgba(240,244,255,0.35)" }}
-                >
+                <p className="text-sm max-w-sm text-on-surface-variant/50">
                   Set your investment parameters on the left and hit &ldquo;Run
                   Simulation&rdquo; to compare LP, HODL, and lending strategies.
                 </p>
               </GlassCard>
             ) : liveResult ? (
               <>
+                {/* Action Buttons: Save, Download, Share */}
+                <div className="flex flex-wrap items-center gap-3">
+                  <button
+                    onClick={() => setShowSaveModal(true)}
+                    className="btn-secondary inline-flex items-center gap-2 px-4 py-2.5 text-sm transition-all hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    <BookmarkPlus className="w-4 h-4" />
+                    Save Strategy
+                  </button>
+                  <button
+                    onClick={handleDownload}
+                    className="btn-secondary inline-flex items-center gap-2 px-4 py-2.5 text-sm transition-all hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    <Download className="w-4 h-4" />
+                    Download
+                  </button>
+                  <button
+                    onClick={handleShare}
+                    className="btn-secondary inline-flex items-center gap-2 px-4 py-2.5 text-sm transition-all hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    {shareNotification ? (
+                      <>
+                        <Check className="w-4 h-4" />
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Share2 className="w-4 h-4" />
+                        Share
+                      </>
+                    )}
+                  </button>
+
+                  {/* Save notification */}
+                  {saveNotification && (
+                    <span
+                      className="text-xs font-mono px-3 py-1.5 rounded-lg animate-pulse"
+                      style={{
+                        background: saveNotification.includes("saved")
+                          ? "rgba(128,255,199,0.1)"
+                          : "rgba(255,180,171,0.1)",
+                        border: saveNotification.includes("saved")
+                          ? "1px solid rgba(128,255,199,0.2)"
+                          : "1px solid rgba(255,180,171,0.2)",
+                        color: saveNotification.includes("saved")
+                          ? "#80ffc7"
+                          : "#ffb4ab",
+                      }}
+                    >
+                      {saveNotification}
+                    </span>
+                  )}
+                </div>
+
                 {/* Strategy Comparison Cards */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <StrategyCard
@@ -858,20 +1154,20 @@ export default function SimulatorPage() {
                       {
                         label: "Fee Income",
                         value: `+${formatUsd(liveResult.lpFeeIncome)}`,
-                        color: "#00e5c4",
+                        color: "#80ffc7",
                       },
                       {
                         label: "Impermanent Loss",
                         value: formatUsd(liveResult.impermanentLoss),
-                        color: "#ff6b8a",
+                        color: "#ffb4ab",
                       },
                       {
                         label: "Net P&L",
                         value: `${liveResult.lpNetValue - parsed.investmentUsd >= 0 ? "+" : ""}${formatUsd(liveResult.lpNetValue - parsed.investmentUsd)}`,
                         color:
                           liveResult.lpNetValue >= parsed.investmentUsd
-                            ? "#00e5c4"
-                            : "#ff6b8a",
+                            ? "#80ffc7"
+                            : "#ffb4ab",
                       },
                     ]}
                   />
@@ -897,11 +1193,9 @@ export default function SimulatorPage() {
                 <GlassCard>
                   <div className="flex items-center justify-between mb-5">
                     <h3
-                      className="text-sm font-bold"
+                      className="text-sm font-bold text-on-surface"
                       style={{
-                        color: "#f0f4ff",
-                        fontFamily:
-                          "var(--font-syne), var(--font-geist-sans), sans-serif",
+                        fontFamily: "var(--font-syne), sans-serif",
                       }}
                     >
                       Projected Value Over Time
@@ -914,8 +1208,7 @@ export default function SimulatorPage() {
                       ].map((s) => (
                         <div
                           key={s.label}
-                          className="flex items-center gap-1.5 text-xs"
-                          style={{ color: "rgba(240,244,255,0.5)" }}
+                          className="flex items-center gap-1.5 text-xs text-on-surface-variant"
                         >
                           <span
                             className="w-2 h-2 rounded-full"
@@ -935,12 +1228,12 @@ export default function SimulatorPage() {
                         />
                         <XAxis
                           dataKey="day"
-                          stroke="rgba(240,244,255,0.2)"
+                          stroke="rgba(185,202,196,0.3)"
                           tick={{ fontSize: 11 }}
                           tickFormatter={(v) => `${v}d`}
                         />
                         <YAxis
-                          stroke="rgba(240,244,255,0.2)"
+                          stroke="rgba(185,202,196,0.3)"
                           tick={{ fontSize: 11 }}
                           tickFormatter={(v) =>
                             `$${v.toLocaleString()}`
@@ -989,47 +1282,27 @@ export default function SimulatorPage() {
                 <GlassCard>
                   <div className="flex items-center justify-between mb-4">
                     <h3
-                      className="text-sm font-bold"
+                      className="text-sm font-bold text-on-surface"
                       style={{
-                        color: "#f0f4ff",
-                        fontFamily:
-                          "var(--font-syne), var(--font-geist-sans), sans-serif",
+                        fontFamily: "var(--font-syne), sans-serif",
                       }}
                     >
                       Price Sensitivity
                     </h3>
                     <span
-                      className="text-xs px-2 py-1 rounded-lg"
-                      style={{
-                        background:
-                          priceChangePct === 0
-                            ? "rgba(255,255,255,0.04)"
-                            : priceChangePct > 0
-                            ? "rgba(0,229,196,0.1)"
-                            : "rgba(255,107,138,0.1)",
-                        color:
-                          priceChangePct === 0
-                            ? "rgba(240,244,255,0.5)"
-                            : priceChangePct > 0
-                            ? "#00e5c4"
-                            : "#ff6b8a",
-                        fontFamily: "var(--font-geist-mono)",
-                        border:
-                          priceChangePct === 0
-                            ? "1px solid rgba(255,255,255,0.06)"
-                            : priceChangePct > 0
-                            ? "1px solid rgba(0,229,196,0.2)"
-                            : "1px solid rgba(255,107,138,0.2)",
-                      }}
+                      className={`text-xs px-2 py-1 rounded-lg font-mono ${
+                        priceChangePct === 0
+                          ? "bg-surface-container-high border border-outline-variant/20 text-on-surface-variant"
+                          : priceChangePct > 0
+                          ? "bg-arc-400/10 border border-arc-400/20 text-arc-400"
+                          : "bg-[rgba(255,180,171,0.1)] border border-[rgba(255,180,171,0.2)] text-[#ffb4ab]"
+                      }`}
                     >
                       {priceChangePct >= 0 ? "+" : ""}
                       {priceChangePct}% price change
                     </span>
                   </div>
-                  <p
-                    className="text-xs mb-4"
-                    style={{ color: "rgba(240,244,255,0.35)" }}
-                  >
+                  <p className="text-xs mb-4 text-on-surface-variant/50">
                     What if {token0} price changes by the end of the period?
                     Drag the slider to see the impact on your returns.
                   </p>
@@ -1045,38 +1318,20 @@ export default function SimulatorPage() {
                       }
                       className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
                       style={{
-                        background: `linear-gradient(to right, #ff6b8a 0%, rgba(255,255,255,0.15) ${
+                        background: `linear-gradient(to right, #ffb4ab 0%, rgba(255,255,255,0.15) ${
                           ((priceChangePct + 50) / 150) * 100
                         }%, rgba(255,255,255,0.08) 100%)`,
                         accentColor: "#00e5c4",
                       }}
                     />
                     <div className="flex justify-between mt-2">
-                      <span
-                        className="text-[10px]"
-                        style={{
-                          color: "rgba(240,244,255,0.25)",
-                          fontFamily: "var(--font-geist-mono)",
-                        }}
-                      >
+                      <span className="text-[10px] font-mono text-on-surface-variant/40">
                         -50%
                       </span>
-                      <span
-                        className="text-[10px]"
-                        style={{
-                          color: "rgba(240,244,255,0.25)",
-                          fontFamily: "var(--font-geist-mono)",
-                        }}
-                      >
+                      <span className="text-[10px] font-mono text-on-surface-variant/40">
                         0%
                       </span>
-                      <span
-                        className="text-[10px]"
-                        style={{
-                          color: "rgba(240,244,255,0.25)",
-                          fontFamily: "var(--font-geist-mono)",
-                        }}
-                      >
+                      <span className="text-[10px] font-mono text-on-surface-variant/40">
                         +100%
                       </span>
                     </div>
@@ -1091,43 +1346,24 @@ export default function SimulatorPage() {
                       }}
                     >
                       <div>
-                        <div
-                          className="text-[10px] uppercase tracking-widest mb-1"
-                          style={{
-                            color: "rgba(240,244,255,0.3)",
-                            fontFamily: "var(--font-geist-mono)",
-                          }}
-                        >
+                        <div className="text-[10px] font-mono uppercase tracking-widest mb-1 text-on-surface-variant">
                           New IL
                         </div>
-                        <div
-                          className="text-sm font-bold"
-                          style={{
-                            color: "#ff6b8a",
-                            fontFamily: "var(--font-geist-mono)",
-                          }}
-                        >
+                        <div className="text-sm font-bold font-mono text-[#ffb4ab]">
                           {formatUsd(liveResult.impermanentLoss)}
                         </div>
                       </div>
                       <div>
-                        <div
-                          className="text-[10px] uppercase tracking-widest mb-1"
-                          style={{
-                            color: "rgba(240,244,255,0.3)",
-                            fontFamily: "var(--font-geist-mono)",
-                          }}
-                        >
+                        <div className="text-[10px] font-mono uppercase tracking-widest mb-1 text-on-surface-variant">
                           New LP Value
                         </div>
                         <div
-                          className="text-sm font-bold"
+                          className="text-sm font-bold font-mono"
                           style={{
                             color:
                               liveResult.lpNetValue >= parsed.investmentUsd
-                                ? "#00e5c4"
-                                : "#ff6b8a",
-                            fontFamily: "var(--font-geist-mono)",
+                                ? "#80ffc7"
+                                : "#ffb4ab",
                           }}
                         >
                           {formatUsd(liveResult.lpNetValue)}
@@ -1147,11 +1383,9 @@ export default function SimulatorPage() {
                         style={{ color: "#f59e0b" }}
                       />
                       <h3
-                        className="text-sm font-bold"
+                        className="text-sm font-bold text-on-surface"
                         style={{
-                          color: "#f0f4ff",
-                          fontFamily:
-                            "var(--font-syne), var(--font-geist-sans), sans-serif",
+                          fontFamily: "var(--font-syne), sans-serif",
                         }}
                       >
                         Risk Assessment
@@ -1161,10 +1395,7 @@ export default function SimulatorPage() {
                     <div className="space-y-4">
                       {/* Risk Level */}
                       <div className="flex items-center justify-between">
-                        <span
-                          className="text-xs"
-                          style={{ color: "rgba(240,244,255,0.4)" }}
-                        >
+                        <span className="text-xs text-on-surface-variant/60">
                           Risk Level
                         </span>
                         <RiskBadge level={liveResult.riskLevel} />
@@ -1173,26 +1404,14 @@ export default function SimulatorPage() {
                       {/* Range Utilization */}
                       <div>
                         <div className="flex items-center justify-between mb-2">
-                          <span
-                            className="text-xs"
-                            style={{ color: "rgba(240,244,255,0.4)" }}
-                          >
+                          <span className="text-xs text-on-surface-variant/60">
                             Range Utilization
                           </span>
-                          <span
-                            className="text-xs font-bold"
-                            style={{
-                              color: "#00e5c4",
-                              fontFamily: "var(--font-geist-mono)",
-                            }}
-                          >
+                          <span className="text-xs font-bold font-mono text-arc-400">
                             {liveResult.priceRangeUtilization.toFixed(1)}%
                           </span>
                         </div>
-                        <div
-                          className="h-2 rounded-full overflow-hidden"
-                          style={{ background: "rgba(255,255,255,0.05)" }}
-                        >
+                        <div className="h-2 rounded-full overflow-hidden bg-surface-container-high">
                           <div
                             className="h-full rounded-full transition-all duration-500"
                             style={{
@@ -1206,19 +1425,10 @@ export default function SimulatorPage() {
 
                       {/* Concentration Factor */}
                       <div className="flex items-center justify-between">
-                        <span
-                          className="text-xs"
-                          style={{ color: "rgba(240,244,255,0.4)" }}
-                        >
+                        <span className="text-xs text-on-surface-variant/60">
                           Concentration Factor
                         </span>
-                        <span
-                          className="text-xs font-bold"
-                          style={{
-                            color: "#f0f4ff",
-                            fontFamily: "var(--font-geist-mono)",
-                          }}
-                        >
+                        <span className="text-xs font-bold font-mono text-on-surface">
                           {concentrationFactor.toFixed(2)}x
                         </span>
                       </div>
@@ -1228,11 +1438,9 @@ export default function SimulatorPage() {
                   {/* Key Metrics */}
                   <GlassCard>
                     <h3
-                      className="text-sm font-bold mb-4"
+                      className="text-sm font-bold text-on-surface mb-4"
                       style={{
-                        color: "#f0f4ff",
-                        fontFamily:
-                          "var(--font-syne), var(--font-geist-sans), sans-serif",
+                        fontFamily: "var(--font-syne), sans-serif",
                       }}
                     >
                       Key Metrics
@@ -1244,19 +1452,19 @@ export default function SimulatorPage() {
                           value: formatPct(liveResult.lpApr),
                           icon: TrendingUp,
                           color:
-                            liveResult.lpApr >= 0 ? "#00e5c4" : "#ff6b8a",
+                            liveResult.lpApr >= 0 ? "#80ffc7" : "#ffb4ab",
                         },
                         {
                           label: "Fee Income",
                           value: `+${formatUsd(liveResult.lpFeeIncome)}`,
                           icon: DollarSign,
-                          color: "#00e5c4",
+                          color: "#80ffc7",
                         },
                         {
                           label: "Impermanent Loss",
                           value: formatUsd(liveResult.impermanentLoss),
                           icon: TrendingDown,
-                          color: "#ff6b8a",
+                          color: "#ffb4ab",
                         },
                         {
                           label: "Net Return",
@@ -1264,39 +1472,26 @@ export default function SimulatorPage() {
                           icon: BarChart3,
                           color:
                             liveResult.lpReturnPct >= 0
-                              ? "#00e5c4"
-                              : "#ff6b8a",
+                              ? "#80ffc7"
+                              : "#ffb4ab",
                         },
                       ].map((m) => (
                         <div
                           key={m.label}
-                          className="rounded-lg p-3"
-                          style={{
-                            background: "rgba(255,255,255,0.03)",
-                            border: "1px solid rgba(255,255,255,0.06)",
-                          }}
+                          className="rounded-lg p-3 bg-surface-container-high border border-outline-variant/20"
                         >
                           <div className="flex items-center gap-1.5 mb-2">
                             <m.icon
                               className="w-3 h-3"
                               style={{ color: m.color }}
                             />
-                            <span
-                              className="text-[10px] uppercase tracking-widest"
-                              style={{
-                                color: "rgba(240,244,255,0.35)",
-                                fontFamily: "var(--font-geist-mono)",
-                              }}
-                            >
+                            <span className="text-[10px] font-mono uppercase tracking-widest text-on-surface-variant">
                               {m.label}
                             </span>
                           </div>
                           <div
-                            className="text-base font-bold"
-                            style={{
-                              color: m.color,
-                              fontFamily: "var(--font-geist-mono)",
-                            }}
+                            className="text-base font-bold font-mono"
+                            style={{ color: m.color }}
                           >
                             {m.value}
                           </div>
@@ -1318,10 +1513,7 @@ export default function SimulatorPage() {
                     className="w-4 h-4 shrink-0 mt-0.5"
                     style={{ color: "#f59e0b" }}
                   />
-                  <p
-                    className="text-xs leading-relaxed"
-                    style={{ color: "rgba(240,244,255,0.4)" }}
-                  >
+                  <p className="text-xs leading-relaxed text-on-surface-variant/60">
                     This simulator provides estimates based on simplified models.
                     Actual returns depend on market conditions, gas costs, pool
                     composition, and other factors. Not financial advice.
@@ -1329,9 +1521,52 @@ export default function SimulatorPage() {
                 </div>
               </>
             ) : null}
+
+            {/* ── Saved Strategies Section ── */}
+            {!loadingStrategies && savedStrategies.length > 0 && (
+              <div className="mt-4">
+                <div className="flex items-center gap-3 mb-5">
+                  <h2
+                    className="text-xl font-bold text-on-surface"
+                    style={{ fontFamily: "var(--font-syne), sans-serif" }}
+                  >
+                    Saved Strategies
+                  </h2>
+                  <span
+                    className="inline-flex items-center justify-center min-w-[24px] h-6 px-2 rounded-full text-xs font-bold font-mono"
+                    style={{
+                      background: "rgba(0,229,196,0.1)",
+                      border: "1px solid rgba(0,229,196,0.2)",
+                      color: "#00e5c4",
+                    }}
+                  >
+                    {savedStrategies.length}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                  {savedStrategies.map((strategy) => (
+                    <SavedStrategyCard
+                      key={strategy.id}
+                      strategy={strategy}
+                      onDelete={handleDelete}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Save Strategy Modal */}
+      {showSaveModal && (
+        <SaveStrategyModal
+          onSave={handleSave}
+          onClose={() => setShowSaveModal(false)}
+          saving={saving}
+        />
+      )}
     </div>
   );
 }

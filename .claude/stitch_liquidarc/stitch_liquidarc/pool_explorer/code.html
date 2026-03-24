@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>LiquidArc | Pool Explorer</title>
+<!-- Typography -->
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&amp;family=Space+Grotesk:wght@400;500;700&amp;family=Geist+Mono&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary-fixed": "#41fddb",
+              "surface-dim": "#0a141d",
+              "on-surface-variant": "#b9cac4",
+              "on-background": "#dae3f1",
+              "on-surface": "#dae3f1",
+              "background": "#0a141d",
+              "on-secondary": "#283042",
+              "tertiary-fixed-dim": "#45dfa4",
+              "on-secondary-container": "#b0b8ce",
+              "outline": "#84948f",
+              "surface-container-lowest": "#060f18",
+              "error-container": "#93000a",
+              "on-error-container": "#ffdad6",
+              "on-error": "#690005",
+              "on-secondary-fixed": "#131c2c",
+              "on-primary-fixed-variant": "#005144",
+              "on-tertiary-container": "#006244",
+              "surface-container-high": "#212b35",
+              "error": "#ffb4ab",
+              "surface-container": "#17202a",
+              "tertiary": "#80ffc7",
+              "secondary-container": "#40495b",
+              "tertiary-fixed": "#68fcbf",
+              "surface-container-highest": "#2c3640",
+              "on-primary-container": "#006152",
+              "primary-fixed-dim": "#00dfbf",
+              "secondary-fixed": "#dae2f9",
+              "on-tertiary-fixed": "#002114",
+              "outline-variant": "#3b4a45",
+              "surface-container-low": "#131c26",
+              "surface-bright": "#313a44",
+              "on-tertiary-fixed-variant": "#005137",
+              "on-primary": "#00382e",
+              "tertiary-container": "#4ce4a9",
+              "secondary-fixed-dim": "#bec6dd",
+              "surface-variant": "#2c3640",
+              "inverse-primary": "#006b5b",
+              "on-primary-fixed": "#00201a",
+              "secondary": "#bec6dd",
+              "primary-container": "#00e5c4",
+              "primary": "#70ffe1",
+              "inverse-surface": "#dae3f1",
+              "surface": "#0a141d",
+              "on-tertiary": "#003825",
+              "surface-tint": "#00dfbf",
+              "inverse-on-surface": "#28313b",
+              "on-secondary-fixed-variant": "#3e4759"
+            },
+            fontFamily: {
+              "headline": ["Space Grotesk"],
+              "syne": ["Syne"],
+              "mono": ["Geist Mono"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+        .glass-panel {
+            background: rgba(33, 43, 53, 0.4);
+            backdrop-filter: blur(12px);
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #00e5c4; border-radius: 99px; }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body selection:bg-primary-container/30">
+<!-- TopNavBar -->
+<nav class="fixed top-0 w-full z-50 flex justify-between items-center px-8 h-20 bg-[#0a141d]/80 backdrop-blur-xl border-b border-[#212b35]/20">
+<div class="text-2xl font-bold tracking-tighter text-[#dae3f1] font-syne">LiquidArc</div>
+<div class="hidden md:flex items-center gap-8 font-headline font-medium tracking-tight">
+<a class="text-[#dae3f1]/60 hover:text-[#dae3f1] transition-colors" href="#">Market</a>
+<a class="text-[#dae3f1]/60 hover:text-[#dae3f1] transition-colors" href="#">Protocols</a>
+<a class="text-[#00e5c4] font-bold border-b-2 border-[#00e5c4] pb-1" href="#">Simulator</a>
+<a class="text-[#dae3f1]/60 hover:text-[#dae3f1] transition-colors" href="#">Learn</a>
+</div>
+<button class="bg-primary-container text-on-primary-container px-6 py-2 rounded-xl font-bold hover:bg-primary-fixed-dim transition-all active:scale-95">Sign In</button>
+</nav>
+<!-- SideNavBar (Hidden on Mobile) -->
+<aside class="fixed left-0 top-20 h-[calc(100vh-5rem)] w-64 flex flex-col py-6 bg-[#131c26] border-r border-[#212b35]/30 hidden lg:flex">
+<div class="px-6 mb-8">
+<div class="text-lg font-extrabold text-[#dae3f1] font-syne">The Vault</div>
+<div class="font-headline uppercase tracking-widest text-[10px] text-primary">Institutional Grade</div>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center gap-3 text-[#dae3f1]/50 px-4 py-3 hover:bg-[#212b35]/50 transition-all hover:translate-x-1" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-headline uppercase tracking-widest text-xs">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 text-[#dae3f1]/50 px-4 py-3 hover:bg-[#212b35]/50 transition-all hover:translate-x-1" href="#">
+<span class="material-symbols-outlined">account_balance_wallet</span>
+<span class="font-headline uppercase tracking-widest text-xs">DeFi</span>
+</a>
+<a class="flex items-center gap-3 bg-[#212b35] text-[#00e5c4] border-l-4 border-[#00e5c4] px-4 py-3 ml-2 rounded-l-lg translate-x-1" href="#">
+<span class="material-symbols-outlined">waves</span>
+<span class="font-headline uppercase tracking-widest text-xs">Pools</span>
+</a>
+</nav>
+<div class="mt-auto px-4 pb-4 space-y-4">
+<button class="w-full bg-[#212b35] text-[#00e5c4] py-3 rounded-lg font-bold border border-[#00e5c4]/20 hover:border-[#00e5c4] transition-all">Connect Wallet</button>
+<div class="space-y-1">
+<a class="flex items-center gap-3 text-[#dae3f1]/50 px-4 py-2 hover:text-[#dae3f1] transition-all" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-headline uppercase tracking-widest text-[10px]">Settings</span>
+</a>
+<a class="flex items-center gap-3 text-[#dae3f1]/50 px-4 py-2 hover:text-[#dae3f1] transition-all" href="#">
+<span class="material-symbols-outlined">help</span>
+<span class="font-headline uppercase tracking-widest text-[10px]">Support</span>
+</a>
+</div>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="pt-20 lg:pl-64 min-h-screen bg-surface">
+<div class="p-8 max-w-7xl mx-auto">
+<!-- Page Header -->
+<header class="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
+<div>
+<h1 class="font-syne text-5xl font-extrabold tracking-tighter text-on-surface mb-2">Pool Explorer</h1>
+<p class="text-on-surface-variant font-headline">Discover and analyze deep liquidity across 12 chains.</p>
+</div>
+<div class="flex gap-4">
+<div class="relative group">
+<div class="absolute -inset-0.5 bg-primary/20 rounded-xl blur opacity-0 group-hover:opacity-100 transition"></div>
+<div class="relative bg-surface-container-high px-4 py-3 rounded-xl flex items-center gap-3 border border-outline-variant/30">
+<span class="material-symbols-outlined text-primary">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-sm w-64 placeholder:text-on-surface-variant/50" placeholder="Search pair, token or protocol..." type="text"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Layout Grid -->
+<div class="grid grid-cols-12 gap-8">
+<!-- Filter Sidebar (Facets) -->
+<aside class="col-span-12 lg:col-span-3 space-y-8">
+<div class="glass-panel p-6 rounded-2xl border border-outline-variant/10 shadow-2xl">
+<div class="flex items-center justify-between mb-6">
+<h3 class="font-syne font-bold text-sm tracking-widest uppercase">Filters</h3>
+<button class="text-[10px] text-primary uppercase font-bold tracking-widest">Clear All</button>
+</div>
+<!-- Protocol Facet -->
+<div class="mb-8">
+<label class="block text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-4">Protocol</label>
+<div class="space-y-3">
+<label class="flex items-center gap-3 cursor-pointer group">
+<input checked="" class="w-4 h-4 rounded border-outline-variant bg-surface-container-lowest text-primary focus:ring-primary/20" type="checkbox"/>
+<span class="text-sm text-on-surface/80 group-hover:text-primary transition-colors">Uniswap V3</span>
+</label>
+<label class="flex items-center gap-3 cursor-pointer group">
+<input class="w-4 h-4 rounded border-outline-variant bg-surface-container-lowest text-primary focus:ring-primary/20" type="checkbox"/>
+<span class="text-sm text-on-surface/80 group-hover:text-primary transition-colors">Curve Finance</span>
+</label>
+<label class="flex items-center gap-3 cursor-pointer group">
+<input class="w-4 h-4 rounded border-outline-variant bg-surface-container-lowest text-primary focus:ring-primary/20" type="checkbox"/>
+<span class="text-sm text-on-surface/80 group-hover:text-primary transition-colors">Balancer</span>
+</label>
+</div>
+</div>
+<!-- Chain Facet -->
+<div class="mb-8">
+<label class="block text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-4">Chain</label>
+<div class="grid grid-cols-3 gap-2">
+<button class="aspect-square flex items-center justify-center bg-surface-container-highest border border-primary/40 rounded-lg">
+<img alt="Ethereum logo" data-alt="Ethereum blockchain icon" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCWGtcw3Tdb8qJ369pWPBTHRaNVJ7e76zpsvcKyBjSlaLart1BIkZZ4I1LmG_f5cq8-e0cLUxtzCrM7ayeISHAizMLyvXFPEbkutf9ZzcNSXF7Mj4c-o7pzUNppEiGeG4N5LqQ6pk0kP-WtzqPqCsadws-ttP1RG931ttGP9jk4H5JDnRxD4pyByXjDI8uBAHYG7gGFRPRpwKERjPBW2Ryb56he73ZirXdeXiQV5Ewj9UiRHj2Py92o-mvhbkFz7AE4Ktt9a8ExDRY"/>
+</button>
+<button class="aspect-square flex items-center justify-center bg-surface-container-low border border-outline-variant/20 rounded-lg hover:border-primary/20 transition-all">
+<img alt="Arbitrum logo" data-alt="Arbitrum blockchain icon" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBUnkDz1dRbxKBaijUO42tTQHK_EJCYeP-G0Xr2cjO-xASe9CtoywvgPOhTbUTNsihsSLynb1sudmTihKBw2hrkoiXUwX0lcu_R4sa88A9iZ7x7IlQ07k9zHiXZVpsE7SDR-jqT2Lki3V_9hFAL6dk6UL98e6aGFzD0CHqlRN7GZcAl_sG2W7KDj1S1tiHbRkwLUcagNpHRxsdmPZUShsnR4qR5ivqDL-9LxMFbDstIP4UvXOLcqoGwWWAGOCTo6YVhllNGkHLzydE"/>
+</button>
+<button class="aspect-square flex items-center justify-center bg-surface-container-low border border-outline-variant/20 rounded-lg hover:border-primary/20 transition-all">
+<img alt="Optimism logo" data-alt="Optimism blockchain icon" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBP_aLsbrOuLEqpFiQGGVKaoVS0T5oL-MhWrBYIluX_Uf5HtNU9V8Vh4s3UN8WiZiGiFu1R70iUiQwikYO_pluGXdyxP_8TulrasFhaK8WhCifL2eEYh3gQFO2dEZYpuehO9srED1lOpOJelJiTjuGjCVwwtndU0w0jra1PNzX12iYrJzbS9M29jeHCR9V7CEWLypOt7qmDB0xBsaah7jgzgEuml_iN3RXfYHvjUMzRfL9zHn6jYcaX83VKOGzjF-2zKJWJbK05-ew"/>
+</button>
+</div>
+</div>
+<!-- TVL Range -->
+<div class="mb-8">
+<label class="block text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-4">TVL Range</label>
+<input class="w-full h-1 bg-surface-container-lowest rounded-lg appearance-none cursor-pointer accent-primary" type="range"/>
+<div class="flex justify-between mt-2 text-[10px] font-mono text-on-surface-variant">
+<span>$0</span>
+<span>$100M+</span>
+</div>
+</div>
+<!-- APR Toggle -->
+<div class="p-4 bg-primary/5 rounded-xl border border-primary/10">
+<div class="flex items-center justify-between">
+<span class="text-xs font-bold text-primary tracking-tight">Boosted APR Only</span>
+<div class="w-10 h-5 bg-primary/20 rounded-full relative cursor-pointer">
+<div class="absolute left-1 top-1 w-3 h-3 bg-primary rounded-full"></div>
+</div>
+</div>
+</div>
+</div>
+</aside>
+<!-- Data Table Content -->
+<div class="col-span-12 lg:col-span-9">
+<div class="glass-panel rounded-2xl border border-outline-variant/10 overflow-hidden shadow-2xl">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead class="bg-surface-container-high/50">
+<tr>
+<th class="px-6 py-4 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
+<div class="flex items-center gap-1 cursor-pointer hover:text-primary transition-colors">
+                                                Pair <span class="material-symbols-outlined text-xs">expand_more</span>
+</div>
+</th>
+<th class="px-6 py-4 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Protocol</th>
+<th class="px-6 py-4 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Chain</th>
+<th class="px-6 py-4 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest text-right">
+<div class="flex items-center justify-end gap-1 cursor-pointer hover:text-primary transition-colors">
+                                                TVL <span class="material-symbols-outlined text-xs">unfold_more</span>
+</div>
+</th>
+<th class="px-6 py-4 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest text-right">24h Vol</th>
+<th class="px-6 py-4 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest text-right text-primary">
+<div class="flex items-center justify-end gap-1 cursor-pointer underline decoration-primary/30">
+                                                APR <span class="material-symbols-outlined text-xs">arrow_downward</span>
+</div>
+</th>
+<th class="px-6 py-4"></th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/10">
+<!-- Row 1 -->
+<tr class="hover:bg-primary/5 transition-colors group">
+<td class="px-6 py-5">
+<div class="flex items-center gap-3">
+<div class="flex -space-x-2">
+<div class="w-8 h-8 rounded-full bg-surface-bright flex items-center justify-center border border-surface shadow-lg overflow-hidden">
+<img alt="ETH" data-alt="Ethereum token icon" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC27CBJqNzfix_qgGA8ylGk6tWN6DLInvHbLEH3vcU1KQD-6e5PrWMwiYaBKp17URLCR0YWh-IAZo2_Gu-39lNXvLAcduvwH7Tzl98r5MUnwPAssMnWrGqPLCQWFveIo2DB6zTBD7e08GKDpKo8H2lYK7V0ZyoZp0J45GdjPziDz_YyzxuUcJ9tmhV6W1mU34Eq934RePhDAfp1ImwFqLy1EEj3Cql0dO5RXHT_8E7Zlsl961M1CfigK9qSIF6UV2jFMRAMDnxotWE"/>
+</div>
+<div class="w-8 h-8 rounded-full bg-surface-bright flex items-center justify-center border border-surface shadow-lg overflow-hidden">
+<img alt="USDC" data-alt="USDC stablecoin icon" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAS91BSi5IUnDfohxaemszAqjpBaHa9deGLwt_3hCOI_J83TDhSurB5ufNLnIj75nqNK4PUZl-uopei_6eY_31sVcMHgLLgMA2MYMrqqWQPBBq79QTON2_9NdFkD5C6tO3jmhCBE2FlokVZtA3IO-mXhSm3VoboKNzA_Dga9X0b8t8oL4z7suijlxIGQNAuI3YKDCrIQksyoC_SWZo-FB3a6vxRnKwr9POy10f2yGQ7mSIknP4JBkBrSBhuryVOYbqmPe-02J_gN20"/>
+</div>
+</div>
+<div>
+<div class="font-headline font-bold text-sm">WETH / USDC</div>
+<div class="text-[10px] text-on-surface-variant/70 font-mono uppercase tracking-tight">0.05% Fee Tier</div>
+</div>
+</div>
+</td>
+<td class="px-6 py-5">
+<span class="px-3 py-1 bg-surface-container-highest rounded-full text-[10px] font-bold border border-outline-variant/30">Uniswap V3</span>
+</td>
+<td class="px-6 py-5">
+<img alt="Ethereum" class="opacity-80" data-alt="Ethereum network indicator" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDKpPz2Q7r949dlOKp_KLBoxuIi6Ft7pGf5cK8-v-pwU2rN9Oee7kGKiYQ_dP2htt9bIeMvA5pPKTTb82lPT_59jNn3x6300rCfv1b6GNF9-LZ1bHTWuoHTL_ufRSkNmgM48BcwqWIyNH1uSAqvfT7gbct5ONKE_J2TQlKagivGPKIdsEz8cz4sMee96xW1ahdzadOn9U2jHqrDRCKmKuOgwY1byKt9yJYMqUFEHdW6_32gYw5G-6ik0PSHLh5rA5Q9-XdbXwxxWbs"/>
+</td>
+<td class="px-6 py-5 text-right font-mono text-sm tracking-tight">$412.8M</td>
+<td class="px-6 py-5 text-right font-mono text-sm tracking-tight">$84.2M</td>
+<td class="px-6 py-5 text-right">
+<div class="text-primary font-mono font-bold text-lg">42.18%</div>
+</td>
+<td class="px-6 py-5 text-right">
+<button class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-colors">chevron_right</button>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-primary/5 transition-colors group">
+<td class="px-6 py-5">
+<div class="flex items-center gap-3">
+<div class="flex -space-x-2">
+<div class="w-8 h-8 rounded-full bg-surface-bright flex items-center justify-center border border-surface shadow-lg overflow-hidden">
+<img alt="WBTC" data-alt="WBTC token icon" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCw8vYctnkzZfsqKkR1CLfDF2AapSwOut_yuLH6i8bPFGL41U0zS7VhX2AwDwL9apoNyFVfW2oHXz3WLCETY5QjWV3I17SD8YnEiW1lT4KOcymH30pAsj_KCDsiX05C34iJcMIVK_AUb00hFkwpqLKQ3TNeEyLbPaKxiTXAD7WXXTl_mtVLL__wlBAFdkqLDiDPJx8qmU9F9sKuWKjGJVs_4n5nsxEbUI2i3FeTaSjupCzrzwDK7ejrSMahgwPp371J0vx3XNybKmU"/>
+</div>
+<div class="w-8 h-8 rounded-full bg-surface-bright flex items-center justify-center border border-surface shadow-lg overflow-hidden">
+<img alt="WETH" data-alt="Wrapped Ethereum token icon" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD7NZYInKJ8f9uuZdYYuWN47i2nVNOxMo5AyVOny6ly6W_EJGUl_piva6U7bse2WQ33WnMDObMgOsRwERNLlr4aQrSiywWslaW5owkIdJof0E-9ytQ3-jHG4KbD7Tg4TNGEA1V5MAb-nk8XKc8BFGorj8aQr79TUnog_eTtHYjAX9jcVT0zwW9vmNfXadZsFuGWwyRpi4KZIQ_KaX-KYBV1tmpb1Rmvaio9jW3nE2MrHwTj_zsDaCwGz3bHYKCqVxwIRaCIzzikeKA"/>
+</div>
+</div>
+<div>
+<div class="font-headline font-bold text-sm">WBTC / WETH</div>
+<div class="text-[10px] text-on-surface-variant/70 font-mono uppercase tracking-tight">0.3% Fee Tier</div>
+</div>
+</div>
+</td>
+<td class="px-6 py-5">
+<span class="px-3 py-1 bg-surface-container-highest rounded-full text-[10px] font-bold border border-outline-variant/30">Balancer</span>
+</td>
+<td class="px-6 py-5">
+<img alt="Arbitrum" class="opacity-80" data-alt="Arbitrum network indicator" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD3KUNeD3Gz-XDYvVPSufQPKVTG38y5j8lyrlK5mr1zh4yFd2DkO8Hn_EGEzXRShm0HDYhcjuUNgt6O48MlKgDOjDCttc_bFL2iL6XiMeaIq8tkx0b6FJpYzaapoEMVdB3UugJLZkCK2RIJDwGgTqoMsa8Rs4blG1jkfCLVv0xxnGopspZOFTTLYV0S_kTS1wlgKKDq1jZAFVvMMgOQNDNyZDx34oL-z42WgqatKhEJ_tZCaVkCCYYIXjkabn1LB3BG67lwMGQRbm8"/>
+</td>
+<td class="px-6 py-5 text-right font-mono text-sm tracking-tight">$289.5M</td>
+<td class="px-6 py-5 text-right font-mono text-sm tracking-tight">$12.4M</td>
+<td class="px-6 py-5 text-right">
+<div class="text-primary font-mono font-bold text-lg">18.92%</div>
+</td>
+<td class="px-6 py-5 text-right">
+<button class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-colors">chevron_right</button>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-primary/5 transition-colors group">
+<td class="px-6 py-5">
+<div class="flex items-center gap-3">
+<div class="flex -space-x-2">
+<div class="w-8 h-8 rounded-full bg-surface-bright flex items-center justify-center border border-surface shadow-lg overflow-hidden">
+<img alt="USDT" data-alt="USDT stablecoin icon" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAsurFRQyKq6ireQ0hbFXMkcanR9OgDFOF0DAooSOz7eyRPhR2qGAkKDBGAvwpOghgq5Fspp_a-KWbx87Boho7KcOfHEZ0nghv9Y2X7VJSQcw7EcHzkjQW2xZwXfkkjo4-pTsTjh6ngKNoNDEh_vBPd6WyaGrAMy2o3TMGiZmLgjZaApQ-aTjt9TuM3K0Oda1v5GylOpbhlZT0cu4Gfdg0MpcDtQSxyPgtV_QWhJVih13-Pi0Fx8vBap2MuYa96gHJkcGeKYrLRvSY"/>
+</div>
+<div class="w-8 h-8 rounded-full bg-surface-bright flex items-center justify-center border border-surface shadow-lg overflow-hidden">
+<img alt="USDC" data-alt="USDC stablecoin icon" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDfqW9bKPPoQDSIZyuPNbIrAFVOi1wnRewoBx_jkMw4vwMWu6TDCwDGwKNnWLUaDlNolzWZnLycA_2IQp1vJrNOoC_n3MubZF9Qp6XSaRAoZEdPIAz33S_mEL0_JM9TGTsxSN6Ii-8-5jKSsiSfJz4I9WU3wSp3hzFGAdSL-D_aHcHMuH8KT68kUT-neyIMtXO64RspWpZ24Rqjh2bLAJAdtF-JGDsuoFXxf4KV14VBHnUCNjwsUWWjk1vN-VqWhbHUdrQM84fsHzI"/>
+</div>
+</div>
+<div>
+<div class="font-headline font-bold text-sm">USDT / USDC</div>
+<div class="text-[10px] text-on-surface-variant/70 font-mono uppercase tracking-tight">0.01% Fee Tier</div>
+</div>
+</div>
+</td>
+<td class="px-6 py-5">
+<span class="px-3 py-1 bg-surface-container-highest rounded-full text-[10px] font-bold border border-outline-variant/30">Curve</span>
+</td>
+<td class="px-6 py-5">
+<img alt="Optimism" class="opacity-80" data-alt="Optimism network indicator" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD9N8fDv81QUpp3QdYU09nNyCJKMQiXlkbnycF3b2jfJNee0vNBNq11NTmkhy2_hIqXvLH9ciBFeM99x6gdgxM2TupVJaF8NgDK-I3vbdNdHBpSzj5DRlF9nSc7yjZkYAS5q0VyzKDYe02ztWM4NyDqD_7fRO6uMcbEe3qQ1M_dosm-bofYsIdrDML72-IiEjWTOmS25g5HXTaQZryeBMJg3jhks3-XLK2dGBn1-FgmdYW4fEWzKuIV9nad30c1hlwB5RAphHctN_A"/>
+</td>
+<td class="px-6 py-5 text-right font-mono text-sm tracking-tight">$1.2B</td>
+<td class="px-6 py-5 text-right font-mono text-sm tracking-tight">$214.8M</td>
+<td class="px-6 py-5 text-right">
+<div class="text-primary font-mono font-bold text-lg">6.14%</div>
+</td>
+<td class="px-6 py-5 text-right">
+<button class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-colors">chevron_right</button>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="hover:bg-primary/5 transition-colors group">
+<td class="px-6 py-5">
+<div class="flex items-center gap-3">
+<div class="flex -space-x-2">
+<div class="w-8 h-8 rounded-full bg-surface-bright flex items-center justify-center border border-surface shadow-lg overflow-hidden">
+<img alt="PEPE" data-alt="PEPE meme token icon" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDKj3CUAVWEBUYf5hag2TD9Al3BhSBAwsQo0zZDZRHugJYHIJdyheBxFfNJXNt2BBfnYc-uzPzf14rY82KYNpHCFjYiJnq4oZXJHyGHd0rGxlUV9QYZQNGzblL_0kuwJOLczeF0RtqjCzrIuvqczO84ifsX_eBaS_4Nn4hWYbj1A_IcUXngMOkO2VBHv_pL4bv6pudG9o9W0AwtXtdXB4TP0KpY_RhJS6GYkNLamJ68Bp7JNzdgKXBzilbNqj3-2I8z7WGM3-c5Nog"/>
+</div>
+<div class="w-8 h-8 rounded-full bg-surface-bright flex items-center justify-center border border-surface shadow-lg overflow-hidden">
+<img alt="WETH" data-alt="Wrapped ETH token icon" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBT4Bp0FG3d21fZaRC-sWrUBxfxtAoT22dfe0UK8W45qt5ZN-sz_VzsUgFl9aq4QpXlqEOBUbjbJ_zeZu4TnGZeqPpdIgoZ6i-cO6BrPZNMSMRn0SKJEOcHrC0DSz6aIWi0pTSb0lw1oVwsKl0Y-iIRPNcVVHYmjvuEXmET-f_nlOvuTK84hRYDgFCNcM-77KxAZgJVb_jCe6wCn5ldyLv94Tof9McoohU4zY0RXR0SYsnAI7JEXP03i7tijWxpxeswO6gQTntzraw"/>
+</div>
+</div>
+<div>
+<div class="font-headline font-bold text-sm">PEPE / WETH</div>
+<div class="text-[10px] text-on-surface-variant/70 font-mono uppercase tracking-tight">1.0% Fee Tier</div>
+</div>
+</div>
+</td>
+<td class="px-6 py-5">
+<span class="px-3 py-1 bg-surface-container-highest rounded-full text-[10px] font-bold border border-outline-variant/30">Uniswap V3</span>
+</td>
+<td class="px-6 py-5">
+<img alt="Ethereum" class="opacity-80" data-alt="Ethereum network indicator" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAZmh7BIlmKMIlzilVCUEzwgXWj8i9BGD7Sw-hUe4q6S0mGLhdK7ZLiIaPnsQ9G5tmgL93E_TCPsuGMTKrqTF4Jk7RJ5VOH2bcpGchpTszsiqW2PA0IWvfuUpYJSHzIm6opdPaVueH4C9XHIImGxSV8-7ECkUNXcoVvybUA9OWFN8nxuT7rT1WnDO8uLprQkSxFyrml5S74cb6CUw7Nw1QjbhvB97TRRl9HTeeKR7sxK2KfkwPGHoXFcn_ZapNKBhlG_zKJ7wrakbo"/>
+</td>
+<td class="px-6 py-5 text-right font-mono text-sm tracking-tight">$45.1M</td>
+<td class="px-6 py-5 text-right font-mono text-sm tracking-tight">$8.9M</td>
+<td class="px-6 py-5 text-right">
+<div class="text-primary font-mono font-bold text-lg">114.2%</div>
+</td>
+<td class="px-6 py-5 text-right">
+<button class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-colors">chevron_right</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Pagination -->
+<div class="p-6 border-t border-outline-variant/10 flex items-center justify-between">
+<span class="text-[10px] font-mono text-on-surface-variant uppercase tracking-widest">Showing 1-10 of 1,429 Pools</span>
+<div class="flex items-center gap-2">
+<button class="w-10 h-10 flex items-center justify-center rounded-lg border border-outline-variant/30 text-on-surface-variant hover:border-primary hover:text-primary transition-all">
+<span class="material-symbols-outlined">navigate_before</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-lg bg-primary-container text-on-primary-container font-bold text-sm">1</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-lg border border-outline-variant/30 text-on-surface-variant hover:border-primary hover:text-primary transition-all">2</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-lg border border-outline-variant/30 text-on-surface-variant hover:border-primary hover:text-primary transition-all">3</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-lg border border-outline-variant/30 text-on-surface-variant hover:border-primary hover:text-primary transition-all">
+<span class="material-symbols-outlined">navigate_next</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 py-3 md:hidden bg-[#0a141d]/90 backdrop-blur-2xl border-t border-[#00e5c4]/10 shadow-[0_-10px_30px_rgba(0,229,196,0.05)]">
+<a class="flex flex-col items-center justify-center bg-[#00e5c4] text-[#0a141d] rounded-xl px-6 py-2 shadow-[0_0_15px_rgba(0,229,196,0.4)]" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">water_drop</span>
+<span class="font-['Geist_Mono'] text-[10px]">Pools</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#dae3f1]/40 px-6 py-2 hover:text-[#00e5c4] transition-colors" href="#">
+<span class="material-symbols-outlined">pie_chart</span>
+<span class="font-['Geist_Mono'] text-[10px]">Portfolio</span>
+</a>
+</nav>
+</body></html>

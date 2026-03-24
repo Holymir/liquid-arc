@@ -6,7 +6,6 @@ import { useSession } from "@/components/providers/SessionProvider";
 import { useTrackedWallets, type TrackedWallet } from "@/hooks/useTrackedWallets";
 import { useAllPortfolios } from "@/hooks/useAllPortfolios";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { WalletPanel } from "@/components/wallet/WalletPanel";
 import { AggregateOverview } from "@/components/dashboard/AggregateOverview";
 import { Dashboard } from "@/components/dashboard/Dashboard";
 import { Plus, Loader2, LayoutGrid, Wallet } from "lucide-react";
@@ -36,7 +35,7 @@ export default function DashboardPage() {
 
   if (status === "loading") {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: "#030b14" }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "#0a141d" }}>
         <Loader2 className="w-6 h-6 text-arc-400 animate-spin" />
       </div>
     );
@@ -79,30 +78,18 @@ export default function DashboardPage() {
   const selectedAddress = selectedWallet?.address;
 
   return (
-    <AppLayout
-      sidebarTitle="Wallets"
-      sidebarSlot={
-        <WalletPanel
-          wallets={wallets}
-          isLoading={walletsLoading}
-          selectedAddress={viewMode === "wallet" ? selectedAddress : undefined}
-          onSelect={handleSelectWallet}
-          onAdd={handleAddWallet}
-          onRemove={handleRemoveWallet}
-        />
-      }
-    >
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+    <AppLayout>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
         {/* View toggle */}
         {wallets.length > 0 && (
-          <div className="flex items-center gap-2 mb-5 animate-fade-in-up">
-            <div className="flex gap-0.5 bg-slate-800/50 rounded-lg p-0.5 border border-slate-700/20">
+          <div className="flex items-center gap-2 mb-6 animate-fade-in-up">
+            <div className="flex gap-0.5 bg-surface-container-lowest p-1 rounded-lg border border-outline-variant/10">
               <button
                 onClick={() => setViewMode("overview")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[10px] font-mono uppercase tracking-wider transition-all ${
                   viewMode === "overview"
-                    ? "bg-slate-700/60 text-slate-100 shadow-sm"
-                    : "text-slate-500 hover:text-slate-300"
+                    ? "bg-surface-bright text-arc-400"
+                    : "text-on-surface-variant hover:text-on-surface"
                 }`}
               >
                 <LayoutGrid className="w-3.5 h-3.5" />
@@ -110,10 +97,10 @@ export default function DashboardPage() {
               </button>
               <button
                 onClick={() => setViewMode("wallet")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[10px] font-mono uppercase tracking-wider transition-all ${
                   viewMode === "wallet"
-                    ? "bg-slate-700/60 text-slate-100 shadow-sm"
-                    : "text-slate-500 hover:text-slate-300"
+                    ? "bg-surface-bright text-arc-400"
+                    : "text-on-surface-variant hover:text-on-surface"
                 }`}
               >
                 <Wallet className="w-3.5 h-3.5" />
@@ -121,7 +108,7 @@ export default function DashboardPage() {
               </button>
             </div>
             {viewMode === "overview" && wallets.length > 1 && (
-              <span className="text-slate-600 text-[10px] ml-1">
+              <span className="text-on-surface-variant text-[10px] ml-1 font-mono">
                 {wallets.length} wallets
               </span>
             )}
@@ -143,22 +130,26 @@ export default function DashboardPage() {
             />
           ) : (
             <div className="text-center py-20">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-slate-800/40 border border-slate-700/40 mb-4">
-                <Plus className="w-7 h-7 text-slate-600" />
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-surface-container-high border border-outline-variant/10 mb-4">
+                <Plus className="w-7 h-7 text-on-surface-variant" />
               </div>
-              <p className="text-slate-300 text-sm font-medium">No wallets tracked</p>
-              <p className="text-slate-500 text-xs mt-1">Add a wallet address to start tracking positions</p>
+              <p className="text-on-surface text-sm font-medium">No wallets tracked</p>
+              <p className="text-on-surface-variant text-xs mt-1 font-mono">
+                Add a wallet address to start tracking positions
+              </p>
             </div>
           )
         ) : selectedAddress ? (
           <Dashboard address={selectedAddress} chainId={selectedWallet?.chainId} />
         ) : (
           <div className="text-center py-20">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-slate-800/40 border border-slate-700/40 mb-4">
-              <Wallet className="w-7 h-7 text-slate-600" />
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-surface-container-high border border-outline-variant/10 mb-4">
+              <Wallet className="w-7 h-7 text-on-surface-variant" />
             </div>
-            <p className="text-slate-300 text-sm font-medium">Select a wallet</p>
-            <p className="text-slate-500 text-xs mt-1">Choose a wallet from the sidebar to view details</p>
+            <p className="text-on-surface text-sm font-medium">Select a wallet</p>
+            <p className="text-on-surface-variant text-xs mt-1 font-mono">
+              Choose a wallet from the sidebar to view details
+            </p>
           </div>
         )}
       </div>

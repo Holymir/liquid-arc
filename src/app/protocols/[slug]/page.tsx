@@ -43,10 +43,9 @@ export default function ProtocolDetailPage() {
       <AppLayout>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
           <h1
-            className="text-xl font-bold mb-3"
+            className="text-xl font-bold text-on-surface mb-3"
             style={{
-              color: "#f0f4ff",
-              fontFamily: "var(--font-syne), var(--font-geist-sans), sans-serif",
+              fontFamily: "var(--font-syne), sans-serif",
             }}
           >
             Protocol not found
@@ -73,12 +72,12 @@ export default function ProtocolDetailPage() {
 
   return (
     <AppLayout>
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 pb-20">
 
         {/* ── Back ──────────────────────────────────── */}
         <Link
           href="/protocols"
-          className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-300 transition-colors mb-6"
+          className="inline-flex items-center gap-1.5 text-sm text-on-surface-variant hover:text-on-surface transition-colors mb-6"
         >
           <ChevronLeft className="w-4 h-4" />
           Protocols
@@ -87,10 +86,9 @@ export default function ProtocolDetailPage() {
         {/* ── Header ────────────────────────────────── */}
         <div className="flex flex-wrap items-center gap-3 mb-4">
           <h1
-            className="text-2xl sm:text-3xl font-extrabold"
+            className="text-2xl sm:text-3xl font-extrabold text-on-surface"
             style={{
-              color: "#f0f4ff",
-              fontFamily: "var(--font-syne), var(--font-geist-sans), sans-serif",
+              fontFamily: "var(--font-syne), sans-serif",
             }}
           >
             {protocol.name}
@@ -121,10 +119,7 @@ export default function ProtocolDetailPage() {
         </div>
 
         {/* ── Description ───────────────────────────── */}
-        <p
-          className="text-sm leading-relaxed mb-8 max-w-2xl"
-          style={{ color: "rgba(240,244,255,0.5)" }}
-        >
+        <p className="text-sm leading-relaxed mb-8 max-w-2xl text-on-surface-variant/70">
           {protocol.description}
         </p>
 
@@ -132,27 +127,15 @@ export default function ProtocolDetailPage() {
         <div className="grid sm:grid-cols-2 gap-4 mb-8">
 
           {/* Highlights */}
-          <div
-            className="rounded-2xl p-5"
-            style={{
-              background: "linear-gradient(145deg, rgba(10,22,40,0.8), rgba(6,14,28,0.6))",
-              border: "1px solid rgba(255,255,255,0.06)",
-            }}
-          >
-            <h2
-              className="text-xs uppercase tracking-widest mb-4"
-              style={{
-                color: "rgba(240,244,255,0.3)",
-                fontFamily: "var(--font-geist-mono)",
-              }}
-            >
+          <div className="glass-card rounded-2xl p-5">
+            <h2 className="text-[10px] font-mono uppercase tracking-widest text-on-surface-variant mb-4">
               Highlights
             </h2>
             <ul className="space-y-2.5">
               {protocol.highlights.map((h, i) => (
                 <li key={i} className="flex gap-2">
-                  <span className="shrink-0 mt-1.5 w-1 h-1 rounded-full" style={{ background: "#00e5c4" }} />
-                  <span className="text-sm leading-relaxed" style={{ color: "rgba(240,244,255,0.5)" }}>
+                  <span className="shrink-0 mt-1.5 w-1 h-1 rounded-full bg-arc-400" />
+                  <span className="text-sm leading-relaxed text-on-surface-variant/70">
                     {h}
                   </span>
                 </li>
@@ -161,20 +144,8 @@ export default function ProtocolDetailPage() {
           </div>
 
           {/* Risk & Audit */}
-          <div
-            className="rounded-2xl p-5"
-            style={{
-              background: "linear-gradient(145deg, rgba(10,22,40,0.8), rgba(6,14,28,0.6))",
-              border: "1px solid rgba(255,255,255,0.06)",
-            }}
-          >
-            <h2
-              className="text-xs uppercase tracking-widest mb-4"
-              style={{
-                color: "rgba(240,244,255,0.3)",
-                fontFamily: "var(--font-geist-mono)",
-              }}
-            >
+          <div className="glass-card rounded-2xl p-5">
+            <h2 className="text-[10px] font-mono uppercase tracking-widest text-on-surface-variant mb-4">
               Risk Assessment
             </h2>
 
@@ -192,13 +163,7 @@ export default function ProtocolDetailPage() {
 
             {/* Audit info */}
             <div className="mb-4">
-              <span
-                className="text-[10px] uppercase tracking-widest block mb-2"
-                style={{
-                  color: "rgba(240,244,255,0.25)",
-                  fontFamily: "var(--font-geist-mono)",
-                }}
-              >
+              <span className="text-[10px] font-mono uppercase tracking-widest block mb-2 text-on-surface-variant/60">
                 Audit Status
               </span>
               {protocol.audited ? (
@@ -219,7 +184,7 @@ export default function ProtocolDetailPage() {
                   ))}
                 </div>
               ) : (
-                <span className="text-sm" style={{ color: "rgba(240,244,255,0.35)" }}>
+                <span className="text-sm text-on-surface-variant/50">
                   No public audits available
                 </span>
               )}
@@ -227,16 +192,10 @@ export default function ProtocolDetailPage() {
 
             {/* Launch year */}
             <div>
-              <span
-                className="text-[10px] uppercase tracking-widest block mb-1"
-                style={{
-                  color: "rgba(240,244,255,0.25)",
-                  fontFamily: "var(--font-geist-mono)",
-                }}
-              >
+              <span className="text-[10px] font-mono uppercase tracking-widest block mb-1 text-on-surface-variant/60">
                 Launched
               </span>
-              <span className="text-sm" style={{ color: "rgba(240,244,255,0.5)" }}>
+              <span className="text-sm text-on-surface-variant/70">
                 {protocol.launchYear}
               </span>
             </div>
@@ -244,33 +203,15 @@ export default function ProtocolDetailPage() {
         </div>
 
         {/* ── Chains ────────────────────────────────── */}
-        <div
-          className="rounded-2xl p-5 mb-8"
-          style={{
-            background: "linear-gradient(145deg, rgba(10,22,40,0.8), rgba(6,14,28,0.6))",
-            border: "1px solid rgba(255,255,255,0.06)",
-          }}
-        >
-          <h2
-            className="text-xs uppercase tracking-widest mb-4"
-            style={{
-              color: "rgba(240,244,255,0.3)",
-              fontFamily: "var(--font-geist-mono)",
-            }}
-          >
+        <div className="glass-card rounded-2xl p-5 mb-8">
+          <h2 className="text-[10px] font-mono uppercase tracking-widest text-on-surface-variant mb-4">
             Supported Chains
           </h2>
           <div className="flex flex-wrap gap-2">
             {protocol.chains.map((chain) => (
               <span
                 key={chain}
-                className="inline-flex px-3 py-1.5 rounded-lg text-xs capitalize font-medium"
-                style={{
-                  background: "rgba(255,255,255,0.04)",
-                  border: "1px solid rgba(255,255,255,0.08)",
-                  color: "rgba(240,244,255,0.55)",
-                  fontFamily: "var(--font-geist-mono)",
-                }}
+                className="inline-flex px-3 py-1.5 rounded-lg text-xs capitalize font-medium font-mono bg-surface-container-high border border-outline-variant/20 text-on-surface-variant"
               >
                 {chain}
               </span>
@@ -279,20 +220,8 @@ export default function ProtocolDetailPage() {
         </div>
 
         {/* ── External Links ────────────────────────── */}
-        <div
-          className="rounded-2xl p-5 mb-8"
-          style={{
-            background: "linear-gradient(145deg, rgba(10,22,40,0.8), rgba(6,14,28,0.6))",
-            border: "1px solid rgba(255,255,255,0.06)",
-          }}
-        >
-          <h2
-            className="text-xs uppercase tracking-widest mb-4"
-            style={{
-              color: "rgba(240,244,255,0.3)",
-              fontFamily: "var(--font-geist-mono)",
-            }}
-          >
+        <div className="glass-card rounded-2xl p-5 mb-8">
+          <h2 className="text-[10px] font-mono uppercase tracking-widest text-on-surface-variant mb-4">
             Links
           </h2>
           <div className="flex flex-wrap gap-3">
@@ -306,12 +235,7 @@ export default function ProtocolDetailPage() {
                 href={href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:border-arc-500/40"
-                style={{
-                  background: "rgba(255,255,255,0.03)",
-                  border: "1px solid rgba(255,255,255,0.08)",
-                  color: "rgba(240,244,255,0.55)",
-                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:border-arc-500/40 bg-surface-container-high border border-outline-variant/20 text-on-surface-variant"
               >
                 {label}
                 <ExternalLink className="w-3 h-3" />
@@ -323,9 +247,8 @@ export default function ProtocolDetailPage() {
         {/* ── CTA ───────────────────────────────────── */}
         {protocol.supportedByLiquidArc && (
           <div
-            className="relative rounded-2xl p-6 sm:p-8 mb-8 overflow-hidden"
+            className="relative glass-panel rounded-2xl p-6 sm:p-8 mb-8 overflow-hidden"
             style={{
-              background: "linear-gradient(135deg, #0a1628 0%, #060f1e 100%)",
               border: "1px solid rgba(0,229,196,0.2)",
             }}
           >
@@ -338,18 +261,14 @@ export default function ProtocolDetailPage() {
             />
             <div className="relative z-10 text-center">
               <h3
-                className="text-lg sm:text-xl font-bold mb-2"
+                className="text-lg sm:text-xl font-bold text-on-surface mb-2"
                 style={{
-                  color: "#f0f4ff",
-                  fontFamily: "var(--font-syne), var(--font-geist-sans), sans-serif",
+                  fontFamily: "var(--font-syne), sans-serif",
                 }}
               >
                 Track your {protocol.name} positions
               </h3>
-              <p
-                className="text-sm mb-5 max-w-md mx-auto"
-                style={{ color: "rgba(240,244,255,0.4)" }}
-              >
+              <p className="text-sm mb-5 max-w-md mx-auto text-on-surface-variant/60">
                 LiquidArc supports {protocol.name}. Connect your wallet to see real-time P&L, fees, and rewards.
               </p>
               <Link
@@ -370,60 +289,32 @@ export default function ProtocolDetailPage() {
         {/* ── Similar Protocols ─────────────────────── */}
         {similar.length > 0 && (
           <div>
-            <h2
-              className="text-xs uppercase tracking-widest mb-4"
-              style={{
-                color: "rgba(240,244,255,0.3)",
-                fontFamily: "var(--font-geist-mono)",
-              }}
-            >
+            <h2 className="text-[10px] font-mono uppercase tracking-widest text-on-surface-variant mb-4">
               Similar Protocols
             </h2>
             <div className="grid sm:grid-cols-3 gap-4">
-              {similar.map((p) => {
-                const pCat = CATEGORY_META[p.category];
-                return (
-                  <Link key={p.slug} href={`/protocols/${p.slug}`}>
-                    <div
-                      className="group rounded-2xl p-5 transition-all duration-300 cursor-pointer h-full"
-                      style={{
-                        background:
-                          "linear-gradient(145deg, rgba(10,22,40,0.8), rgba(6,14,28,0.6))",
-                        border: "1px solid rgba(255,255,255,0.06)",
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.border = `1px solid ${pCat?.color ?? "#fff"}30`;
-                        e.currentTarget.style.boxShadow = `0 0 40px ${pCat?.color ?? "#fff"}08`;
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.border = "1px solid rgba(255,255,255,0.06)";
-                        e.currentTarget.style.boxShadow = "none";
-                      }}
-                    >
-                      <div className="flex items-center justify-between gap-2 mb-2">
-                        <h3
-                          className="text-sm font-bold truncate"
-                          style={{
-                            color: "#f0f4ff",
-                            fontFamily: "var(--font-syne), var(--font-geist-sans), sans-serif",
-                          }}
-                        >
-                          {p.name}
-                        </h3>
-                        {p.supportedByLiquidArc && (
-                          <Check className="w-3.5 h-3.5 shrink-0" style={{ color: "#00e5c4" }} />
-                        )}
-                      </div>
-                      <p
-                        className="text-xs leading-relaxed line-clamp-2"
-                        style={{ color: "rgba(240,244,255,0.35)" }}
+              {similar.map((p) => (
+                <Link key={p.slug} href={`/protocols/${p.slug}`}>
+                  <div className="group glass-card rounded-2xl p-5 transition-all duration-300 cursor-pointer h-full hover:border-outline-variant/30">
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <h3
+                        className="text-sm font-bold truncate text-on-surface"
+                        style={{
+                          fontFamily: "var(--font-syne), sans-serif",
+                        }}
                       >
-                        {p.description}
-                      </p>
+                        {p.name}
+                      </h3>
+                      {p.supportedByLiquidArc && (
+                        <Check className="w-3.5 h-3.5 shrink-0 text-arc-400" />
+                      )}
                     </div>
-                  </Link>
-                );
-              })}
+                    <p className="text-xs leading-relaxed line-clamp-2 text-on-surface-variant/50">
+                      {p.description}
+                    </p>
+                  </div>
+                </Link>
+              ))}
             </div>
           </div>
         )}

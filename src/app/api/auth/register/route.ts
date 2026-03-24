@@ -52,6 +52,9 @@ export async function POST(req: NextRequest) {
       email: user.email,
       tier: user.tier,
       emailVerified: user.emailVerified,
+      displayName: user.displayName,
+      photoURL: user.photoURL,
+      authProvider: user.authProvider,
     },
   });
 }

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PoolsSidebar } from "@/components/pools/PoolsSidebar";
-import { Search, ExternalLink, ChevronLeft, ChevronRight, SlidersHorizontal, X, Loader2 } from "lucide-react";
+import { Search, ExternalLink, ChevronLeft, ChevronRight, Loader2, Filter, X, Zap } from "lucide-react";
 import { getDepositUrl } from "@/lib/defi/deposit-urls";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -53,6 +53,7 @@ type SortField = "tvlUsd" | "volume24hUsd" | "fees24hUsd" | "apr24h" | "apr7d";
 
 function formatUsd(value: number | null | undefined): string {
   if (value == null) return "-";
+  if (value >= 1_000_000_000) return `$${(value / 1_000_000_000).toFixed(2)}B`;
   if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(2)}M`;
   if (value >= 1_000) return `$${(value / 1_000).toFixed(1)}K`;
   return `$${value.toFixed(2)}`;
@@ -68,27 +69,52 @@ function feeTierLabel(feeTier: number | null): string {
   return `${(feeTier / 10_000).toFixed(2)}%`;
 }
 
-function correlationColor(corr: number | null): string {
-  if (corr == null) return "text-slate-500";
-  if (corr > 0.7) return "text-emerald-400";
-  if (corr > 0.3) return "text-amber-400";
-  return "text-red-400";
+// Token color palette for pair circle icons
+const TOKEN_COLORS: Record<string, string> = {
+  WETH: "#627eea",
+  ETH: "#627eea",
+  USDC: "#2775ca",
+  USDT: "#26a17b",
+  WBTC: "#f7931a",
+  BTC: "#f7931a",
+  DAI: "#f5ac37",
+  PEPE: "#3d9430",
+  SOL: "#9945ff",
+  MATIC: "#8247e5",
+  ARB: "#28a0f0",
+  OP: "#ff0420",
+  LINK: "#2a5ada",
+  UNI: "#ff007a",
+  AAVE: "#b6509e",
+  CRV: "#0000ff",
+};
+
+function getTokenColor(symbol: string): string {
+  return TOKEN_COLORS[symbol.toUpperCase()] ?? "#6b7280";
 }
 
-function correlationLabel(corr: number | null): string {
-  if (corr == null) return "-";
-  return corr.toFixed(2);
-}
+// Chain display names
+const CHAIN_LABELS: Record<string, string> = {
+  ethereum: "Ethereum",
+  base: "Base",
+  arbitrum: "Arbitrum",
+  optimism: "Optimism",
+  polygon: "Polygon",
+  solana: "Solana",
+  bsc: "BNB Chain",
+  avalanche: "Avalanche",
+};
 
-// ── Component ─────────────────────────────────────────────────────────────────
+// Protocol color dots
+const PROTOCOL_DOT: Record<string, string> = {
+  aerodrome: "bg-blue-400",
+  velodrome: "bg-red-400",
+  "uniswap-v3": "bg-pink-400",
+  raydium: "bg-cyan-400",
+  orca: "bg-amber-400",
+};
 
-const SORT_OPTIONS: { value: SortField; label: string }[] = [
-  { value: "tvlUsd", label: "TVL" },
-  { value: "volume24hUsd", label: "Volume 24h" },
-  { value: "fees24hUsd", label: "Fees 24h" },
-  { value: "apr24h", label: "APR 24h" },
-  { value: "apr7d", label: "APR 7d" },
-];
+// ── Interfaces ────────────────────────────────────────────────────────────────
 
 interface RangeFilter {
   min: string;
@@ -104,6 +130,8 @@ const FILTER_COLUMNS: { key: string; label: string; prefix: string; suffix: stri
   { key: "pairCorrelation30d", label: "Correlation", prefix: "", suffix: "" },
 ];
 
+// ── Component ─────────────────────────────────────────────────────────────────
+
 export default function PoolsPage() {
   const [pools, setPools] = useState<PoolRow[]>([]);
   const [pagination, setPagination] = useState({ page: 1, limit: 50, total: 0, totalPages: 0 });
@@ -114,9 +142,14 @@ export default function PoolsPage() {
   const [sortBy, setSortBy] = useState<SortField>("tvlUsd");
   const [sortDir, setSortDir] = useState<"desc" | "asc">("desc");
   const [page, setPage] = useState(1);
-  const [filtersOpen, setFiltersOpen] = useState(false);
   const [selectedChains, setSelectedChains] = useState<Set<string>>(new Set());
   const [selectedProtocols, setSelectedProtocols] = useState<Set<string>>(new Set());
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+
+  // TVL range filter for sidebar
+  const [tvlRange, setTvlRange] = useState<RangeFilter>({ min: "", max: "" });
+  // Boosted APR only toggle
+  const [boostedOnly, setBoostedOnly] = useState(false);
 
   // Range filters state — debounced values used for API calls
   const emptyFilters = (): Record<string, RangeFilter> =>
@@ -135,39 +168,32 @@ export default function PoolsPage() {
     return () => clearTimeout(filterTimer.current);
   }, [filterInputs]);
 
-  const activeFilterCount = Object.values(appliedFilters).filter((f) => f.min || f.max).length;
+  // Sync TVL range into filterInputs
+  const tvlTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => {
+    clearTimeout(tvlTimer.current);
+    tvlTimer.current = setTimeout(() => {
+      setFilterInputs((prev) => ({
+        ...prev,
+        tvlUsd: { min: tvlRange.min, max: tvlRange.max },
+      }));
+    }, 400);
+    return () => clearTimeout(tvlTimer.current);
+  }, [tvlRange]);
 
   const clearAllFilters = () => {
     const empty = emptyFilters();
     setFilterInputs(empty);
     setAppliedFilters(empty);
+    setSelectedChains(new Set());
+    setSelectedProtocols(new Set());
+    setTvlRange({ min: "", max: "" });
+    setBoostedOnly(false);
+    setPage(1);
   };
 
-  const clearFilter = (key: string) => {
-    const cleared = { min: "", max: "" };
-    setFilterInputs((prev) => ({ ...prev, [key]: cleared }));
-    setAppliedFilters((prev) => ({ ...prev, [key]: cleared }));
-  };
-
-  const updateFilter = (key: string, field: "min" | "max", value: string) => {
-    // Allow only numbers and decimal point
-    if (value && !/^\d*\.?\d*$/.test(value)) return;
-    setFilterInputs((prev) => ({ ...prev, [key]: { ...prev[key], [field]: value } }));
-  };
-
-  // Build chip labels for active filters
-  const activeFilterChips = FILTER_COLUMNS
-    .filter((col) => appliedFilters[col.key]?.min || appliedFilters[col.key]?.max)
-    .map((col) => {
-      const f = appliedFilters[col.key];
-      const p = col.prefix;
-      const s = col.suffix;
-      let label = col.label + ": ";
-      if (f.min && f.max) label += `${p}${f.min}${s}–${p}${f.max}${s}`;
-      else if (f.min) label += `>${p}${f.min}${s}`;
-      else label += `<${p}${f.max}${s}`;
-      return { key: col.key, label };
-    });
+  // Yield alert banner
+  const [alertDismissed, setAlertDismissed] = useState(false);
 
   const [refetching, setRefetching] = useState(false);
   const hasFetched = useRef(false);
@@ -196,6 +222,11 @@ export default function PoolsPage() {
         if (range.max) params.set(`max_${key}`, range.max);
       }
 
+      // Boosted APR filter
+      if (boostedOnly) {
+        params.set("min_emissionsApr", "0.01");
+      }
+
       const res = await fetch(`/api/pools?${params}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data: PoolsResponse = await res.json();
@@ -208,7 +239,7 @@ export default function PoolsPage() {
       setLoading(false);
       setRefetching(false);
     }
-  }, [sortBy, sortDir, page, search, appliedFilters, selectedChains, selectedProtocols]);
+  }, [sortBy, sortDir, page, search, appliedFilters, selectedChains, selectedProtocols, boostedOnly]);
 
   useEffect(() => {
     fetchPools();
@@ -235,14 +266,20 @@ export default function PoolsPage() {
   };
 
   const SortIcon = ({ field }: { field: SortField }) => {
-    if (sortBy !== field) return <span className="text-slate-700 ml-1">&#8597;</span>;
-    return <span className="text-arc-400 ml-1">{sortDir === "desc" ? "\u2193" : "\u2191"}</span>;
+    if (sortBy !== field)
+      return <span className="text-on-surface-variant/30 ml-1 text-[10px]">&#8597;</span>;
+    return (
+      <span className="text-arc-400 ml-1 text-[10px]">
+        {sortDir === "desc" ? "\u2193" : "\u2191"}
+      </span>
+    );
   };
 
   const handleToggleChain = (chain: string) => {
     setSelectedChains((prev) => {
       const next = new Set(prev);
-      if (next.has(chain)) next.delete(chain); else next.add(chain);
+      if (next.has(chain)) next.delete(chain);
+      else next.add(chain);
       return next;
     });
     setPage(1);
@@ -251,386 +288,447 @@ export default function PoolsPage() {
   const handleToggleProtocol = (protocol: string) => {
     setSelectedProtocols((prev) => {
       const next = new Set(prev);
-      if (next.has(protocol)) next.delete(protocol); else next.add(protocol);
+      if (next.has(protocol)) next.delete(protocol);
+      else next.add(protocol);
       return next;
     });
     setPage(1);
   };
 
-  const handleClearChainProtocol = () => {
-    setSelectedChains(new Set());
-    setSelectedProtocols(new Set());
-    setPage(1);
+  const handleTvlRangeChange = (field: "min" | "max", value: string) => {
+    if (value && !/^\d*\.?\d*$/.test(value)) return;
+    setTvlRange((prev) => ({ ...prev, [field]: value }));
+  };
+
+  // Pagination helpers
+  const startItem = (pagination.page - 1) * pagination.limit + 1;
+  const endItem = Math.min(pagination.page * pagination.limit, pagination.total);
+
+  const getPageNumbers = () => {
+    const total = pagination.totalPages;
+    const current = pagination.page;
+    const pages: (number | "...")[] = [];
+
+    if (total <= 5) {
+      for (let i = 1; i <= total; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (current > 3) pages.push("...");
+      const start = Math.max(2, current - 1);
+      const end = Math.min(total - 1, current + 1);
+      for (let i = start; i <= end; i++) pages.push(i);
+      if (current < total - 2) pages.push("...");
+      pages.push(total);
+    }
+    return pages;
   };
 
   return (
-    <AppLayout
-      sidebarTitle="Filters"
-      sidebarSlot={
-        <PoolsSidebar
-          selectedChains={selectedChains}
-          selectedProtocols={selectedProtocols}
-          onToggleChain={handleToggleChain}
-          onToggleProtocol={handleToggleProtocol}
-          onClearAll={handleClearChainProtocol}
-        />
-      }
-    >
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
-        {/* Title + Stats */}
-        <div className="mb-6">
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-100 mb-1">Pool Analytics</h1>
-          <p className="text-sm text-slate-500">
-            {pagination.total} pools
-            {selectedProtocols.size > 0 || selectedChains.size > 0
-              ? ` across ${[...selectedProtocols].join(", ") || "all protocols"}${selectedChains.size > 0 ? ` on ${[...selectedChains].join(", ")}` : ""}`
-              : " across all protocols"}
-          </p>
-        </div>
-
-        {/* Filters bar */}
-        <div className="flex flex-wrap items-center gap-3 mb-3">
-          <div className="relative flex-1 min-w-[200px] max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
-            <input
-              type="text"
-              placeholder="Search by token..."
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 bg-slate-800/30 border border-slate-700/40 rounded-lg text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-arc-500/50 focus:ring-1 focus:ring-arc-500/20 transition-all"
-            />
+    <AppLayout>
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 pb-20">
+        {/* ── Page Header ── */}
+        <header className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4 md:gap-6">
+          <div>
+            <h1
+              className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tighter text-on-surface mb-2"
+              style={{ fontFamily: "var(--font-syne), sans-serif" }}
+            >
+              Pool Explorer
+            </h1>
+            <p className="text-on-surface-variant text-sm sm:text-base">
+              Discover and analyze deep liquidity across 12 chains.
+            </p>
           </div>
 
-          <button
-            onClick={() => setFiltersOpen((o) => !o)}
-            className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm border transition-all ${
-              filtersOpen || activeFilterCount > 0
-                ? "bg-arc-500/10 border-arc-500/30 text-arc-400"
-                : "bg-slate-800/30 border-slate-700/40 text-slate-400 hover:text-slate-200 hover:border-slate-600"
-            }`}
-          >
-            <SlidersHorizontal className="w-4 h-4" />
-            Ranges
-            {activeFilterCount > 0 && (
-              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-arc-500/20 text-arc-300 text-[10px] font-bold">
-                {activeFilterCount}
-              </span>
-            )}
-          </button>
-
-          {activeFilterCount > 0 && (
-            <button
-              onClick={clearAllFilters}
-              className="inline-flex items-center gap-1 px-2.5 py-2 rounded-lg text-xs text-slate-500 hover:text-slate-300 transition-colors"
-            >
-              <X className="w-3.5 h-3.5" />
-              Clear ranges
-            </button>
-          )}
-
-          {/* Active filter chips */}
-          {activeFilterChips.slice(0, 3).map((chip) => (
-            <span
-              key={chip.key}
-              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-mono bg-arc-500/8 border border-arc-500/20 text-arc-400"
-            >
-              {chip.label}
-              <button onClick={() => clearFilter(chip.key)} className="hover:text-arc-300 transition-colors">
-                <X className="w-2.5 h-2.5" />
-              </button>
-            </span>
-          ))}
-          {activeFilterChips.length > 3 && (
-            <span className="text-[10px] font-mono text-arc-500/60">+{activeFilterChips.length - 3} more</span>
-          )}
-
-          {refetching && (
-            <Loader2 className="w-4 h-4 text-arc-400 animate-spin" />
-          )}
-
-          <select
-            value={sortBy}
-            onChange={(e) => { setSortBy(e.target.value as SortField); setPage(1); }}
-            className="sm:hidden bg-slate-800/30 border border-slate-700/40 rounded-lg px-3 py-2 text-sm text-slate-300 focus:outline-none focus:border-arc-500/50 transition-all"
-          >
-            {SORT_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>Sort: {o.label}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Active chain/protocol chips (summary) */}
-        {(selectedChains.size > 0 || selectedProtocols.size > 0) && (
-          <div className="flex flex-wrap items-center gap-1.5 mb-3">
-            {[...selectedChains].map((chain) => (
-              <span
-                key={chain}
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] bg-arc-500/10 border border-arc-500/20 text-arc-400 capitalize"
-              >
-                {chain}
-                <button onClick={() => handleToggleChain(chain)} className="hover:text-arc-300 transition-colors">
-                  <X className="w-2.5 h-2.5" />
-                </button>
-              </span>
-            ))}
-            {[...selectedProtocols].map((protocol) => (
-              <span
-                key={protocol}
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] bg-arc-500/10 border border-arc-500/20 text-arc-400"
-              >
-                {protocol}
-                <button onClick={() => handleToggleProtocol(protocol)} className="hover:text-arc-300 transition-colors">
-                  <X className="w-2.5 h-2.5" />
-                </button>
-              </span>
-            ))}
-          </div>
-        )}
-
-        {/* Range filters panel — smooth slide */}
-        <div
-          className={`overflow-hidden transition-all duration-200 ease-in-out ${
-            filtersOpen ? "max-h-[200px] opacity-100" : "max-h-0 opacity-0"
-          }`}
-        >
-          <div className="bg-slate-900/40 border-t border-arc-500/20 rounded-b-xl px-4 py-3 mt-2 mb-5">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-2.5">
-              {FILTER_COLUMNS.map((col) => (
-                <div key={col.key} className="flex items-center gap-2">
-                  <span className="text-[10px] uppercase tracking-widest text-slate-500 font-medium w-20 shrink-0">
-                    {col.label}
-                  </span>
-                  <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                    <div className="flex items-center flex-1 bg-slate-800/60 border border-slate-700/40 rounded-lg h-7 px-2">
-                      {col.prefix && <span className="text-slate-600 text-xs shrink-0">{col.prefix}</span>}
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        placeholder="Min"
-                        value={filterInputs[col.key]?.min ?? ""}
-                        onChange={(e) => updateFilter(col.key, "min", e.target.value)}
-                        className="w-full bg-transparent text-xs text-slate-200 placeholder-slate-600 focus:outline-none font-mono tabular-nums px-1"
-                      />
-                      {col.suffix && <span className="text-slate-600 text-xs shrink-0">{col.suffix}</span>}
-                    </div>
-                    <span className="text-slate-600 text-xs">–</span>
-                    <div className="flex items-center flex-1 bg-slate-800/60 border border-slate-700/40 rounded-lg h-7 px-2">
-                      {col.prefix && <span className="text-slate-600 text-xs shrink-0">{col.prefix}</span>}
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        placeholder="Max"
-                        value={filterInputs[col.key]?.max ?? ""}
-                        onChange={(e) => updateFilter(col.key, "max", e.target.value)}
-                        className="w-full bg-transparent text-xs text-slate-200 placeholder-slate-600 focus:outline-none font-mono tabular-nums px-1"
-                      />
-                      {col.suffix && <span className="text-slate-600 text-xs shrink-0">{col.suffix}</span>}
-                    </div>
-                  </div>
-                </div>
-              ))}
+          {/* Search bar — right side */}
+          <div className="flex items-center gap-3">
+            {refetching && <Loader2 className="w-4 h-4 text-arc-400 animate-spin" />}
+            <div className="relative group">
+              <div className="absolute -inset-0.5 bg-arc-400/10 rounded-xl blur opacity-0 group-hover:opacity-100 transition" />
+              <div className="relative bg-surface-container-high px-4 py-2.5 rounded-xl flex items-center gap-3 border border-white/5">
+                <Search className="w-4 h-4 text-arc-400" />
+                <input
+                  type="text"
+                  placeholder="Search pair, token or protocol..."
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  className="bg-transparent border-none focus:ring-0 focus:outline-none text-sm w-48 sm:w-64 placeholder:text-on-surface-variant/50 text-on-surface"
+                />
+              </div>
             </div>
-          </div>
-        </div>
 
-        {/* Error */}
+            {/* Mobile filter toggle */}
+            <button
+              onClick={() => setMobileFiltersOpen((o) => !o)}
+              className="lg:hidden inline-flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm border border-white/5 bg-surface-container-high text-on-surface-variant hover:text-arc-400 hover:border-arc-400/30 transition-all"
+            >
+              <Filter className="w-4 h-4" />
+              <span className="hidden sm:inline">Filters</span>
+              {(selectedChains.size + selectedProtocols.size) > 0 && (
+                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-arc-400/20 text-arc-400 text-[10px] font-bold">
+                  {selectedChains.size + selectedProtocols.size}
+                </span>
+              )}
+            </button>
+          </div>
+        </header>
+
+        {/* ── Error ── */}
         {error && (
-          <div className="bg-red-500/8 border border-red-500/15 rounded-xl p-3 mb-4 text-sm text-red-400">
+          <div className="bg-red-500/8 border border-red-500/15 rounded-xl p-3 mb-6 text-sm text-red-400">
             {error}
           </div>
         )}
 
-        {/* Table */}
-        <div className="glass-card rounded-xl overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-slate-800/40 text-left">
-                  <th className="px-4 py-3 text-slate-500 font-medium text-[10px] uppercase tracking-widest w-8">#</th>
-                  <th className="px-4 py-3 text-slate-500 font-medium text-[10px] uppercase tracking-widest">Pool</th>
-                  <th className="px-4 py-3 text-slate-500 font-medium text-[10px] uppercase tracking-widest hidden sm:table-cell">Protocol</th>
-                  <th
-                    className="px-4 py-3 text-slate-500 font-medium text-[10px] uppercase tracking-widest text-right cursor-pointer hover:text-slate-300 transition-colors select-none"
-                    onClick={() => handleSort("tvlUsd")}
-                  >
-                    TVL <SortIcon field="tvlUsd" />
-                  </th>
-                  <th
-                    className="px-4 py-3 text-slate-500 font-medium text-[10px] uppercase tracking-widest text-right cursor-pointer hover:text-slate-300 transition-colors select-none hidden md:table-cell"
-                    onClick={() => handleSort("volume24hUsd")}
-                  >
-                    Vol 24h <SortIcon field="volume24hUsd" />
-                  </th>
-                  <th
-                    className="px-4 py-3 text-slate-500 font-medium text-[10px] uppercase tracking-widest text-right cursor-pointer hover:text-slate-300 transition-colors select-none hidden md:table-cell"
-                    onClick={() => handleSort("fees24hUsd")}
-                  >
-                    Fees 24h <SortIcon field="fees24hUsd" />
-                  </th>
-                  <th
-                    className="px-4 py-3 text-slate-500 font-medium text-[10px] uppercase tracking-widest text-right cursor-pointer hover:text-slate-300 transition-colors select-none"
-                    onClick={() => handleSort("apr24h")}
-                  >
-                    APR 24h <SortIcon field="apr24h" />
-                  </th>
-                  <th
-                    className="px-4 py-3 text-slate-500 font-medium text-[10px] uppercase tracking-widest text-right cursor-pointer hover:text-slate-300 transition-colors select-none hidden lg:table-cell"
-                    onClick={() => handleSort("apr7d")}
-                  >
-                    APR 7d <SortIcon field="apr7d" />
-                  </th>
-                  <th className="px-4 py-3 text-slate-500 font-medium text-[10px] uppercase tracking-widest text-right hidden xl:table-cell">
-                    Correlation
-                  </th>
-                  <th className="px-4 py-3 w-20" />
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  Array.from({ length: 10 }).map((_, i) => (
-                    <tr key={i} className="border-b border-slate-800/20">
-                      <td colSpan={10} className="px-4 py-3">
-                        <div className="h-5 bg-slate-800/30 rounded animate-pulse" />
-                      </td>
-                    </tr>
-                  ))
-                ) : pools.length === 0 ? (
-                  <tr>
-                    <td colSpan={10} className="px-4 py-12 text-center text-slate-500">
-                      No pools found
-                    </td>
-                  </tr>
-                ) : (
-                  pools.map((pool, idx) => (
-                    <tr
-                      key={pool.poolAddress}
-                      className="border-b border-slate-800/20 hover:bg-slate-800/15 transition-colors"
-                    >
-                      <td className="px-4 py-3 text-slate-600 text-xs tabular-nums">
-                        {(pagination.page - 1) * pagination.limit + idx + 1}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-slate-200">
-                            {pool.token0.symbol}/{pool.token1.symbol}
-                          </span>
-                          {pool.poolType && (
-                            <span className="text-[10px] text-slate-400 bg-slate-800/50 border border-slate-700/30 rounded-md px-1.5 py-0.5 uppercase">
-                              {pool.poolType}
-                            </span>
-                          )}
-                          {pool.feeTier != null && (
-                            <span className="text-[10px] text-slate-500 bg-slate-800/40 border border-slate-700/30 rounded-md px-1.5 py-0.5">
-                              {feeTierLabel(pool.feeTier)}
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-slate-400 text-xs hidden sm:table-cell">
-                        <span className="inline-flex items-center gap-1.5">
-                          <span className={`w-1.5 h-1.5 rounded-full ${
-                            pool.protocol === "aerodrome" ? "bg-blue-400" :
-                            pool.protocol === "velodrome" ? "bg-red-400" :
-                            pool.protocol === "uniswap-v3" ? "bg-pink-400" :
-                            pool.protocol === "raydium" ? "bg-cyan-400" :
-                            pool.protocol === "orca" ? "bg-amber-400" : "bg-slate-400"
-                          }`} />
-                          {pool.protocolName}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-right text-slate-300 font-mono text-xs tabular-nums">
-                        {formatUsd(pool.tvlUsd)}
-                      </td>
-                      <td className="px-4 py-3 text-right text-slate-400 font-mono text-xs tabular-nums hidden md:table-cell">
-                        {formatUsd(pool.volume24hUsd)}
-                      </td>
-                      <td className="px-4 py-3 text-right text-slate-400 font-mono text-xs tabular-nums hidden md:table-cell">
-                        {formatUsd(pool.fees24hUsd)}
-                      </td>
-                      <td className="px-4 py-3 text-right font-mono text-xs tabular-nums">
-                        {(() => {
-                          const feeApr = pool.apr24h ?? 0;
-                          const emApr = pool.emissionsApr ?? 0;
-                          const totalApr = feeApr + emApr;
-                          return (
-                            <span title={emApr > 0 ? `Fees: ${formatPercent(pool.apr24h)} + Emissions: ${formatPercent(pool.emissionsApr)}` : undefined}
-                              className={totalApr > 50 ? "text-emerald-400" : totalApr > 10 ? "text-emerald-400/80" : "text-slate-300"}>
-                              {formatPercent(totalApr || null)}
-                              {emApr > 0 && <span className="text-purple-400/60 ml-0.5">*</span>}
-                            </span>
-                          );
-                        })()}
-                      </td>
-                      <td className="px-4 py-3 text-right font-mono text-xs tabular-nums hidden lg:table-cell">
-                        {(() => {
-                          const feeApr = pool.apr7d ?? 0;
-                          const emApr = pool.emissionsApr ?? 0;
-                          const totalApr = feeApr + emApr;
-                          return (
-                            <span title={emApr > 0 ? `Fees: ${formatPercent(pool.apr7d)} + Emissions: ${formatPercent(pool.emissionsApr)}` : undefined}
-                              className={totalApr > 50 ? "text-emerald-400" : totalApr > 10 ? "text-emerald-400/80" : "text-slate-300"}>
-                              {formatPercent(totalApr || null)}
-                              {emApr > 0 && <span className="text-purple-400/60 ml-0.5">*</span>}
-                            </span>
-                          );
-                        })()}
-                      </td>
-                      <td className={`px-4 py-3 text-right font-mono text-xs tabular-nums hidden xl:table-cell ${correlationColor(pool.pairCorrelation30d)}`}>
-                        {correlationLabel(pool.pairCorrelation30d)}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <a
-                          href={getDepositUrl(pool)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-xs text-arc-400 hover:text-arc-300 border border-arc-500/20 hover:border-arc-500/40 rounded-lg px-2.5 py-1 transition-all"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          Deposit
-                          <ExternalLink className="w-3 h-3" />
-                        </a>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Pagination */}
-          {pagination.totalPages > 1 && (
-            <div className="flex items-center justify-between px-4 py-3 border-t border-slate-800/40">
-              <span className="text-xs text-slate-500">
-                Page {pagination.page} of {pagination.totalPages} ({pagination.total} pools)
-              </span>
+        {/* ── Yield Alert Banner ── */}
+        {!alertDismissed && !loading && pools.length > 0 && (() => {
+          const topPool = [...pools].sort((a, b) => {
+            const aprA = (a.apr24h ?? 0) + (a.emissionsApr ?? 0);
+            const aprB = (b.apr24h ?? 0) + (b.emissionsApr ?? 0);
+            return aprB - aprA;
+          })[0];
+          if (!topPool) return null;
+          const topApr = (topPool.apr24h ?? 0) + (topPool.emissionsApr ?? 0);
+          if (topApr <= 0) return null;
+          return (
+            <div className="glass-card rounded-3xl p-4 mb-6 flex items-center justify-between animate-fade-in-up border border-arc-400/20">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-arc-400/10 flex items-center justify-center">
+                  <Zap className="w-5 h-5 text-arc-400" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-on-surface">High Yield Alert</p>
+                  <p className="text-xs text-on-surface-variant">
+                    {topPool.token0.symbol}/{topPool.token1.symbol} on {topPool.protocolName} is yielding{" "}
+                    <span className="text-arc-400 font-mono font-bold">{formatPercent(topApr)} APR</span>
+                    {topPool.tvlUsd != null && <> with {formatUsd(topPool.tvlUsd)} TVL</>}
+                  </p>
+                </div>
+              </div>
               <div className="flex items-center gap-2">
-                <button
-                  disabled={page <= 1 || refetching}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 text-xs rounded-lg border border-slate-700/40 text-slate-400 hover:text-slate-200 hover:border-slate-600 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                <a
+                  href={getDepositUrl(topPool)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-primary text-xs px-4 py-2 rounded-lg"
                 >
-                  <ChevronLeft className="w-3 h-3" />
-                  Prev
-                </button>
+                  Explore
+                </a>
                 <button
-                  disabled={page >= pagination.totalPages || refetching}
-                  onClick={() => setPage((p) => p + 1)}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 text-xs rounded-lg border border-slate-700/40 text-slate-400 hover:text-slate-200 hover:border-slate-600 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                  onClick={() => setAlertDismissed(true)}
+                  className="text-on-surface-variant hover:text-on-surface p-1"
                 >
-                  Next
-                  <ChevronRight className="w-3 h-3" />
+                  <X className="w-4 h-4" />
                 </button>
               </div>
             </div>
-          )}
-        </div>
+          );
+        })()}
 
-        {/* Last synced */}
-        {pools[0]?.lastSyncedAt && (
-          <p className="text-[11px] text-slate-600 mt-3 text-right">
-            Last synced: {new Date(pools[0].lastSyncedAt).toLocaleString()}
-          </p>
-        )}
+        {/* ── Layout Grid: Filter Panel + Data Table ── */}
+        <div className="grid grid-cols-12 gap-6 lg:gap-8">
+          {/* ── Left: Filter Panel (3 cols on desktop) ── */}
+
+          {/* Mobile filter overlay */}
+          {mobileFiltersOpen && (
+            <div className="fixed inset-0 z-50 lg:hidden">
+              <div
+                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                onClick={() => setMobileFiltersOpen(false)}
+              />
+              <div className="absolute right-0 top-0 h-full w-80 max-w-[85vw] bg-surface-container-low overflow-y-auto p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <span
+                    className="font-extrabold text-sm tracking-widest uppercase text-on-surface"
+                    style={{ fontFamily: "var(--font-syne), sans-serif" }}
+                  >
+                    Filters
+                  </span>
+                  <button
+                    onClick={() => setMobileFiltersOpen(false)}
+                    className="p-1 rounded-lg hover:bg-surface-container-high transition-colors"
+                  >
+                    <X className="w-5 h-5 text-on-surface-variant" />
+                  </button>
+                </div>
+                <PoolsSidebar
+                  selectedChains={selectedChains}
+                  selectedProtocols={selectedProtocols}
+                  onToggleChain={handleToggleChain}
+                  onToggleProtocol={handleToggleProtocol}
+                  onClearAll={clearAllFilters}
+                  tvlRange={tvlRange}
+                  onTvlRangeChange={handleTvlRangeChange}
+                  boostedOnly={boostedOnly}
+                  onBoostedToggle={() => setBoostedOnly((b) => !b)}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Desktop filter panel */}
+          <aside className="hidden lg:block col-span-3">
+            <div className="sticky top-24">
+              <PoolsSidebar
+                selectedChains={selectedChains}
+                selectedProtocols={selectedProtocols}
+                onToggleChain={handleToggleChain}
+                onToggleProtocol={handleToggleProtocol}
+                onClearAll={clearAllFilters}
+                tvlRange={tvlRange}
+                onTvlRangeChange={handleTvlRangeChange}
+                boostedOnly={boostedOnly}
+                onBoostedToggle={() => setBoostedOnly((b) => !b)}
+              />
+            </div>
+          </aside>
+
+          {/* ── Right: Data Table (9 cols on desktop) ── */}
+          <div className="col-span-12 lg:col-span-9">
+            <div className="glass-panel rounded-3xl border border-white/5 overflow-hidden shadow-2xl">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead className="bg-surface-container-high/50">
+                    <tr>
+                      <th className="px-4 sm:px-6 py-4 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
+                        Pair
+                      </th>
+                      <th className="px-4 sm:px-6 py-4 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest hidden sm:table-cell">
+                        Protocol
+                      </th>
+                      <th className="px-4 sm:px-6 py-4 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest hidden md:table-cell">
+                        Chain
+                      </th>
+                      <th
+                        className="px-4 sm:px-6 py-4 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest text-right cursor-pointer hover:text-arc-400 transition-colors select-none"
+                        onClick={() => handleSort("tvlUsd")}
+                      >
+                        <span className="inline-flex items-center justify-end gap-1">
+                          TVL <SortIcon field="tvlUsd" />
+                        </span>
+                      </th>
+                      <th
+                        className="px-4 sm:px-6 py-4 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest text-right cursor-pointer hover:text-arc-400 transition-colors select-none hidden md:table-cell"
+                        onClick={() => handleSort("volume24hUsd")}
+                      >
+                        <span className="inline-flex items-center justify-end gap-1">
+                          24h Vol <SortIcon field="volume24hUsd" />
+                        </span>
+                      </th>
+                      <th
+                        className="px-4 sm:px-6 py-4 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest text-right cursor-pointer hover:text-arc-400 transition-colors select-none hidden lg:table-cell"
+                        onClick={() => handleSort("fees24hUsd")}
+                      >
+                        <span className="inline-flex items-center justify-end gap-1">
+                          Fees <SortIcon field="fees24hUsd" />
+                        </span>
+                      </th>
+                      <th
+                        className="px-4 sm:px-6 py-4 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest text-right cursor-pointer hover:text-arc-400 transition-colors select-none"
+                        onClick={() => handleSort("apr24h")}
+                      >
+                        <span className="inline-flex items-center justify-end gap-1">
+                          APR <SortIcon field="apr24h" />
+                        </span>
+                      </th>
+                      <th className="px-4 sm:px-6 py-4 w-10" />
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-outline-variant/5">
+                    {loading ? (
+                      Array.from({ length: 10 }).map((_, i) => (
+                        <tr key={i}>
+                          <td colSpan={8} className="px-6 py-5">
+                            <div className="flex items-center gap-3">
+                              <div className="flex -space-x-2">
+                                <div className="w-8 h-8 rounded-full bg-surface-container-high animate-pulse" />
+                                <div className="w-8 h-8 rounded-full bg-surface-container-high animate-pulse" />
+                              </div>
+                              <div className="h-4 w-32 bg-surface-container-high rounded animate-pulse" />
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    ) : pools.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="px-6 py-16 text-center text-on-surface-variant">
+                          No pools found matching your criteria.
+                        </td>
+                      </tr>
+                    ) : (
+                      pools.map((pool) => {
+                        const feeApr = pool.apr24h ?? 0;
+                        const emApr = pool.emissionsApr ?? 0;
+                        const totalApr = feeApr + emApr;
+
+                        return (
+                          <tr
+                            key={pool.poolAddress}
+                            className="hover:bg-white/5 transition-colors group"
+                          >
+                            {/* PAIR — overlapping token circles + name */}
+                            <td className="px-4 sm:px-6 py-4 sm:py-5">
+                              <div className="flex items-center gap-3">
+                                <div className="flex -space-x-2 shrink-0">
+                                  <div
+                                    className="w-8 h-8 rounded-full flex items-center justify-center border-2 border-surface shadow-lg text-[10px] font-bold text-white"
+                                    style={{ backgroundColor: getTokenColor(pool.token0.symbol) }}
+                                  >
+                                    {pool.token0.symbol.slice(0, 2)}
+                                  </div>
+                                  <div
+                                    className="w-8 h-8 rounded-full flex items-center justify-center border-2 border-surface shadow-lg text-[10px] font-bold text-white"
+                                    style={{ backgroundColor: getTokenColor(pool.token1.symbol) }}
+                                  >
+                                    {pool.token1.symbol.slice(0, 2)}
+                                  </div>
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="font-bold text-sm text-on-surface truncate">
+                                    {pool.token0.symbol} / {pool.token1.symbol}
+                                  </div>
+                                  <div className="text-[10px] text-on-surface-variant/70 font-mono uppercase tracking-tight">
+                                    {pool.feeTier != null && (
+                                      <>{feeTierLabel(pool.feeTier)} Fee Tier</>
+                                    )}
+                                    {pool.poolType && !pool.feeTier && (
+                                      <>{pool.poolType}</>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* PROTOCOL */}
+                            <td className="px-4 sm:px-6 py-4 sm:py-5 hidden sm:table-cell">
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-surface-container-highest rounded-full text-[10px] font-bold border border-white/5">
+                                <span className={`w-1.5 h-1.5 rounded-full ${PROTOCOL_DOT[pool.protocol] ?? "bg-slate-400"}`} />
+                                {pool.protocolName}
+                              </span>
+                            </td>
+
+                            {/* CHAIN */}
+                            <td className="px-4 sm:px-6 py-4 sm:py-5 hidden md:table-cell">
+                              <span className="text-xs text-on-surface-variant">
+                                {CHAIN_LABELS[pool.chainId] ?? pool.chainId}
+                              </span>
+                            </td>
+
+                            {/* TVL */}
+                            <td className="px-4 sm:px-6 py-4 sm:py-5 text-right font-mono text-sm tracking-tight text-on-surface tabular-nums">
+                              {formatUsd(pool.tvlUsd)}
+                            </td>
+
+                            {/* 24H VOL */}
+                            <td className="px-4 sm:px-6 py-4 sm:py-5 text-right font-mono text-sm tracking-tight text-on-surface-variant tabular-nums hidden md:table-cell">
+                              {formatUsd(pool.volume24hUsd)}
+                            </td>
+
+                            {/* FEES */}
+                            <td className="px-4 sm:px-6 py-4 sm:py-5 text-right font-mono text-sm tracking-tight text-on-surface-variant tabular-nums hidden lg:table-cell">
+                              {formatUsd(pool.fees24hUsd)}
+                            </td>
+
+                            {/* APR — accent teal, bold */}
+                            <td className="px-4 sm:px-6 py-4 sm:py-5 text-right">
+                              <span
+                                className="font-mono font-bold text-base sm:text-lg text-arc-400 tabular-nums"
+                                title={
+                                  emApr > 0
+                                    ? `Fees: ${formatPercent(pool.apr24h)} + Emissions: ${formatPercent(pool.emissionsApr)}`
+                                    : undefined
+                                }
+                              >
+                                {formatPercent(totalApr || null)}
+                                {emApr > 0 && (
+                                  <span className="text-purple-400/60 text-xs ml-0.5">*</span>
+                                )}
+                              </span>
+                            </td>
+
+                            {/* Action */}
+                            <td className="px-4 sm:px-6 py-4 sm:py-5 text-right">
+                              <a
+                                href={getDepositUrl(pool)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center text-on-surface-variant hover:text-arc-400 transition-colors"
+                                onClick={(e) => e.stopPropagation()}
+                                title="Open in protocol"
+                              >
+                                <ExternalLink className="w-4 h-4" />
+                              </a>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* ── Pagination ── */}
+              {pagination.totalPages > 1 && (
+                <div className="p-4 sm:p-6 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-3">
+                  <span
+                    className="text-[10px] font-mono text-on-surface-variant uppercase tracking-widest"
+                  >
+                    Showing {startItem.toLocaleString()}-{endItem.toLocaleString()} of{" "}
+                    {pagination.total.toLocaleString()} Pools
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    {/* Previous */}
+                    <button
+                      disabled={page <= 1 || refetching}
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-lg border border-white/10 text-on-surface-variant hover:border-arc-400 hover:text-arc-400 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+
+                    {/* Page numbers */}
+                    {getPageNumbers().map((p, idx) =>
+                      p === "..." ? (
+                        <span key={`dots-${idx}`} className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center text-on-surface-variant text-sm">
+                          ...
+                        </span>
+                      ) : (
+                        <button
+                          key={p}
+                          onClick={() => setPage(p)}
+                          disabled={refetching}
+                          className={`w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-lg text-sm font-bold transition-all ${
+                            p === pagination.page
+                              ? "bg-arc-400 text-surface"
+                              : "border border-white/10 text-on-surface-variant hover:border-arc-400 hover:text-arc-400"
+                          } disabled:opacity-50`}
+                        >
+                          {p}
+                        </button>
+                      )
+                    )}
+
+                    {/* Next */}
+                    <button
+                      disabled={page >= pagination.totalPages || refetching}
+                      onClick={() => setPage((p) => p + 1)}
+                      className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-lg border border-white/10 text-on-surface-variant hover:border-arc-400 hover:text-arc-400 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Last synced */}
+            {pools[0]?.lastSyncedAt && (
+              <p className="text-[11px] text-on-surface-variant/50 mt-3 text-right font-mono">
+                Last synced: {new Date(pools[0].lastSyncedAt).toLocaleString()}
+              </p>
+            )}
+          </div>
+        </div>
       </div>
     </AppLayout>
   );

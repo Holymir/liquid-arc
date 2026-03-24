@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&amp;family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Geist+Mono:wght@400;500&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary-fixed": "#41fddb",
+                        "surface-dim": "#0a141d",
+                        "on-surface-variant": "#b9cac4",
+                        "on-background": "#dae3f1",
+                        "on-surface": "#dae3f1",
+                        "background": "#0a141d",
+                        "on-secondary": "#283042",
+                        "tertiary-fixed-dim": "#45dfa4",
+                        "on-secondary-container": "#b0b8ce",
+                        "outline": "#84948f",
+                        "surface-container-lowest": "#060f18",
+                        "error-container": "#93000a",
+                        "on-error-container": "#ffdad6",
+                        "on-error": "#690005",
+                        "on-secondary-fixed": "#131c2c",
+                        "on-primary-fixed-variant": "#005144",
+                        "on-tertiary-container": "#006244",
+                        "surface-container-high": "#212b35",
+                        "error": "#ffb4ab",
+                        "surface-container": "#17202a",
+                        "tertiary": "#80ffc7",
+                        "secondary-container": "#40495b",
+                        "tertiary-fixed": "#68fcbf",
+                        "surface-container-highest": "#2c3640",
+                        "on-primary-container": "#006152",
+                        "primary-fixed-dim": "#00dfbf",
+                        "secondary-fixed": "#dae2f9",
+                        "on-tertiary-fixed": "#002114",
+                        "outline-variant": "#3b4a45",
+                        "surface-container-low": "#131c26",
+                        "surface-bright": "#313a44",
+                        "on-tertiary-fixed-variant": "#005137",
+                        "on-primary": "#00382e",
+                        "tertiary-container": "#4ce4a9",
+                        "secondary-fixed-dim": "#bec6dd",
+                        "surface-variant": "#2c3640",
+                        "inverse-primary": "#006b5b",
+                        "on-primary-fixed": "#00201a",
+                        "secondary": "#bec6dd",
+                        "primary-container": "#00e5c4",
+                        "primary": "#70ffe1",
+                        "inverse-surface": "#dae3f1",
+                        "surface": "#0a141d",
+                        "on-tertiary": "#003825",
+                        "surface-tint": "#00dfbf",
+                        "inverse-on-surface": "#28313b",
+                        "on-secondary-fixed-variant": "#3e4759"
+                    },
+                    fontFamily: {
+                        "headline": ["Syne", "sans-serif"],
+                        "body": ["Inter", "sans-serif"],
+                        "label": ["Space Grotesk", "sans-serif"],
+                        "mono": ["Geist Mono", "monospace"]
+                    },
+                    borderRadius: { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem" },
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-panel {
+            background: rgba(33, 43, 53, 0.4);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(59, 74, 69, 0.2);
+        }
+        .text-glow {
+            text-shadow: 0 0 15px rgba(0, 229, 196, 0.3);
+        }
+        body::-webkit-scrollbar { width: 5px; }
+        body::-webkit-scrollbar-track { background: transparent; }
+        body::-webkit-scrollbar-thumb { background: #00e5c4; border-radius: 999px; }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body min-h-screen selection:bg-primary selection:text-on-primary">
+<!-- Top Navigation Shell -->
+<nav class="fixed top-0 w-full z-50 flex justify-between items-center px-8 h-20 bg-[#0a141d]/80 backdrop-blur-xl border-b border-[#212b35]/20">
+<div class="text-2xl font-bold tracking-tighter text-[#dae3f1] font-headline">LiquidArc</div>
+<div class="hidden md:flex items-center space-gap-8 font-label font-medium tracking-tight h-full">
+<a class="text-[#dae3f1]/60 hover:text-[#dae3f1] transition-colors px-4" href="#">Market</a>
+<a class="text-[#dae3f1]/60 hover:text-[#dae3f1] transition-colors px-4" href="#">Protocols</a>
+<a class="text-[#dae3f1]/60 hover:text-[#dae3f1] transition-colors px-4" href="#">Simulator</a>
+<a class="text-[#dae3f1]/60 hover:text-[#dae3f1] transition-colors px-4" href="#">Learn</a>
+</div>
+<button class="bg-primary-container text-on-primary-container px-6 py-2 font-label font-bold rounded-lg hover:bg-primary-fixed-dim transition-all active:scale-95">Sign In</button>
+</nav>
+<!-- Side Navigation Shell (Hidden on Mobile) -->
+<aside class="fixed left-0 top-20 h-[calc(100vh-5rem)] flex flex-col py-6 bg-[#131c26] w-64 border-r border-[#212b35]/30 hidden md:flex">
+<div class="px-6 mb-8">
+<h2 class="text-lg font-extrabold text-[#dae3f1] font-headline uppercase">The Vault</h2>
+<p class="font-label uppercase tracking-widest text-[10px] text-primary">Institutional Grade</p>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center gap-3 text-[#dae3f1]/50 px-6 py-3 hover:bg-[#212b35]/50 transition-all font-label uppercase tracking-widest text-xs" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span>Dashboard</span>
+</a>
+<a class="flex items-center gap-3 bg-[#212b35] text-[#00e5c4] border-l-4 border-[#00e5c4] px-6 py-3 font-label uppercase tracking-widest text-xs" href="#">
+<span class="material-symbols-outlined" data-icon="account_balance_wallet">account_balance_wallet</span>
+<span>DeFi</span>
+</a>
+<a class="flex items-center gap-3 text-[#dae3f1]/50 px-6 py-3 hover:bg-[#212b35]/50 transition-all font-label uppercase tracking-widest text-xs" href="#">
+<span class="material-symbols-outlined" data-icon="waves">waves</span>
+<span>Pools</span>
+</a>
+</nav>
+<div class="px-4 mt-auto">
+<button class="w-full bg-surface-container-high border border-outline-variant/30 text-primary py-3 rounded-xl font-label text-xs tracking-widest hover:bg-primary hover:text-on-primary transition-all">
+                Connect Wallet
+            </button>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="md:ml-64 pt-28 pb-24 px-6 md:px-12 max-w-7xl mx-auto">
+<!-- Position Header -->
+<header class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+<div>
+<div class="flex items-center gap-3 mb-2">
+<span class="bg-primary/10 text-primary text-[10px] font-mono px-2 py-0.5 rounded border border-primary/20">NFT #84291</span>
+<span class="text-on-surface-variant font-label text-sm">Aerodrome V2 • Base Mainnet</span>
+</div>
+<h1 class="text-4xl md:text-6xl font-headline font-bold text-on-surface tracking-tight flex items-center gap-4">
+                    WETH / USDC
+                    <span class="material-symbols-outlined text-primary text-3xl" data-icon="verified_user">verified_user</span>
+</h1>
+</div>
+<div class="flex gap-3">
+<button class="bg-surface-container-high hover:bg-surface-bright px-5 py-3 rounded-xl flex items-center gap-2 transition-all group">
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary" data-icon="add_circle">add_circle</span>
+<span class="font-label text-sm">Add Liquidity</span>
+</button>
+<button class="bg-surface-container-high hover:bg-surface-bright px-5 py-3 rounded-xl flex items-center gap-2 transition-all group">
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-error" data-icon="remove_circle">remove_circle</span>
+<span class="font-label text-sm">Remove</span>
+</button>
+</div>
+</header>
+<!-- KPI Grid: Bento Style -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+<div class="glass-panel p-6 rounded-3xl relative overflow-hidden group">
+<div class="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-all"></div>
+<p class="text-on-surface-variant font-label text-xs uppercase tracking-widest mb-1">Position Value</p>
+<h3 class="text-3xl font-mono font-medium text-on-surface">$42,890.<span class="text-on-surface-variant text-xl">54</span></h3>
+<div class="flex items-center gap-1 mt-2 text-tertiary text-xs font-mono">
+<span class="material-symbols-outlined text-sm" data-icon="trending_up">trending_up</span>
+                    +2.4% (24h)
+                </div>
+</div>
+<div class="glass-panel p-6 rounded-3xl">
+<p class="text-on-surface-variant font-label text-xs uppercase tracking-widest mb-1">Total P&amp;L</p>
+<h3 class="text-3xl font-mono font-medium text-primary">+$3,412.<span class="text-primary-container text-xl">10</span></h3>
+<div class="text-on-surface-variant text-xs mt-2 font-mono">Including all fees</div>
+</div>
+<div class="glass-panel p-6 rounded-3xl bg-gradient-to-br from-surface-container-high to-primary/5">
+<p class="text-on-surface-variant font-label text-xs uppercase tracking-widest mb-1">Estimated APR</p>
+<h3 class="text-3xl font-mono font-medium text-tertiary">114.2%</h3>
+<div class="flex items-center gap-1 mt-2 text-on-surface-variant text-xs font-mono">
+<span class="material-symbols-outlined text-sm animate-pulse" data-icon="bolt">bolt</span>
+                    Active Boost
+                </div>
+</div>
+<div class="glass-panel p-6 rounded-3xl">
+<p class="text-on-surface-variant font-label text-xs uppercase tracking-widest mb-1">Rewards Earned</p>
+<div class="flex items-baseline gap-2">
+<h3 class="text-3xl font-mono font-medium text-on-surface">1,240</h3>
+<span class="text-primary font-label text-sm font-bold tracking-tighter">AERO</span>
+</div>
+<button class="mt-3 text-primary text-[10px] font-label font-bold uppercase tracking-widest hover:underline flex items-center gap-1">
+                    Claim Now <span class="material-symbols-outlined text-[12px]" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- Main Content Area: Data Dense Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+<!-- Left Column: Visualization & Comparison -->
+<div class="lg:col-span-2 space-y-8">
+<!-- Price Range Visualization -->
+<section class="glass-panel p-8 rounded-3xl">
+<div class="flex justify-between items-center mb-8">
+<div>
+<h4 class="font-headline text-lg mb-1 uppercase tracking-tight">Price Range Focus</h4>
+<div class="flex items-center gap-2">
+<div class="w-2 h-2 rounded-full bg-tertiary shadow-[0_0_8px_#80ffc7]"></div>
+<span class="text-tertiary text-xs font-label uppercase font-bold tracking-widest">In Range</span>
+</div>
+</div>
+<div class="text-right">
+<p class="text-on-surface-variant text-[10px] font-label uppercase tracking-widest mb-1">Current Price</p>
+<p class="font-mono text-xl">2,410.15 <span class="text-on-surface-variant text-sm">USDC/WETH</span></p>
+</div>
+</div>
+<!-- Horizontal Gauge -->
+<div class="relative pt-12 pb-16">
+<!-- Scale Background -->
+<div class="h-1.5 w-full bg-surface-container-highest rounded-full flex overflow-hidden">
+<div class="h-full w-1/5 bg-error/20"></div>
+<div class="h-full w-3/5 bg-primary/20"></div>
+<div class="h-full w-1/5 bg-error/20"></div>
+</div>
+<!-- Active Range Overlay -->
+<div class="absolute top-12 left-[20%] right-[20%] h-1.5 bg-gradient-to-r from-primary to-primary-container shadow-[0_0_15px_rgba(0,229,196,0.3)] rounded-full"></div>
+<!-- Markers -->
+<div class="absolute top-8 left-[20%] -translate-x-1/2 flex flex-col items-center">
+<span class="text-[10px] font-mono text-on-surface-variant mb-1">2,200.00</span>
+<div class="h-12 w-px bg-outline-variant"></div>
+<span class="text-[9px] font-label text-outline uppercase mt-1">Lower Bound</span>
+</div>
+<div class="absolute top-8 right-[20%] translate-x-1/2 flex flex-col items-center">
+<span class="text-[10px] font-mono text-on-surface-variant mb-1">2,800.00</span>
+<div class="h-12 w-px bg-outline-variant"></div>
+<span class="text-[9px] font-label text-outline uppercase mt-1">Upper Bound</span>
+</div>
+<!-- Current Price Indicator -->
+<div class="absolute top-10 left-[42%] -translate-x-1/2 flex flex-col items-center">
+<div class="bg-primary text-on-primary font-mono text-xs px-2 py-1 rounded-lg shadow-lg mb-2">2,410.15</div>
+<div class="h-20 w-px bg-primary shadow-[0_0_8px_#70ffe1]"></div>
+<div class="w-3 h-3 rounded-full border-2 border-primary bg-surface absolute -bottom-1"></div>
+</div>
+</div>
+</section>
+<!-- Comparison Table -->
+<section class="glass-panel rounded-3xl overflow-hidden">
+<div class="px-8 py-6 border-b border-outline-variant/10">
+<h4 class="font-headline text-lg uppercase tracking-tight">Entry vs Current Comparison</h4>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left">
+<thead class="bg-surface-container/50">
+<tr class="border-b border-outline-variant/10">
+<th class="px-8 py-4 font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Asset</th>
+<th class="px-8 py-4 font-label text-[10px] uppercase tracking-widest text-on-surface-variant text-right">Entry Amount</th>
+<th class="px-8 py-4 font-label text-[10px] uppercase tracking-widest text-on-surface-variant text-right">Current Amount</th>
+<th class="px-8 py-4 font-label text-[10px] uppercase tracking-widest text-on-surface-variant text-right">Value Delta</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/10">
+<tr class="hover:bg-surface-bright/20 transition-colors">
+<td class="px-8 py-6 font-medium">WETH</td>
+<td class="px-8 py-6 font-mono text-right">10.000</td>
+<td class="px-8 py-6 font-mono text-right text-primary">8.421</td>
+<td class="px-8 py-6 font-mono text-right text-error">-15.79%</td>
+</tr>
+<tr class="hover:bg-surface-bright/20 transition-colors">
+<td class="px-8 py-6 font-medium">USDC</td>
+<td class="px-8 py-6 font-mono text-right">18,500.00</td>
+<td class="px-8 py-6 font-mono text-right text-primary">22,345.10</td>
+<td class="px-8 py-6 font-mono text-right text-tertiary">+20.78%</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</div>
+<!-- Right Column: Analytics & Strategy -->
+<div class="space-y-8">
+<!-- P&L Breakdown Visualization -->
+<section class="glass-panel p-8 rounded-3xl">
+<h4 class="font-headline text-lg mb-6 uppercase tracking-tight">P&amp;L Attribution</h4>
+<div class="space-y-6">
+<div>
+<div class="flex justify-between text-xs mb-2">
+<span class="text-on-surface-variant font-label uppercase">Capital Appreciation</span>
+<span class="font-mono text-tertiary">+$2,140</span>
+</div>
+<div class="h-2 w-full bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-tertiary w-[65%]"></div>
+</div>
+</div>
+<div>
+<div class="flex justify-between text-xs mb-2">
+<span class="text-on-surface-variant font-label uppercase">Trading Fees</span>
+<span class="font-mono text-primary">+$1,560</span>
+</div>
+<div class="h-2 w-full bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[45%]"></div>
+</div>
+</div>
+<div>
+<div class="flex justify-between text-xs mb-2">
+<span class="text-on-surface-variant font-label uppercase">Impermanent Loss</span>
+<span class="font-mono text-error">-$287</span>
+</div>
+<div class="h-2 w-full bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-error w-[15%]"></div>
+</div>
+</div>
+</div>
+</section>
+<!-- Impermanent Loss & Hold-vs-LP -->
+<section class="glass-panel p-8 rounded-3xl relative overflow-hidden">
+<div class="flex items-center gap-2 mb-6">
+<span class="material-symbols-outlined text-primary" data-icon="compare_arrows">compare_arrows</span>
+<h4 class="font-headline text-lg uppercase tracking-tight">Strategy Alpha</h4>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="p-4 bg-surface-container-lowest rounded-2xl border border-outline-variant/10">
+<p class="text-[10px] text-on-surface-variant uppercase tracking-widest mb-1">Hold Strategy</p>
+<p class="font-mono text-lg">$40,120</p>
+</div>
+<div class="p-4 bg-surface-container-lowest rounded-2xl border border-primary/20">
+<p class="text-[10px] text-primary uppercase tracking-widest mb-1">LP Strategy</p>
+<p class="font-mono text-lg text-primary">$42,890</p>
+</div>
+</div>
+<div class="mt-6 flex justify-between items-center px-2">
+<span class="text-sm font-label text-on-surface-variant">Net Outperformance</span>
+<span class="text-xl font-headline text-tertiary">+6.9%</span>
+</div>
+<!-- IL Calculation Alert -->
+<div class="mt-6 p-4 rounded-xl bg-error/5 border border-error/10 flex items-start gap-3">
+<span class="material-symbols-outlined text-error text-sm mt-0.5" data-icon="warning">warning</span>
+<p class="text-[10px] leading-relaxed text-error">
+                            Impermanent loss is currently <span class="font-bold">0.67%</span>. 
+                            Hold gains would have been $1,240 lower than current LP value.
+                        </p>
+</div>
+</section>
+</div>
+</div>
+<!-- Footer Metadata -->
+<footer class="mt-16 pt-8 border-t border-outline-variant/20 grid grid-cols-2 md:grid-cols-4 gap-8">
+<div>
+<p class="text-[10px] font-label uppercase tracking-widest text-on-surface-variant mb-2">Entry Date</p>
+<p class="font-mono text-sm">Oct 24, 2023 • 14:32 UTC</p>
+</div>
+<div>
+<p class="text-[10px] font-label uppercase tracking-widest text-on-surface-variant mb-2">Tick Spacing</p>
+<p class="font-mono text-sm">10 (0.05% Fee Tier)</p>
+</div>
+<div>
+<p class="text-[10px] font-label uppercase tracking-widest text-on-surface-variant mb-2">Pool Contract</p>
+<a class="font-mono text-sm text-primary flex items-center gap-1 hover:underline" href="#">
+                    0x82...f92a
+                    <span class="material-symbols-outlined text-xs" data-icon="open_in_new">open_in_new</span>
+</a>
+</div>
+<div>
+<p class="text-[10px] font-label uppercase tracking-widest text-on-surface-variant mb-2">Tick Range</p>
+<p class="font-mono text-sm">192,400 to 201,800</p>
+</div>
+</footer>
+</main>
+<!-- Bottom Navigation Shell (Mobile Only) -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 py-3 md:hidden bg-[#0a141d]/90 backdrop-blur-2xl border-t border-[#00e5c4]/10 shadow-[0_-10px_30px_rgba(0,229,196,0.05)]">
+<div class="flex flex-col items-center justify-center text-[#dae3f1]/40 px-6 py-2 transition-colors">
+<span class="material-symbols-outlined" data-icon="water_drop">water_drop</span>
+<span class="font-label text-[10px] uppercase">Pools</span>
+</div>
+<div class="flex flex-col items-center justify-center bg-[#00e5c4] text-[#0a141d] rounded-xl px-6 py-2 shadow-[0_0_15px_rgba(0,229,196,0.4)] transition-all">
+<span class="material-symbols-outlined" data-icon="pie_chart">pie_chart</span>
+<span class="font-label text-[10px] uppercase">Portfolio</span>
+</div>
+</nav>
+</body></html>

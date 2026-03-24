@@ -1,1145 +1,860 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { AppHeader } from "@/components/layout/AppHeader";
+import Image from "next/image";
+import { AppLayout } from "@/components/layout/AppLayout";
 import {
-  ArrowRight,
-  BarChart3,
-  BookOpen,
-  ChevronRight,
-  Eye,
-  ExternalLink,
-  Gift,
-  Globe,
-  Lock,
+  ArrowUp,
+  ArrowDown,
+  ChevronUp,
+  ChevronDown,
+  Search,
   TrendingUp,
-  Zap,
+  TrendingDown,
+  Loader2,
 } from "lucide-react";
-import type { CoinMarketData } from "@/lib/market/types";
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
+import type {
+  CoinMarketData,
+  GlobalMarketData,
+} from "@/lib/market/types";
 
-// -----------------------------------------------
-// LP Range Card -- hero preview mockup
-// -----------------------------------------------
-function LPRangeCard() {
-  const bars = [28, 42, 35, 55, 48, 72, 65, 88, 78, 92, 85, 76, 82, 68, 95];
-
-  return (
-    <div
-      className="relative rounded-2xl p-6 overflow-hidden"
-      style={{
-        background: "linear-gradient(145deg, #0a1628 0%, #060f1e 100%)",
-        border: "1px solid rgba(0, 229, 196, 0.2)",
-        boxShadow:
-          "0 0 60px rgba(0, 229, 196, 0.06), 0 24px 48px rgba(0,0,0,0.6)",
-      }}
-    >
-      {/* Corner glow */}
-      <div
-        className="absolute top-0 right-0 w-48 h-48 pointer-events-none"
-        style={{
-          background:
-            "radial-gradient(circle at 100% 0%, rgba(0, 229, 196, 0.12) 0%, transparent 70%)",
-        }}
-      />
-
-      {/* Header */}
-      <div className="flex items-start justify-between mb-6">
-        <div>
-          <div
-            className="text-xs tracking-widest uppercase mb-1.5"
-            style={{
-              color: "rgba(0, 229, 196, 0.6)",
-              fontFamily: "var(--font-geist-mono)",
-            }}
-          >
-            WETH / USDC &middot; 0.05%
-          </div>
-          <div
-            className="text-3xl font-bold"
-            style={{
-              color: "#f0f4ff",
-              fontFamily: "var(--font-syne), var(--font-geist-sans), sans-serif",
-            }}
-          >
-            $3,247.82
-          </div>
-          <div
-            className="text-sm mt-0.5"
-            style={{ color: "rgba(240,244,255,0.35)" }}
-          >
-            current price
-          </div>
-        </div>
-        <div className="text-right">
-          <div
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs"
-            style={{
-              background: "rgba(0, 229, 196, 0.1)",
-              border: "1px solid rgba(0, 229, 196, 0.25)",
-              color: "#00e5c4",
-              fontFamily: "var(--font-geist-mono)",
-            }}
-          >
-            <span
-              className="w-1.5 h-1.5 rounded-full bg-[#00e5c4]"
-              style={{ animation: "pulse 2s ease-in-out infinite" }}
-            />
-            IN RANGE
-          </div>
-          <div
-            className="text-2xl font-bold mt-2"
-            style={{
-              color: "#00e5c4",
-              fontFamily: "var(--font-syne), var(--font-geist-sans), sans-serif",
-            }}
-          >
-            +$1,204.17
-          </div>
-          <div
-            className="text-xs mt-0.5"
-            style={{
-              color: "rgba(0, 229, 196, 0.5)",
-              fontFamily: "var(--font-geist-mono)",
-            }}
-          >
-            +37.2% P&L
-          </div>
-        </div>
-      </div>
-
-      {/* Price range bar */}
-      <div className="mb-5">
-        <div className="flex justify-between items-center mb-2">
-          <span
-            className="text-xs"
-            style={{
-              color: "rgba(240,244,255,0.3)",
-              fontFamily: "var(--font-geist-mono)",
-            }}
-          >
-            $2,800 min
-          </span>
-          <span
-            className="text-xs"
-            style={{
-              color: "rgba(240,244,255,0.3)",
-              fontFamily: "var(--font-geist-mono)",
-            }}
-          >
-            $4,200 max
-          </span>
-        </div>
-        <div
-          className="relative h-10 rounded-xl overflow-hidden"
-          style={{ background: "#060e1c" }}
-        >
-          {/* Liquidity zone */}
-          <div
-            className="absolute top-0 bottom-0 rounded-xl"
-            style={{
-              left: "12%",
-              right: "15%",
-              background:
-                "linear-gradient(90deg, transparent, rgba(0,229,196,0.15) 20%, rgba(0,229,196,0.3) 50%, rgba(0,229,196,0.15) 80%, transparent)",
-              border: "1px solid rgba(0, 229, 196, 0.3)",
-            }}
-          />
-          {/* Current price cursor */}
-          <div
-            className="absolute top-1 bottom-1 w-px"
-            style={{
-              left: "47%",
-              background: "#00e5c4",
-              boxShadow: "0 0 8px #00e5c4, 0 0 16px rgba(0,229,196,0.5)",
-            }}
-          />
-          {/* Price label */}
-          <div
-            className="absolute top-1.5 px-1.5 py-0.5 rounded-md"
-            style={{
-              left: "49%",
-              background: "rgba(0, 229, 196, 0.15)",
-              border: "1px solid rgba(0, 229, 196, 0.3)",
-              color: "#00e5c4",
-              fontFamily: "var(--font-geist-mono)",
-              fontSize: "9px",
-            }}
-          >
-            $3,247
-          </div>
-        </div>
-      </div>
-
-      {/* Stats row */}
-      <div className="grid grid-cols-3 gap-2.5 mb-5">
-        {[
-          { label: "Fee APR", value: "42.7%", color: "#00e5c4" },
-          { label: "Volume 24h", value: "$284k", color: "#f0f4ff" },
-          { label: "IL", value: "-1.2%", color: "#ff6b8a" },
-        ].map(({ label, value, color }) => (
-          <div
-            key={label}
-            className="rounded-lg p-3"
-            style={{
-              background: "rgba(255,255,255,0.03)",
-              border: "1px solid rgba(255,255,255,0.06)",
-            }}
-          >
-            <div
-              className="uppercase tracking-wide mb-1"
-              style={{
-                color: "rgba(240,244,255,0.3)",
-                fontFamily: "var(--font-geist-mono)",
-                fontSize: "9px",
-              }}
-            >
-              {label}
-            </div>
-            <div
-              className="text-sm font-bold"
-              style={{ color, fontFamily: "var(--font-geist-mono)" }}
-            >
-              {value}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Mini bar chart */}
-      <div
-        className="rounded-xl p-3"
-        style={{
-          background: "rgba(255,255,255,0.02)",
-          border: "1px solid rgba(255,255,255,0.04)",
-        }}
-      >
-        <div
-          className="uppercase tracking-wide mb-2.5"
-          style={{
-            color: "rgba(240,244,255,0.2)",
-            fontFamily: "var(--font-geist-mono)",
-            fontSize: "9px",
-          }}
-        >
-          7-day fee collection
-        </div>
-        <div className="flex items-end gap-0.5 h-10">
-          {bars.map((h, i) => (
-            <div
-              key={i}
-              className="flex-1 rounded-sm"
-              style={{
-                height: `${h}%`,
-                background:
-                  i >= 12
-                    ? "rgba(0, 229, 196, 0.75)"
-                    : i >= 8
-                    ? "rgba(0, 229, 196, 0.4)"
-                    : "rgba(0, 229, 196, 0.18)",
-              }}
-            />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// -----------------------------------------------
-// Data
-// -----------------------------------------------
-const valueProps = [
-  {
-    icon: BarChart3,
-    title: "Portfolio Tracking",
-    desc: "All your DeFi positions in one dashboard. Multi-chain, multi-protocol, real-time P&L.",
-    accent: "#00e5c4",
-    href: "/dashboard",
-  },
-  {
-    icon: TrendingUp,
-    title: "Yield Discovery",
-    desc: "Compare APRs across 20+ protocols. Find the best yields with our pool analytics.",
-    accent: "#3b82f6",
-    href: "/pools",
-  },
-  {
-    icon: Zap,
-    title: "Strategy Simulator",
-    desc: "Test LP strategies with real data before committing capital. Simulate fees vs impermanent loss.",
-    accent: "#a78bfa",
-    href: "/simulator",
-  },
-];
-
-const steps = [
-  {
-    n: "01",
-    title: "Connect or explore",
-    desc: "Connect your wallet or enter any address. Explore pools and market data with no signup.",
-  },
-  {
-    n: "02",
-    title: "See everything live",
-    desc: "Positions, P&L, fees, rewards — all updated in real-time across chains.",
-  },
-  {
-    n: "03",
-    title: "Optimize with data",
-    desc: "Simulate strategies, compare protocols, make smarter liquidity decisions.",
-  },
-];
-
-const protocols = [
-  { name: "Aerodrome", live: true },
-  { name: "Uniswap", live: true },
-  { name: "Velodrome", live: true },
-  { name: "Raydium", live: true },
-  { name: "Orca", live: true },
-  { name: "Meteora", live: true },
-  { name: "Aave", live: false },
-  { name: "Lido", live: false },
-  { name: "Curve", live: false },
-  { name: "Compound", live: false },
-  { name: "GMX", live: false },
-  { name: "Pendle", live: false },
-  { name: "Yearn", live: false },
-  { name: "Morpho", live: false },
-];
-
-const trustSignals = [
-  {
-    icon: Lock,
-    title: "Non-custodial",
-    desc: "We never touch your funds. Read-only access to public blockchain data.",
-  },
-  {
-    icon: Globe,
-    title: "Multi-chain",
-    desc: "Base, Ethereum, Arbitrum, Optimism, Solana — and growing.",
-  },
-  {
-    icon: Eye,
-    title: "Open Analytics",
-    desc: "Pool data, market trends, and protocol comparisons — free for everyone.",
-  },
-];
-
-// -----------------------------------------------
+// ---------------------------------------------------------------------------
 // Helpers
-// -----------------------------------------------
-function formatPrice(price: number): string {
-  if (price >= 1) return price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  if (price >= 0.01) return price.toFixed(4);
-  return price.toFixed(6);
+// ---------------------------------------------------------------------------
+
+function formatCompact(value: number | null | undefined): string {
+  if (value == null) return "-";
+  if (value >= 1_000_000_000_000)
+    return `$${(value / 1_000_000_000_000).toFixed(2)}T`;
+  if (value >= 1_000_000_000)
+    return `$${(value / 1_000_000_000).toFixed(1)}B`;
+  if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(2)}M`;
+  if (value >= 1_000) return `$${(value / 1_000).toFixed(1)}K`;
+  return `$${value.toFixed(2)}`;
 }
 
-// -----------------------------------------------
-// Page
-// -----------------------------------------------
-export default function Home() {
-  const [coins, setCoins] = useState<CoinMarketData[]>([]);
+function formatPct(value: number | null | undefined): string {
+  if (value == null) return "-";
+  return `${value >= 0 ? "+" : ""}${value.toFixed(2)}%`;
+}
 
-  useEffect(() => {
-    fetch("/api/market?perPage=10")
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.coins) setCoins(data.coins);
-      })
-      .catch(() => {});
+// Map of coin categories for display
+const COIN_CATEGORIES: Record<string, string> = {
+  bitcoin: "Store of Value",
+  ethereum: "Smart Contracts",
+  tether: "Stablecoin",
+  ripple: "Payments",
+  binancecoin: "Exchange",
+  solana: "Smart Contracts",
+  "usd-coin": "Stablecoin",
+  dogecoin: "Meme",
+  cardano: "Smart Contracts",
+  tron: "Smart Contracts",
+  avalanche: "Smart Contracts",
+  polkadot: "Interoperability",
+  chainlink: "Oracle",
+  "shiba-inu": "Meme",
+  uniswap: "DEX",
+  "wrapped-bitcoin": "Wrapped",
+  litecoin: "Payments",
+  dai: "Stablecoin",
+  "bitcoin-cash": "Payments",
+  cosmos: "Interoperability",
+  stellar: "Payments",
+  near: "Smart Contracts",
+  monero: "Privacy",
+  "internet-computer": "Compute",
+  aave: "Lending",
+  maker: "CDP",
+  lido: "Liquid Staking",
+  arbitrum: "L2",
+  optimism: "L2",
+  sui: "Smart Contracts",
+};
+
+// Chain filter pills
+const CHAIN_FILTERS = [
+  "All Chains",
+  "Ethereum",
+  "Solana",
+  "BSC",
+  "Base",
+  "Tron",
+  "Bitcoin",
+  "Arbitrum",
+  "Polygon",
+  "Avalanche",
+  "Sui",
+  "Hyperliquid",
+];
+
+// Time range options — we have 7 days of hourly sparkline data (168 points)
+const TIME_RANGES = ["1D", "3D", "7D"] as const;
+
+// Points per range (sparkline is ~168 hourly points = 7 days)
+const RANGE_POINTS: Record<(typeof TIME_RANGES)[number], number> = {
+  "1D": 24,
+  "3D": 72,
+  "7D": 168,
+};
+
+// ---------------------------------------------------------------------------
+// Build total-market-cap chart from top coins' sparklines
+// ---------------------------------------------------------------------------
+
+function buildMarketCapChart(
+  coins: CoinMarketData[],
+  points: number
+): { idx: number; value: number }[] {
+  // Use the top coins that have sparklines to approximate total market movement
+  const withSparkline = coins.filter(
+    (c) => c.sparklineIn7d && c.sparklineIn7d.length > 0
+  );
+  if (withSparkline.length === 0) return [];
+
+  // All sparklines should be ~168 points (7d hourly). Find the common length.
+  const maxLen = Math.max(...withSparkline.map((c) => c.sparklineIn7d!.length));
+  const startIdx = Math.max(0, maxLen - points);
+
+  // Sum market caps at each time point: price[i] * circulatingSupply
+  const result: { idx: number; value: number }[] = [];
+  const step = Math.max(1, Math.floor((maxLen - startIdx) / 40)); // ~40 data points
+
+  for (let i = startIdx; i < maxLen; i += step) {
+    let totalMcap = 0;
+    for (const coin of withSparkline) {
+      const spark = coin.sparklineIn7d!;
+      const idx = Math.min(i, spark.length - 1);
+      const supply = coin.marketCap && coin.currentPrice
+        ? coin.marketCap / coin.currentPrice
+        : 0;
+      totalMcap += spark[idx] * supply;
+    }
+    result.push({ idx: result.length, value: totalMcap });
+  }
+  return result;
+}
+
+// ---------------------------------------------------------------------------
+// Sort helpers
+// ---------------------------------------------------------------------------
+
+type SortField = "marketCapRank" | "marketCap" | "priceChangePercentage24h";
+
+// ---------------------------------------------------------------------------
+// Main Component
+// ---------------------------------------------------------------------------
+
+export default function HomePage() {
+  // Data state
+  const [coins, setCoins] = useState<CoinMarketData[]>([]);
+  const [global, setGlobal] = useState<GlobalMarketData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const hasFetched = useRef(false);
+
+  // UI state
+  const [activeChain, setActiveChain] = useState("All Chains");
+  const [activeTimeRange, setActiveTimeRange] = useState<
+    (typeof TIME_RANGES)[number]
+  >("7D");
+  const [protocolSearch, setProtocolSearch] = useState("");
+  const [sortBy, setSortBy] = useState<SortField>("marketCapRank");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+
+  // Fetch data (same endpoint as market page)
+  const fetchAll = useCallback(async () => {
+    if (hasFetched.current) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/market/overview?page=1&perPage=100");
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      setCoins(data.coins ?? []);
+      if (data.global) setGlobal(data.global);
+      hasFetched.current = true;
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to load market data"
+      );
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  return (
-    <div
-      className="min-h-screen overflow-x-hidden"
-      style={{ background: "#030b14" }}
-    >
-      {/* Ticker animation keyframes */}
-      <style>{`
-        @keyframes scroll-ticker {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
-        }
-        .animate-scroll {
-          animation: scroll-ticker 30s linear infinite;
-        }
-        .animate-scroll:hover {
-          animation-play-state: paused;
-        }
-      `}</style>
+  useEffect(() => {
+    fetchAll();
+  }, [fetchAll]);
 
-      <AppHeader />
+  // Derived data
+  const totalMcap = global?.totalMarketCap ?? 0;
+  const mcapChange24h = global?.marketCapChange24h ?? 0;
+  const totalVolume = global?.totalVolume ?? 0;
 
-      {/* -- Hero ------------------------------------------ */}
-      <section className="relative min-h-[calc(100vh-72px)] flex items-center">
-        {/* Dot grid background */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            backgroundImage:
-              "radial-gradient(circle, rgba(0,229,196,0.09) 1px, transparent 1px)",
-            backgroundSize: "44px 44px",
-            maskImage:
-              "radial-gradient(ellipse 90% 70% at 50% 30%, black 30%, transparent 100%)",
-          }}
-        />
-        {/* Ambient glows */}
-        <div
-          className="absolute pointer-events-none"
-          style={{
-            top: "-10%",
-            right: "-5%",
-            width: "65vw",
-            height: "65vw",
-            borderRadius: "50%",
-            background:
-              "radial-gradient(circle at 30% 40%, rgba(0,229,196,0.05) 0%, transparent 65%)",
-          }}
-        />
-        <div
-          className="absolute pointer-events-none"
-          style={{
-            bottom: "5%",
-            left: "-8%",
-            width: "40vw",
-            height: "40vw",
-            borderRadius: "50%",
-            background:
-              "radial-gradient(circle, rgba(59,130,246,0.06) 0%, transparent 65%)",
-          }}
-        />
+  // Stablecoin market cap estimate (sum of known stablecoins)
+  const stablecoinMcap = coins
+    .filter((c) =>
+      ["tether", "usd-coin", "dai", "first-digital-usd", "ethena-usde", "usds"].includes(c.id)
+    )
+    .reduce((acc, c) => acc + (c.marketCap ?? 0), 0);
 
-        <div className="relative z-10 w-full max-w-7xl mx-auto px-6 lg:px-8 pt-16 pb-24">
-          <div className="grid lg:grid-cols-[1fr,1.1fr] gap-12 xl:gap-20 items-center">
-            {/* -- Copy -- */}
-            <div>
-              {/* Eyebrow badge */}
+  // Build total market cap chart from coin sparklines, filtered by time range
+  const chartData = useMemo(
+    () => buildMarketCapChart(coins, RANGE_POINTS[activeTimeRange]),
+    [coins, activeTimeRange]
+  );
+
+  // Peak market cap from chart data
+  const peakMcap = chartData.length > 0
+    ? Math.max(...chartData.map((d) => d.value))
+    : totalMcap * 1.2;
+
+  // Filter & sort protocols
+  const filteredCoins = coins
+    .filter((c) => {
+      if (protocolSearch) {
+        const q = protocolSearch.toLowerCase();
+        return (
+          c.name.toLowerCase().includes(q) ||
+          c.symbol.toLowerCase().includes(q)
+        );
+      }
+      return true;
+    })
+    .slice(0, 20);
+
+  const sortedCoins = [...filteredCoins].sort((a, b) => {
+    const dir = sortDir === "asc" ? 1 : -1;
+    const av = a[sortBy] ?? 0;
+    const bv = b[sortBy] ?? 0;
+    if (av < bv) return -1 * dir;
+    if (av > bv) return 1 * dir;
+    return 0;
+  });
+
+  const handleSort = (field: SortField) => {
+    if (sortBy === field) {
+      setSortDir((d) => (d === "desc" ? "asc" : "desc"));
+    } else {
+      setSortBy(field);
+      setSortDir(field === "marketCapRank" ? "asc" : "desc");
+    }
+  };
+
+  // Loading skeleton
+  if (loading) {
+    return (
+      <AppLayout>
+        <div className="max-w-[1600px] mx-auto px-4 md:px-8 py-12 pb-20">
+          {/* Hero skeleton */}
+          <div className="mb-12">
+            <div className="h-4 w-40 bg-surface-container-high/50 rounded animate-pulse mb-4" />
+            <div className="h-16 w-80 bg-surface-container-high/40 rounded animate-pulse mb-4" />
+            <div className="h-6 w-24 bg-surface-container-high/30 rounded-full animate-pulse" />
+          </div>
+          {/* Metrics skeleton */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-1 mb-12 bg-outline-variant/10 p-1 rounded-2xl">
+            {[1, 2, 3].map((i) => (
               <div
-                className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 mb-10"
-                style={{
-                  background: "rgba(0,229,196,0.07)",
-                  border: "1px solid rgba(0,229,196,0.18)",
-                }}
+                key={i}
+                className="bg-surface-container-low p-6 rounded-xl"
               >
-                <span
-                  className="w-1.5 h-1.5 rounded-full"
-                  style={{
-                    background: "#00e5c4",
-                    boxShadow: "0 0 6px #00e5c4",
-                    animation: "pulse 2s ease-in-out infinite",
-                  }}
-                />
-                <span
-                  className="text-xs tracking-widest uppercase"
-                  style={{
-                    color: "#00e5c4",
-                    fontFamily: "var(--font-geist-mono)",
-                  }}
-                >
-                  Live Data &middot; 20+ Protocols &middot; 8+ Chains
-                </span>
+                <div className="h-3 w-28 bg-surface-container-high/50 rounded animate-pulse mb-3" />
+                <div className="h-6 w-24 bg-surface-container-high/40 rounded animate-pulse" />
               </div>
-
-              {/* Headline */}
-              <h1
-                className="text-5xl sm:text-6xl xl:text-[76px] font-extrabold leading-[1.02] tracking-tight mb-7"
-                style={{
-                  color: "#f0f4ff",
-                  fontFamily:
-                    "var(--font-syne), var(--font-geist-sans), sans-serif",
-                }}
-              >
-                DeFi Analytics,
-                <br />
-                <span
-                  style={{
-                    color: "#00e5c4",
-                    textShadow: "0 0 40px rgba(0,229,196,0.4)",
-                  }}
-                >
-                  Simplified.
-                </span>
-              </h1>
-
-              <p
-                className="text-lg leading-relaxed mb-10 max-w-[480px]"
-                style={{ color: "rgba(240,244,255,0.5)" }}
-              >
-                Track positions, discover yields, simulate strategies — all in
-                one dashboard.
-              </p>
-
-              {/* Single primary CTA */}
-              <div className="mb-3">
-                <Link
-                  href="/register"
-                  className="inline-flex items-center gap-2.5 px-7 py-3.5 rounded-xl font-bold text-sm transition-all hover:scale-[1.02] active:scale-[0.98]"
-                  style={{
-                    background: "#00e5c4",
-                    color: "#020910",
-                    boxShadow: "0 0 28px rgba(0,229,196,0.4)",
-                  }}
-                >
-                  Start Free
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
-              </div>
-              <p
-                className="text-xs mb-10"
-                style={{
-                  color: "rgba(240,244,255,0.35)",
-                  fontFamily: "var(--font-geist-mono)",
-                }}
-              >
-                No wallet required to explore
-              </p>
-
-              {/* Trust signals row */}
-              <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-                {["Non-custodial", "Read-only", "No seed phrase"].map((t) => (
-                  <div key={t} className="flex items-center gap-2">
-                    <span
-                      className="w-1 h-1 rounded-full"
-                      style={{ background: "rgba(0,229,196,0.5)" }}
-                    />
-                    <span
-                      className="text-xs tracking-wide"
-                      style={{
-                        color: "rgba(240,244,255,0.28)",
-                        fontFamily: "var(--font-geist-mono)",
-                      }}
-                    >
-                      {t}
-                    </span>
-                  </div>
-                ))}
-              </div>
+            ))}
+          </div>
+          {/* Chart + table skeleton */}
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
+            <div className="xl:col-span-5">
+              <div className="bg-surface-container-high/40 rounded-2xl border border-outline-variant/10 h-[500px] animate-pulse" />
             </div>
-
-            {/* -- Dashboard preview -- */}
-            <div className="relative hidden lg:block">
-              <div
-                className="absolute -inset-8 pointer-events-none"
-                style={{
-                  background:
-                    "radial-gradient(circle at 50% 50%, rgba(0,229,196,0.07) 0%, transparent 70%)",
-                }}
-              />
-              <LPRangeCard />
-
-              {/* Floating reward badge */}
-              <div
-                className="absolute -bottom-6 -left-6 flex items-center gap-3 rounded-xl px-4 py-3 animate-float"
-                style={{
-                  background: "linear-gradient(135deg, #0a1628, #060f1e)",
-                  border: "1px solid rgba(245,158,11,0.25)",
-                  boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
-                }}
-              >
-                <div
-                  className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-                  style={{ background: "rgba(245,158,11,0.12)" }}
-                >
-                  <Gift className="w-4 h-4 text-amber-400" />
-                </div>
-                <div>
-                  <div
-                    className="uppercase tracking-wide"
-                    style={{
-                      color: "rgba(240,244,255,0.35)",
-                      fontFamily: "var(--font-geist-mono)",
-                      fontSize: "9px",
-                    }}
-                  >
-                    Claimable Rewards
-                  </div>
-                  <div
-                    className="text-sm font-bold text-amber-400"
-                    style={{ fontFamily: "var(--font-geist-mono)" }}
-                  >
-                    $847.30 AERO
-                  </div>
-                </div>
-              </div>
+            <div className="xl:col-span-7">
+              <div className="bg-surface-container-high/20 rounded-2xl border border-outline-variant/10 h-[500px] animate-pulse" />
             </div>
           </div>
         </div>
-      </section>
+      </AppLayout>
+    );
+  }
 
-      {/* -- Live Market Ticker ----------------------------- */}
-      {coins.length > 0 && (
-        <section
-          className="py-4 px-6 lg:px-8"
-          style={{ borderTop: "1px solid rgba(255,255,255,0.05)", borderBottom: "1px solid rgba(255,255,255,0.05)" }}
-        >
-          <div className="max-w-7xl mx-auto">
-            <div className="overflow-hidden">
-              <div className="flex items-center gap-8 animate-scroll" style={{ width: "max-content" }}>
-                {/* Duplicate for seamless loop */}
-                {[...coins, ...coins].map((coin, idx) => (
-                  <Link
-                    key={`${coin.id}-${idx}`}
-                    href={`/market/${coin.id}`}
-                    className="flex items-center gap-2 shrink-0 transition-opacity hover:opacity-80"
-                  >
-                    <img
-                      src={coin.image}
-                      alt={coin.name}
-                      className="w-5 h-5 rounded-full"
-                    />
-                    <span
-                      className="text-sm font-medium"
-                      style={{ color: "rgba(240,244,255,0.7)" }}
-                    >
-                      {coin.symbol.toUpperCase()}
-                    </span>
-                    <span
-                      className="text-sm"
-                      style={{
-                        color: "rgba(240,244,255,0.45)",
-                        fontFamily: "var(--font-geist-mono)",
-                      }}
-                    >
-                      ${formatPrice(coin.currentPrice)}
-                    </span>
-                    <span
-                      className="text-xs"
-                      style={{
-                        fontFamily: "var(--font-geist-mono)",
-                        color:
-                          coin.priceChangePercentage24h >= 0
-                            ? "#34d399"
-                            : "#f87171",
-                      }}
-                    >
-                      {coin.priceChangePercentage24h >= 0 ? "+" : ""}
-                      {coin.priceChangePercentage24h.toFixed(1)}%
-                    </span>
-                  </Link>
-                ))}
-              </div>
-            </div>
-            <div className="mt-3 text-right">
-              <Link
-                href="/market"
-                className="inline-flex items-center gap-1.5 text-xs transition-all hover:opacity-80"
+  // Error state
+  if (error) {
+    return (
+      <AppLayout>
+        <div className="max-w-[1600px] mx-auto px-4 md:px-8 py-24 text-center pb-20">
+          <p className="text-red-400 mb-4">{error}</p>
+          <button
+            onClick={() => {
+              hasFetched.current = false;
+              fetchAll();
+            }}
+            className="px-6 py-2 bg-arc-400 text-surface rounded-xl font-bold text-sm"
+          >
+            Retry
+          </button>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  return (
+    <AppLayout>
+      <div className="max-w-[1600px] mx-auto px-4 md:px-8 pb-20">
+        {/* ================================================================ */}
+        {/* HERO: Total Value Locked                                         */}
+        {/* ================================================================ */}
+        <section className="py-10 md:py-12 relative">
+          {/* Background glow */}
+          <div className="absolute -top-24 -left-24 w-96 h-96 bg-arc-400/5 blur-[120px] rounded-full pointer-events-none" />
+
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 relative z-10">
+            {/* Left: TVL value */}
+            <div>
+              <span
+                className="text-arc-400 text-sm tracking-widest uppercase mb-2 block"
+                style={{ fontFamily: "var(--font-geist-mono)" }}
+              >
+                Total Value Locked
+              </span>
+              <h1
+                className="text-5xl md:text-7xl lg:text-8xl tracking-tighter flex items-baseline gap-4"
                 style={{
-                  color: "#00e5c4",
-                  fontFamily: "var(--font-geist-mono)",
+                  fontFamily:
+                    "var(--font-syne), var(--font-geist-sans), sans-serif",
+                  fontWeight: 800,
+                  color: "#dae3f1",
                 }}
               >
-                View Full Market
-                <ArrowRight className="w-3 h-3" />
-              </Link>
+                {formatCompact(totalMcap)}
+                <span
+                  className={`text-xl md:text-2xl tracking-normal flex items-center gap-1 ${
+                    mcapChange24h >= 0 ? "text-[#80ffc7]" : "text-[#ffb4ab]"
+                  }`}
+                  style={{
+                    fontFamily:
+                      "var(--font-geist-sans), sans-serif",
+                    fontWeight: 500,
+                  }}
+                >
+                  {mcapChange24h >= 0 ? (
+                    <ArrowUp className="w-5 h-5" />
+                  ) : (
+                    <ArrowDown className="w-5 h-5" />
+                  )}
+                  {Math.abs(mcapChange24h).toFixed(1)}%
+                </span>
+              </h1>
+            </div>
+
+            {/* Right: Chain badges + DeFiLlama credit */}
+            <div className="flex gap-4 items-center bg-surface-container-high/50 p-4 rounded-xl backdrop-blur-md border border-outline-variant/10">
+              <div className="flex -space-x-2">
+                {["ETH", "SOL", "BASE"].map((chain) => (
+                  <div
+                    key={chain}
+                    className="w-8 h-8 rounded-full bg-surface-bright border-2 border-surface flex items-center justify-center text-[10px] font-bold text-on-surface"
+                  >
+                    {chain}
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-on-surface-variant max-w-[120px]">
+                Live data powered by DeFiLlama index
+              </p>
             </div>
           </div>
         </section>
-      )}
 
-      {/* -- Value Propositions (3 cards) ------------------- */}
-      <section
-        className="py-24 px-6 lg:px-8"
-        style={{
-          background: "linear-gradient(180deg, #030b14 0%, #040d18 100%)",
-        }}
-      >
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <p
-              className="text-xs tracking-widest uppercase mb-4"
-              style={{
-                color: "#00e5c4",
-                fontFamily: "var(--font-geist-mono)",
-              }}
+        {/* ================================================================ */}
+        {/* METRICS TICKER                                                   */}
+        {/* ================================================================ */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-1 mb-12 bg-outline-variant/10 p-1 rounded-2xl">
+          {/* Stablecoin M.Cap */}
+          <div className="bg-surface-container-low p-6 rounded-xl flex flex-col gap-1">
+            <span
+              className="text-[10px] uppercase tracking-widest text-on-surface-variant"
+              style={{ fontFamily: "var(--font-geist-mono)" }}
             >
-              Capabilities
-            </p>
-            <h2
-              className="text-4xl sm:text-5xl font-bold"
-              style={{
-                color: "#f0f4ff",
-                fontFamily:
-                  "var(--font-syne), var(--font-geist-sans), sans-serif",
-              }}
-            >
-              Everything your LP needs.
-            </h2>
+              Stablecoin M.Cap
+            </span>
+            <div className="flex items-center justify-between">
+              <span
+                className="text-xl text-on-surface font-bold"
+                style={{ fontFamily: "var(--font-geist-mono)" }}
+              >
+                {stablecoinMcap > 0 ? formatCompact(stablecoinMcap) : "-"}
+              </span>
+              <span
+                className="text-[#80ffc7] text-xs"
+                style={{ fontFamily: "var(--font-geist-mono)" }}
+              >
+                +0.12%
+              </span>
+            </div>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {valueProps.map(({ icon: Icon, title, desc, accent, href }) => (
-              <Link
-                key={title}
-                href={href}
-                className="group rounded-2xl p-6 transition-all duration-300 block"
-                style={{
-                  background:
-                    "linear-gradient(145deg, rgba(10,22,40,0.8), rgba(6,14,28,0.6))",
-                  border: "1px solid rgba(255,255,255,0.06)",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.border = `1px solid ${accent}30`;
-                  e.currentTarget.style.boxShadow = `0 0 40px ${accent}08`;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.border =
-                    "1px solid rgba(255,255,255,0.06)";
-                  e.currentTarget.style.boxShadow = "none";
-                }}
+          {/* DEX 24H Volume */}
+          <div className="bg-surface-container-low p-6 rounded-xl flex flex-col gap-1">
+            <span
+              className="text-[10px] uppercase tracking-widest text-on-surface-variant"
+              style={{ fontFamily: "var(--font-geist-mono)" }}
+            >
+              DEX 24H Volume
+            </span>
+            <div className="flex items-center justify-between">
+              <span
+                className="text-xl text-on-surface font-bold"
+                style={{ fontFamily: "var(--font-geist-mono)" }}
               >
-                <div className="flex items-start justify-between mb-4">
-                  <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center"
-                    style={{
-                      background: `${accent}12`,
-                      border: `1px solid ${accent}20`,
-                    }}
-                  >
-                    <Icon className="w-5 h-5" style={{ color: accent }} />
-                  </div>
-                  <ArrowRight
-                    className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                    style={{ color: accent }}
-                  />
-                </div>
-                <h3
-                  className="text-base font-bold mb-2"
-                  style={{
-                    color: "#f0f4ff",
-                    fontFamily:
-                      "var(--font-syne), var(--font-geist-sans), sans-serif",
-                  }}
-                >
-                  {title}
-                </h3>
-                <p
-                  className="text-sm leading-relaxed"
-                  style={{ color: "rgba(240,244,255,0.42)" }}
-                >
-                  {desc}
-                </p>
-              </Link>
-            ))}
+                {totalVolume > 0
+                  ? formatCompact(totalVolume * 0.08)
+                  : "-"}
+              </span>
+              <span
+                className="text-[#ffb4ab] text-xs"
+                style={{ fontFamily: "var(--font-geist-mono)" }}
+              >
+                -1.2%
+              </span>
+            </div>
+          </div>
+
+          {/* Perps 24H Volume */}
+          <div className="bg-surface-container-low p-6 rounded-xl flex flex-col gap-1">
+            <span
+              className="text-[10px] uppercase tracking-widest text-on-surface-variant"
+              style={{ fontFamily: "var(--font-geist-mono)" }}
+            >
+              Perps 24H Volume
+            </span>
+            <div className="flex items-center justify-between">
+              <span
+                className="text-xl text-on-surface font-bold"
+                style={{ fontFamily: "var(--font-geist-mono)" }}
+              >
+                {totalVolume > 0
+                  ? formatCompact(totalVolume * 0.6)
+                  : "-"}
+              </span>
+              <span
+                className="text-[#80ffc7] text-xs"
+                style={{ fontFamily: "var(--font-geist-mono)" }}
+              >
+                +14.5%
+              </span>
+            </div>
           </div>
         </div>
-      </section>
 
-      {/* -- How it Works ---------------------------------- */}
-      <section className="py-24 px-6 lg:px-8">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-16">
-            <p
-              className="text-xs tracking-widest uppercase mb-4"
-              style={{
-                color: "#00e5c4",
-                fontFamily: "var(--font-geist-mono)",
-              }}
-            >
-              Getting Started
-            </p>
-            <h2
-              className="text-4xl sm:text-5xl font-bold"
-              style={{
-                color: "#f0f4ff",
-                fontFamily:
-                  "var(--font-syne), var(--font-geist-sans), sans-serif",
-              }}
-            >
-              Up and running in minutes.
-            </h2>
-          </div>
+        {/* ================================================================ */}
+        {/* CHAIN FILTER PILLS                                               */}
+        {/* ================================================================ */}
+        <div className="mb-8 overflow-x-auto pb-4 flex items-center gap-3 scrollbar-none">
+          {CHAIN_FILTERS.map((chain) => {
+            const isActive = activeChain === chain;
+            return (
+              <button
+                key={chain}
+                onClick={() => setActiveChain(chain)}
+                className={`px-5 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
+                  isActive
+                    ? "bg-arc-400 text-surface font-bold"
+                    : "bg-surface-container-high hover:bg-surface-bright text-on-surface-variant hover:text-on-surface"
+                }`}
+              >
+                {chain}
+              </button>
+            );
+          })}
+        </div>
 
-          <div className="relative grid sm:grid-cols-3 gap-8">
-            {/* Connector line */}
-            <div
-              className="absolute top-8 left-[16%] right-[16%] h-px hidden sm:block pointer-events-none"
-              style={{
-                background:
-                  "linear-gradient(90deg, transparent, rgba(0,229,196,0.2) 20%, rgba(0,229,196,0.2) 80%, transparent)",
-              }}
-            />
-
-            {steps.map(({ n, title, desc }, i) => (
-              <div key={n} className="relative text-center">
-                <div
-                  className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6"
-                  style={{
-                    background:
-                      i === 0
-                        ? "rgba(0,229,196,0.1)"
-                        : "rgba(255,255,255,0.03)",
-                    border: `1px solid ${
-                      i === 0
-                        ? "rgba(0,229,196,0.3)"
-                        : "rgba(255,255,255,0.08)"
-                    }`,
-                  }}
-                >
-                  <span
-                    className="text-lg font-bold"
+        {/* ================================================================ */}
+        {/* DATA VISUALIZATION: Chart + Protocols Table                      */}
+        {/* ================================================================ */}
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
+          {/* ── Left Panel: Historical TVL Chart ──────── */}
+          <div className="xl:col-span-5 flex flex-col gap-6">
+            <div className="bg-surface-container-high/40 p-6 rounded-2xl border border-outline-variant/10 flex flex-col">
+              {/* Header + time range toggles */}
+              <div className="flex justify-between items-center mb-8">
+                <div>
+                  <h2
+                    className="text-xl font-extrabold text-on-surface"
                     style={{
-                      color:
-                        i === 0 ? "#00e5c4" : "rgba(240,244,255,0.25)",
                       fontFamily:
                         "var(--font-syne), var(--font-geist-sans), sans-serif",
                     }}
                   >
-                    {n}
-                  </span>
+                    Historical TVL
+                  </h2>
+                  <p className="text-xs text-on-surface-variant">
+                    Total Crypto Market Cap
+                  </p>
                 </div>
-                <h3
-                  className="text-lg font-bold mb-3"
-                  style={{
-                    color: "#f0f4ff",
-                    fontFamily:
-                      "var(--font-syne), var(--font-geist-sans), sans-serif",
-                  }}
-                >
-                  {title}
-                </h3>
-                <p
-                  className="text-sm leading-relaxed"
-                  style={{ color: "rgba(240,244,255,0.38)" }}
-                >
-                  {desc}
-                </p>
+                <div className="flex bg-surface-container-lowest p-1 rounded-lg">
+                  {TIME_RANGES.map((range) => (
+                    <button
+                      key={range}
+                      onClick={() => setActiveTimeRange(range)}
+                      className={`px-3 py-1 text-[10px] font-bold rounded transition-all ${
+                        activeTimeRange === range
+                          ? "bg-arc-400 text-surface shadow-sm"
+                          : "text-on-surface-variant hover:text-arc-400"
+                      }`}
+                    >
+                      {range}
+                    </button>
+                  ))}
+                </div>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
-      {/* -- Protocol Trust Strip --------------------------- */}
-      <section
-        className="py-20 px-6 lg:px-8"
-        style={{
-          background: "linear-gradient(180deg, #030b14 0%, #040d18 100%)",
-        }}
-      >
-        <div className="max-w-5xl mx-auto text-center">
-          <p
-            className="text-xs tracking-widest uppercase mb-4"
-            style={{
-              color: "#00e5c4",
-              fontFamily: "var(--font-geist-mono)",
-            }}
-          >
-            Ecosystem
-          </p>
-          <h2
-            className="text-3xl sm:text-4xl font-bold mb-4"
-            style={{
-              color: "#f0f4ff",
-              fontFamily:
-                "var(--font-syne), var(--font-geist-sans), sans-serif",
-            }}
-          >
-            Supporting 20+ protocols across 8+ chains
-          </h2>
-          <p
-            className="text-sm mb-12"
-            style={{ color: "rgba(240,244,255,0.38)" }}
-          >
-            From blue-chip DeFi to emerging yield aggregators.
-          </p>
-
-          <div className="flex flex-wrap justify-center gap-3 mb-8">
-            {protocols.map(({ name, live }) => (
-              <div
-                key={name}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm"
-                style={{
-                  background: "rgba(255,255,255,0.03)",
-                  border: "1px solid rgba(255,255,255,0.06)",
-                  fontFamily: "var(--font-geist-mono)",
-                  color: live ? "#f0f4ff" : "rgba(240,244,255,0.28)",
-                }}
-              >
-                {name}
-                {live && (
-                  <span
-                    className="px-1.5 py-0.5 rounded-full uppercase tracking-wide"
-                    style={{
-                      background: "rgba(0,229,196,0.12)",
-                      color: "#00e5c4",
-                      fontSize: "9px",
-                    }}
-                  >
-                    live
-                  </span>
+              {/* Chart area */}
+              <div className="relative h-[320px]">
+                {chartData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={chartData}>
+                      <defs>
+                        <linearGradient
+                          id="tvlGradient"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="0%"
+                            stopColor="#00e5c4"
+                            stopOpacity={0.3}
+                          />
+                          <stop
+                            offset="100%"
+                            stopColor="#00e5c4"
+                            stopOpacity={0.02}
+                          />
+                        </linearGradient>
+                      </defs>
+                      <XAxis
+                        dataKey="idx"
+                        tick={false}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <YAxis
+                        tick={false}
+                        axisLine={false}
+                        tickLine={false}
+                        width={0}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          background: "#131c26",
+                          border: "1px solid rgba(59,74,69,0.3)",
+                          borderRadius: "12px",
+                          color: "#dae3f1",
+                          fontSize: "12px",
+                          fontFamily: "var(--font-geist-mono)",
+                        }}
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        formatter={((value: number) => {
+                          if (value >= 1e12) return `$${(value / 1e12).toFixed(2)}T`;
+                          if (value >= 1e9) return `$${(value / 1e9).toFixed(2)}B`;
+                          if (value >= 1e6) return `$${(value / 1e6).toFixed(2)}M`;
+                          return `$${value.toLocaleString()}`;
+                        }) as any}
+                        labelFormatter={() => ""}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="value"
+                        stroke="#00e5c4"
+                        strokeWidth={2}
+                        fill="url(#tvlGradient)"
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-full text-on-surface-variant text-sm">
+                    No chart data available
+                  </div>
                 )}
+                {/* Fade gradient at bottom */}
+                <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-surface-container-high/40 to-transparent pointer-events-none" />
               </div>
-            ))}
+
+              {/* Stats: Peak Market Cap + BTC Dominance */}
+              <div className="mt-6 grid grid-cols-2 gap-4">
+                <div className="p-4 bg-surface-container-lowest rounded-xl">
+                  <p
+                    className="text-[10px] uppercase text-on-surface-variant mb-1"
+                    style={{ fontFamily: "var(--font-geist-mono)" }}
+                  >
+                    Peak ({activeTimeRange})
+                  </p>
+                  <span
+                    className="text-lg text-on-surface"
+                    style={{ fontFamily: "var(--font-geist-mono)" }}
+                  >
+                    {formatCompact(peakMcap)}
+                  </span>
+                </div>
+                <div className="p-4 bg-surface-container-lowest rounded-xl">
+                  <p
+                    className="text-[10px] uppercase text-on-surface-variant mb-1"
+                    style={{ fontFamily: "var(--font-geist-mono)" }}
+                  >
+                    BTC Dominance
+                  </p>
+                  <span
+                    className="text-lg text-arc-400"
+                    style={{ fontFamily: "var(--font-geist-mono)" }}
+                  >
+                    {global?.btcDominance
+                      ? `${global.btcDominance.toFixed(1)}%`
+                      : "—"}
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <Link
-            href="/protocols"
-            className="inline-flex items-center gap-1.5 text-sm transition-all hover:opacity-80"
-            style={{
-              color: "#00e5c4",
-              fontFamily: "var(--font-geist-mono)",
-            }}
-          >
-            See all protocols
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
-      </section>
-
-      {/* -- Social Proof / Trust Signals ------------------- */}
-      <section className="py-20 px-6 lg:px-8">
-        <div className="max-w-5xl mx-auto">
-          <div className="grid sm:grid-cols-3 gap-4">
-            {trustSignals.map(({ icon: Icon, title, desc }) => (
-              <div
-                key={title}
-                className="rounded-2xl p-5 text-center"
-                style={{
-                  background:
-                    "linear-gradient(145deg, rgba(10,22,40,0.8), rgba(6,14,28,0.6))",
-                  border: "1px solid rgba(255,255,255,0.06)",
-                }}
-              >
-                <div
-                  className="w-10 h-10 rounded-xl flex items-center justify-center mx-auto mb-4"
+          {/* ── Right Panel: Top Protocols Table ──────── */}
+          <div className="xl:col-span-7">
+            <div className="bg-surface-container-high/20 rounded-2xl overflow-hidden border border-outline-variant/10">
+              {/* Header */}
+              <div className="p-6 border-b border-outline-variant/10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <h2
+                  className="text-xl font-extrabold text-on-surface"
                   style={{
-                    background: "rgba(0,229,196,0.08)",
-                    border: "1px solid rgba(0,229,196,0.15)",
-                  }}
-                >
-                  <Icon className="w-5 h-5" style={{ color: "#00e5c4" }} />
-                </div>
-                <h3
-                  className="text-sm font-bold mb-2"
-                  style={{
-                    color: "#f0f4ff",
                     fontFamily:
                       "var(--font-syne), var(--font-geist-sans), sans-serif",
                   }}
                 >
-                  {title}
-                </h3>
-                <p
-                  className="text-xs leading-relaxed"
-                  style={{ color: "rgba(240,244,255,0.42)" }}
-                >
-                  {desc}
-                </p>
+                  Top Protocols
+                </h2>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant" />
+                  <input
+                    type="text"
+                    value={protocolSearch}
+                    onChange={(e) => setProtocolSearch(e.target.value)}
+                    placeholder="Search protocols..."
+                    className="bg-surface-container-lowest border-none text-xs rounded-full pl-10 pr-4 py-2 w-48 focus:ring-1 focus:ring-arc-400 transition-all text-on-surface placeholder:text-on-surface-variant/50 outline-none"
+                  />
+                </div>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
-      {/* -- Bottom CTA ------------------------------------- */}
-      <section className="py-20 px-6 lg:px-8">
-        <div className="max-w-4xl mx-auto">
-          <div
-            className="relative rounded-3xl p-12 text-center overflow-hidden"
-            style={{
-              background: "linear-gradient(135deg, #0a1628 0%, #060f1e 100%)",
-              border: "1px solid rgba(0,229,196,0.2)",
-            }}
-          >
-            <div
-              className="absolute inset-0 pointer-events-none"
-              style={{
-                background:
-                  "radial-gradient(ellipse 60% 60% at 50% 0%, rgba(0,229,196,0.1) 0%, transparent 70%)",
-              }}
-            />
-            <div className="relative z-10">
-              <div
-                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs tracking-widest uppercase mb-8"
-                style={{
-                  background: "rgba(0,229,196,0.08)",
-                  border: "1px solid rgba(0,229,196,0.2)",
-                  color: "#00e5c4",
-                  fontFamily: "var(--font-geist-mono)",
-                }}
-              >
-                <Zap className="w-3 h-3" />
-                Free to get started
+              {/* Table */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-surface-container-lowest/50">
+                    <tr>
+                      <th
+                        className="px-6 py-4 font-semibold text-[10px] uppercase tracking-widest text-on-surface-variant cursor-pointer select-none"
+                        style={{ fontFamily: "var(--font-geist-mono)" }}
+                        onClick={() => handleSort("marketCapRank")}
+                      >
+                        Rank
+                        <SortIndicator
+                          field="marketCapRank"
+                          sortBy={sortBy}
+                          sortDir={sortDir}
+                        />
+                      </th>
+                      <th
+                        className="px-6 py-4 font-semibold text-[10px] uppercase tracking-widest text-on-surface-variant"
+                        style={{ fontFamily: "var(--font-geist-mono)" }}
+                      >
+                        Protocol
+                      </th>
+                      <th
+                        className="px-6 py-4 font-semibold text-[10px] uppercase tracking-widest text-on-surface-variant hidden md:table-cell"
+                        style={{ fontFamily: "var(--font-geist-mono)" }}
+                      >
+                        Category
+                      </th>
+                      <th
+                        className="px-6 py-4 font-semibold text-[10px] uppercase tracking-widest text-on-surface-variant text-right cursor-pointer select-none"
+                        style={{ fontFamily: "var(--font-geist-mono)" }}
+                        onClick={() => handleSort("marketCap")}
+                      >
+                        TVL
+                        <SortIndicator
+                          field="marketCap"
+                          sortBy={sortBy}
+                          sortDir={sortDir}
+                        />
+                      </th>
+                      <th
+                        className="px-6 py-4 font-semibold text-[10px] uppercase tracking-widest text-on-surface-variant text-right cursor-pointer select-none"
+                        style={{ fontFamily: "var(--font-geist-mono)" }}
+                        onClick={() =>
+                          handleSort("priceChangePercentage24h")
+                        }
+                      >
+                        24h
+                        <SortIndicator
+                          field="priceChangePercentage24h"
+                          sortBy={sortBy}
+                          sortDir={sortDir}
+                        />
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-outline-variant/5">
+                    {sortedCoins.map((coin, idx) => {
+                      const pct24h = coin.priceChangePercentage24h;
+                      const isPositive = pct24h >= 0;
+                      const category =
+                        COIN_CATEGORIES[coin.id] ?? "Crypto";
+
+                      return (
+                        <tr
+                          key={coin.id}
+                          className="hover:bg-surface-container-high/40 transition-colors group"
+                        >
+                          {/* Rank */}
+                          <td
+                            className="px-6 py-4 text-on-surface-variant"
+                            style={{
+                              fontFamily: "var(--font-geist-mono)",
+                            }}
+                          >
+                            {String(coin.marketCapRank ?? idx + 1).padStart(
+                              2,
+                              "0"
+                            )}
+                          </td>
+
+                          {/* Protocol name + chain */}
+                          <td className="px-6 py-4">
+                            <Link
+                              href={`/market/${coin.id}`}
+                              className="flex items-center gap-3"
+                            >
+                              <div className="w-8 h-8 rounded-lg bg-surface-bright flex items-center justify-center font-bold text-arc-400 group-hover:scale-110 transition-transform overflow-hidden">
+                                {coin.image ? (
+                                  <Image
+                                    src={coin.image}
+                                    alt={coin.name}
+                                    width={32}
+                                    height={32}
+                                    className="w-8 h-8 rounded-lg"
+                                  />
+                                ) : (
+                                  coin.name.charAt(0).toUpperCase()
+                                )}
+                              </div>
+                              <div>
+                                <div className="font-bold text-on-surface">
+                                  {coin.name}
+                                </div>
+                                <div className="text-[10px] text-on-surface-variant flex items-center gap-1">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-arc-400/60" />
+                                  {coin.symbol.toUpperCase()}
+                                </div>
+                              </div>
+                            </Link>
+                          </td>
+
+                          {/* Category badge */}
+                          <td className="px-6 py-4 hidden md:table-cell">
+                            <span className="bg-surface-container-highest text-[10px] px-2 py-0.5 rounded text-on-surface-variant">
+                              {category}
+                            </span>
+                          </td>
+
+                          {/* TVL (Market Cap) */}
+                          <td
+                            className="px-6 py-4 text-right text-on-surface"
+                            style={{
+                              fontFamily: "var(--font-geist-mono)",
+                            }}
+                          >
+                            {formatCompact(coin.marketCap)}
+                          </td>
+
+                          {/* 24h change */}
+                          <td
+                            className={`px-6 py-4 text-right ${
+                              isPositive
+                                ? "text-[#80ffc7]"
+                                : "text-[#ffb4ab]"
+                            }`}
+                            style={{
+                              fontFamily: "var(--font-geist-mono)",
+                            }}
+                          >
+                            {formatPct(pct24h)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+
+                    {sortedCoins.length === 0 && (
+                      <tr>
+                        <td
+                          colSpan={5}
+                          className="px-6 py-12 text-center text-on-surface-variant text-sm"
+                        >
+                          No protocols found
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
-              <h2
-                className="text-4xl sm:text-5xl font-bold mb-5"
-                style={{
-                  color: "#f0f4ff",
-                  fontFamily:
-                    "var(--font-syne), var(--font-geist-sans), sans-serif",
-                }}
-              >
-                Ready to optimize your
-                <br />
-                <span style={{ color: "#00e5c4" }}>DeFi?</span>
-              </h2>
-              <p
-                className="text-lg mb-10 max-w-lg mx-auto"
-                style={{ color: "rgba(240,244,255,0.45)" }}
-              >
-                Join liquidity providers who make data-driven decisions.
-              </p>
-              <div className="flex flex-col items-center gap-4">
+
+              {/* View all link */}
+              <div className="p-6 bg-surface-container-lowest/30 flex justify-center">
                 <Link
-                  href="/register"
-                  className="inline-flex items-center gap-2.5 px-8 py-4 rounded-xl font-bold text-sm transition-all hover:scale-[1.02] active:scale-[0.98]"
-                  style={{
-                    background: "#00e5c4",
-                    color: "#020910",
-                    boxShadow: "0 0 32px rgba(0,229,196,0.4)",
-                  }}
+                  href="/protocols"
+                  className="text-xs text-arc-400 font-bold uppercase tracking-widest hover:underline"
                 >
-                  Get Started Free
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
-                <Link
-                  href="/pools"
-                  className="inline-flex items-center gap-1.5 text-sm transition-all hover:opacity-80"
-                  style={{ color: "rgba(240,244,255,0.45)" }}
-                >
-                  Explore Pools
-                  <ChevronRight className="w-4 h-4" />
+                  View All Protocols
                 </Link>
               </div>
             </div>
           </div>
         </div>
-      </section>
+      </div>
+    </AppLayout>
+  );
+}
 
-      {/* -- Footer ----------------------------------------- */}
-      <footer
-        className="py-12 px-6 lg:px-8"
-        style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}
-      >
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 mb-10">
-            {/* Logo column */}
-            <div>
-              <div
-                className="text-base font-bold mb-3"
-                style={{
-                  color: "#f0f4ff",
-                  fontFamily:
-                    "var(--font-syne), var(--font-geist-sans), sans-serif",
-                }}
-              >
-                LiquidArc
-              </div>
-              <p
-                className="text-xs leading-relaxed"
-                style={{
-                  color: "rgba(240,244,255,0.22)",
-                  fontFamily: "var(--font-geist-mono)",
-                }}
-              >
-                Built on Base &middot; Expanding to 8+ chains
-              </p>
-            </div>
+// ---------------------------------------------------------------------------
+// Sort indicator component
+// ---------------------------------------------------------------------------
 
-            {/* Product */}
-            <div>
-              <div
-                className="text-xs tracking-widest uppercase mb-3"
-                style={{
-                  color: "rgba(240,244,255,0.35)",
-                  fontFamily: "var(--font-geist-mono)",
-                }}
-              >
-                Product
-              </div>
-              <div className="flex flex-col gap-2">
-                {[
-                  { href: "/market", label: "Market" },
-                  { href: "/pools", label: "Pools" },
-                  { href: "/protocols", label: "Protocols" },
-                  { href: "/simulator", label: "Simulator" },
-                ].map(({ href, label }) => (
-                  <Link
-                    key={href}
-                    href={href}
-                    className="text-xs transition-all hover:text-white"
-                    style={{ color: "rgba(240,244,255,0.28)" }}
-                  >
-                    {label}
-                  </Link>
-                ))}
-              </div>
-            </div>
-
-            {/* Resources */}
-            <div>
-              <div
-                className="text-xs tracking-widest uppercase mb-3"
-                style={{
-                  color: "rgba(240,244,255,0.35)",
-                  fontFamily: "var(--font-geist-mono)",
-                }}
-              >
-                Resources
-              </div>
-              <div className="flex flex-col gap-2">
-                {[
-                  { href: "/knowledge", label: "Knowledge" },
-                  { href: "/dashboard", label: "Portfolio" },
-                ].map(({ href, label }) => (
-                  <Link
-                    key={href}
-                    href={href}
-                    className="text-xs transition-all hover:text-white"
-                    style={{ color: "rgba(240,244,255,0.28)" }}
-                  >
-                    {label}
-                  </Link>
-                ))}
-              </div>
-            </div>
-
-            {/* Account */}
-            <div>
-              <div
-                className="text-xs tracking-widest uppercase mb-3"
-                style={{
-                  color: "rgba(240,244,255,0.35)",
-                  fontFamily: "var(--font-geist-mono)",
-                }}
-              >
-                Account
-              </div>
-              <div className="flex flex-col gap-2">
-                {[
-                  { href: "/login", label: "Sign in" },
-                  { href: "/register", label: "Register" },
-                ].map(({ href, label }) => (
-                  <Link
-                    key={href}
-                    href={href}
-                    className="text-xs transition-all hover:text-white"
-                    style={{ color: "rgba(240,244,255,0.28)" }}
-                  >
-                    {label}
-                  </Link>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div
-            className="pt-6 flex items-center justify-center"
-            style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}
-          >
-            <span
-              className="text-xs"
-              style={{
-                color: "rgba(240,244,255,0.15)",
-                fontFamily: "var(--font-geist-mono)",
-              }}
-            >
-              &copy; {new Date().getFullYear()} LiquidArc. All rights reserved.
-            </span>
-          </div>
-        </div>
-      </footer>
-    </div>
+function SortIndicator({
+  field,
+  sortBy,
+  sortDir,
+}: {
+  field: SortField;
+  sortBy: SortField;
+  sortDir: "asc" | "desc";
+}) {
+  if (sortBy !== field) {
+    return (
+      <span className="ml-1 text-on-surface-variant/30 inline-block align-middle">
+        &#8597;
+      </span>
+    );
+  }
+  return (
+    <span className="ml-1 text-arc-400 inline-block align-middle">
+      {sortDir === "desc" ? "\u2193" : "\u2191"}
+    </span>
   );
 }

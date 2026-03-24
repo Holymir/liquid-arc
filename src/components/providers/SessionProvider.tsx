@@ -7,6 +7,9 @@ interface User {
   email: string;
   tier: string;
   emailVerified: boolean;
+  displayName?: string | null;
+  photoURL?: string | null;
+  authProvider?: string;
 }
 
 interface SessionContextValue {

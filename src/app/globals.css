@@ -3,42 +3,52 @@
 @tailwind utilities;
 
 /* ─────────────────────────────────────────────────────────
-   Design tokens — Crystalline Signal
+   Design tokens — The Kinetic Vault
    Primary accent: #00e5c4 (arc-400)
-   Background: #030b14 (deep navy)
+   Surface base:   #0a141d (deep oceanic navy)
 ───────────────────────────────────────────────────────── */
 :root {
-  /* Surfaces */
-  --background:   #030b14;
-  --surface-1:    #060e1f;   /* sidebar, elevated cards */
-  --surface-2:    #0b1629;   /* card hover */
-  --foreground:   #e2e8f0;
+  /* Surface hierarchy (deep → bright) */
+  --background:               #0a141d;
+  --surface:                  #0a141d;
+  --surface-dim:              #0a141d;
+  --surface-container-lowest: #060f18;
+  --surface-container-low:    #131c26;
+  --surface-container:        #17202a;
+  --surface-container-high:   #212b35;
+  --surface-container-highest:#2c3640;
+  --surface-bright:           #313a44;
+  --foreground:               #dae3f1;
 
   /* Card chrome */
-  --card:        #0c1525;
+  --card:        #17202a;
   --card-border: rgba(255, 255, 255, 0.05);
 
-  /* Accent — Crystalline Signal teal */
+  /* Accent — Kinetic Vault teal */
   --accent:       #00e5c4;
   --accent-light: #68e9d4;
   --accent-muted: rgba(0, 229, 196, 0.10);
 
   /* Status */
-  --gain:         #34d399;
-  --gain-muted:   rgba(52, 211, 153, 0.10);
-  --loss:         #f87171;
-  --loss-muted:   rgba(248, 113, 113, 0.10);
+  --gain:         #80ffc7;
+  --gain-muted:   rgba(128, 255, 199, 0.10);
+  --loss:         #ffb4ab;
+  --loss-muted:   rgba(255, 180, 171, 0.10);
 
   /* Text hierarchy */
-  --text-primary:   #f1f5f9;
-  --text-secondary: #94a3b8;
-  --text-muted:     #64748b;
+  --text-primary:   #dae3f1;
+  --text-secondary: #b9cac4;
+  --text-muted:     #94a3b8;
   --text-dim:       #475569;
 
-  /* Header / sidebar chrome */
-  --header-bg:    rgba(3, 11, 20, 0.88);
+  /* Chrome */
+  --header-bg:     rgba(10, 20, 29, 0.92);
   --header-border: rgba(255, 255, 255, 0.05);
-  --sidebar-bg:   linear-gradient(180deg, #060e1f 0%, #040c1a 100%);
+  --sidebar-bg:    linear-gradient(180deg, #0a141d 0%, #060f18 100%);
+
+  /* Outline */
+  --outline:         #84948f;
+  --outline-variant: #3b4a45;
 }
 
 /* ─────────────────────────────────────────────────────────
@@ -55,15 +65,15 @@ button, a, input, select {
   transition: all 0.2s ease-out;
 }
 
-/* Thin teal scrollbar */
+/* Signature scrollbar — 5px teal thumb */
 ::-webkit-scrollbar       { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: rgba(0, 229, 196, 0.12);
-  border-radius: 4px;
+  background: #00e5c4;
+  border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 229, 196, 0.25);
+  background: #41fddb;
 }
 
 /* ─────────────────────────────────────────────────────────
@@ -74,16 +84,68 @@ button, a, input, select {
 }
 
 /* ─────────────────────────────────────────────────────────
-   Glass card
+   Glass surfaces (The Kinetic Vault layering)
 ───────────────────────────────────────────────────────── */
-.glass-card {
-  background: linear-gradient(
-    135deg,
-    rgba(6, 14, 31, 0.85) 0%,
-    rgba(4, 12, 26, 0.60) 100%
-  );
-  border: 1px solid rgba(255, 255, 255, 0.06);
+
+/* Primary glass — matches reference: bg-white/5, border-white/10, blur-md */
+.glass {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.10);
   backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* Standard glass card — alias for glass */
+.glass-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* Elevated glass panel — modals, hero cards, overlays */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* Text glow for accent values */
+.text-glow {
+  text-shadow: 0 0 15px rgba(0, 229, 196, 0.4);
+}
+
+/* Ghost border — felt, not seen */
+.ghost-border {
+  border: 1px solid rgba(59, 74, 69, 0.15);
+}
+
+/* ─────────────────────────────────────────────────────────
+   Radial glow utilities
+───────────────────────────────────────────────────────── */
+.glow-primary {
+  position: relative;
+}
+.glow-primary::before {
+  content: "";
+  position: absolute;
+  inset: -40px;
+  background: radial-gradient(circle at center, rgba(0, 229, 196, 0.06) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.glow-subtle::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 200px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(0, 229, 196, 0.4) 50%, transparent 100%);
+  pointer-events: none;
 }
 
 /* ─────────────────────────────────────────────────────────
@@ -93,7 +155,7 @@ button, a, input, select {
   font-family: var(--font-syne), sans-serif;
   font-weight: 700;
   font-size: 1.125rem;
-  color: #f1f5f9;
+  color: #dae3f1;
   margin-top: 1.75rem;
   margin-bottom: 0.5rem;
 }
@@ -103,7 +165,7 @@ button, a, input, select {
 .prose-knowledge p {
   font-size: 0.875rem;
   line-height: 1.75;
-  color: #94a3b8;
+  color: #b9cac4;
 }
 .prose-knowledge ul {
   list-style: disc;
@@ -114,31 +176,32 @@ button, a, input, select {
 .prose-knowledge li {
   font-size: 0.875rem;
   line-height: 1.75;
-  color: #94a3b8;
+  color: #b9cac4;
   margin-bottom: 0.25rem;
 }
 .prose-knowledge strong {
-  color: #cbd5e1;
+  color: #dae3f1;
   font-weight: 600;
 }
 .prose-knowledge em {
-  color: #cbd5e1;
+  color: #dae3f1;
   font-style: italic;
 }
 
 /* ─────────────────────────────────────────────────────────
-   Buttons
+   Buttons — Kinetic Vault
 ───────────────────────────────────────────────────────── */
 
-/* Primary — bright teal, dark text */
+/* Primary — bright teal, dark text, outer glow on hover */
 .btn-primary {
   background: #00e5c4;
-  color: #020910;
+  color: #0a141d;
   font-weight: 700;
+  border-radius: 0.75rem;
 }
 .btn-primary:hover:not(:disabled) {
-  background: #2cffd7;
-  box-shadow: 0 0 32px rgba(0, 229, 196, 0.40);
+  background: #41fddb;
+  box-shadow: 0 0 32px rgba(0, 229, 196, 0.35), 0 0 8px rgba(0, 229, 196, 0.25);
 }
 .btn-primary:active:not(:disabled) {
   background: #00c4aa;
@@ -148,56 +211,68 @@ button, a, input, select {
   cursor: not-allowed;
 }
 
-/* Secondary — outlined teal */
+/* Secondary — ghost border, teal text */
 .btn-secondary {
   background: transparent;
   color: #00e5c4;
-  border: 1px solid rgba(0, 229, 196, 0.30);
+  border: 1px solid rgba(59, 74, 69, 0.3);
   font-weight: 600;
+  border-radius: 0.75rem;
 }
 .btn-secondary:hover:not(:disabled) {
-  background: rgba(0, 229, 196, 0.08);
-  border-color: rgba(0, 229, 196, 0.50);
+  background: rgba(0, 229, 196, 0.06);
+  border-color: rgba(0, 229, 196, 0.40);
+  box-shadow: 0 0 16px rgba(0, 229, 196, 0.10);
 }
 .btn-secondary:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }
 
+/* Tertiary — no background, muted text */
+.btn-tertiary {
+  background: transparent;
+  color: #b9cac4;
+  font-weight: 500;
+  border: none;
+  border-radius: 0.75rem;
+}
+.btn-tertiary:hover:not(:disabled) {
+  color: #dae3f1;
+  background: rgba(255, 255, 255, 0.04);
+}
+
 /* ─────────────────────────────────────────────────────────
-   Auth input (login, register, forgot-pw, reset-pw)
+   Input fields — sunken into surface-container-lowest
 ───────────────────────────────────────────────────────── */
 .underline-input {
   width: 100%;
-  padding: 0.7rem 0.875rem;
+  padding: 0.875rem 1rem;
   font-size: 0.875rem;
   line-height: 1.5;
   letter-spacing: 0.01em;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--surface-container-lowest, #060f18);
   outline: none;
-  color: #f0f4ff;
-  border: 1px solid rgba(240, 244, 255, 0.1);
+  color: #dae3f1;
+  border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 0.75rem;
   font-family: var(--font-geist-sans);
   transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
 }
 .underline-input:hover {
-  border-color: rgba(240, 244, 255, 0.18);
-  background: rgba(255, 255, 255, 0.045);
+  border-color: rgba(255, 255, 255, 0.1);
 }
 .underline-input:focus {
   border-color: rgba(0, 229, 196, 0.5);
-  background: rgba(0, 229, 196, 0.03);
-  box-shadow: 0 0 0 3px rgba(0, 229, 196, 0.08);
 }
 .underline-input::placeholder {
-  color: rgba(240, 244, 255, 0.22);
+  color: rgba(132, 148, 143, 0.4);
   font-family: var(--font-geist-sans);
   font-weight: 400;
 }
 
 /* ─────────────────────────────────────────────────────────
-   Auth shell (login, register, forgot-pw, reset-pw, verify)
+   Auth reveal animation
 ───────────────────────────────────────────────────────── */
 .auth-reveal {
   animation: auth-reveal 0.5s ease-out forwards;
@@ -222,6 +297,7 @@ button, a, input, select {
 .stagger-2 { animation-delay: 0.10s; opacity: 0; }
 .stagger-3 { animation-delay: 0.15s; opacity: 0; }
 .stagger-4 { animation-delay: 0.20s; opacity: 0; }
+.stagger-5 { animation-delay: 0.25s; opacity: 0; }
 
 @keyframes float {
   0%, 100% { transform: translateY(0px); }
@@ -229,7 +305,7 @@ button, a, input, select {
 }
 .animate-float { animation: float 5s ease-in-out infinite; }
 
-/* Generic opacity pulse (used by inline animation: "pulse ...") */
+/* Generic opacity pulse */
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50%       { opacity: 0.5; }
@@ -237,8 +313,12 @@ button, a, input, select {
 
 /* Teal pulse for live status dot */
 @keyframes pulse-teal {
-  0%, 100% { box-shadow: 0 0 5px #00e5c4; opacity: 1; }
-  50%       { box-shadow: 0 0 10px #00e5c4; opacity: 0.6; }
+  0%, 100% { box-shadow: 0 0 4px #00e5c4; opacity: 1; }
+  50%       { box-shadow: 0 0 12px #00e5c4; opacity: 0.6; }
 }
 .pulse-teal { animation: pulse-teal 2s ease-in-out infinite; }
 
+/* Data table row hover */
+.data-row:hover {
+  background: rgba(33, 43, 53, 0.4);
+}

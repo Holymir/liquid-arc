@@ -22,6 +22,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
   }
 
+  if (!user.passwordHash) {
+    return NextResponse.json({ error: "This account uses social login. Please sign in with Google or GitHub." }, { status: 401 });
+  }
   const valid = await bcrypt.compare(password, user.passwordHash);
   if (!valid) {
     return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
@@ -38,6 +41,9 @@ export async function POST(req: NextRequest) {
       email: user.email,
       tier: user.tier,
       emailVerified: user.emailVerified,
+      displayName: user.displayName,
+      photoURL: user.photoURL,
+      authProvider: user.authProvider,
     },
   });
 }

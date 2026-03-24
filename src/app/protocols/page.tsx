@@ -74,23 +74,19 @@ export default function ProtocolsPage() {
 
   return (
     <AppLayout>
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 pb-20">
 
         {/* ── Hero ──────────────────────────────────── */}
         <div className="mb-8">
           <h1
-            className="text-2xl sm:text-3xl font-extrabold mb-2"
+            className="text-2xl sm:text-3xl font-extrabold text-on-surface mb-2"
             style={{
-              color: "#f0f4ff",
-              fontFamily: "var(--font-syne), var(--font-geist-sans), sans-serif",
+              fontFamily: "var(--font-syne), sans-serif",
             }}
           >
             Trusted Protocols
           </h1>
-          <p
-            className="text-sm leading-relaxed max-w-xl"
-            style={{ color: "rgba(240,244,255,0.42)" }}
-          >
+          <p className="text-sm leading-relaxed max-w-xl text-on-surface-variant/60">
             Curated directory of battle-tested DeFi protocols across chains.
           </p>
         </div>
@@ -104,21 +100,14 @@ export default function ProtocolsPage() {
           ].map(({ value, label }) => (
             <div key={label} className="flex items-baseline gap-1.5">
               <span
-                className="text-lg font-bold"
+                className="text-lg font-bold text-on-surface"
                 style={{
-                  color: "#f0f4ff",
-                  fontFamily: "var(--font-syne), var(--font-geist-sans), sans-serif",
+                  fontFamily: "var(--font-syne), sans-serif",
                 }}
               >
                 {value}
               </span>
-              <span
-                className="text-[10px] uppercase tracking-widest"
-                style={{
-                  color: "rgba(240,244,255,0.28)",
-                  fontFamily: "var(--font-geist-mono)",
-                }}
-              >
+              <span className="text-[10px] font-mono uppercase tracking-widest text-on-surface-variant">
                 {label}
               </span>
             </div>
@@ -134,7 +123,7 @@ export default function ProtocolsPage() {
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                 activeTab === tab.value
                   ? "bg-arc-500/10 text-arc-400 border border-arc-500/30"
-                  : "text-slate-400 hover:text-slate-200 border border-transparent"
+                  : "text-on-surface-variant hover:text-on-surface border border-transparent"
               }`}
             >
               {tab.label}
@@ -144,19 +133,19 @@ export default function ProtocolsPage() {
 
         {/* ── Search ────────────────────────────────── */}
         <div className="relative max-w-sm mb-6">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#475569]" />
           <input
             type="text"
             placeholder="Search protocols..."
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 bg-slate-800/30 border border-slate-700/40 rounded-lg text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-arc-500/50 focus:ring-1 focus:ring-arc-500/20 transition-all"
+            className="w-full pl-9 pr-3 py-2 bg-surface-container-lowest border border-outline-variant/30 rounded-lg text-sm text-on-surface placeholder-[#475569] focus:outline-none focus:border-arc-500/50 focus:ring-1 focus:ring-arc-500/20 transition-all"
           />
         </div>
 
         {/* ── Cards grid ────────────────────────────── */}
         {filtered.length === 0 ? (
-          <div className="py-16 text-center text-slate-500 text-sm">
+          <div className="py-16 text-center text-[#94a3b8] text-sm">
             No protocols found
           </div>
         ) : (
@@ -178,29 +167,13 @@ function ProtocolCard({ protocol }: { protocol: ProtocolEntry }) {
 
   return (
     <Link href={`/protocols/${protocol.slug}`}>
-      <div
-        className="group rounded-2xl p-5 h-full transition-all duration-300 cursor-pointer"
-        style={{
-          background:
-            "linear-gradient(145deg, rgba(10,22,40,0.8), rgba(6,14,28,0.6))",
-          border: "1px solid rgba(255,255,255,0.06)",
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.border = `1px solid ${cat?.color ?? "#fff"}30`;
-          e.currentTarget.style.boxShadow = `0 0 40px ${cat?.color ?? "#fff"}08`;
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.border = "1px solid rgba(255,255,255,0.06)";
-          e.currentTarget.style.boxShadow = "none";
-        }}
-      >
+      <div className="group glass-card rounded-2xl p-5 h-full transition-all duration-300 cursor-pointer hover:border-outline-variant/30">
         {/* Row 1: name + category badge */}
         <div className="flex items-center justify-between gap-2 mb-3">
           <h3
-            className="text-base font-bold truncate"
+            className="text-base font-bold truncate text-on-surface"
             style={{
-              color: "#f0f4ff",
-              fontFamily: "var(--font-syne), var(--font-geist-sans), sans-serif",
+              fontFamily: "var(--font-syne), sans-serif",
             }}
           >
             {protocol.name}
@@ -222,27 +195,13 @@ function ProtocolCard({ protocol }: { protocol: ProtocolEntry }) {
           {protocol.chains.slice(0, 4).map((chain) => (
             <span
               key={chain}
-              className="inline-flex px-1.5 py-0.5 rounded-md text-[10px] capitalize"
-              style={{
-                background: "rgba(255,255,255,0.04)",
-                border: "1px solid rgba(255,255,255,0.06)",
-                color: "rgba(240,244,255,0.45)",
-                fontFamily: "var(--font-geist-mono)",
-              }}
+              className="inline-flex px-1.5 py-0.5 rounded-md text-[10px] font-mono capitalize bg-surface-container-high border border-outline-variant/20 text-on-surface-variant"
             >
               {chain}
             </span>
           ))}
           {protocol.chains.length > 4 && (
-            <span
-              className="inline-flex px-1.5 py-0.5 rounded-md text-[10px]"
-              style={{
-                background: "rgba(255,255,255,0.04)",
-                border: "1px solid rgba(255,255,255,0.06)",
-                color: "rgba(240,244,255,0.3)",
-                fontFamily: "var(--font-geist-mono)",
-              }}
-            >
+            <span className="inline-flex px-1.5 py-0.5 rounded-md text-[10px] font-mono bg-surface-container-high border border-outline-variant/20 text-[#94a3b8]">
               +{protocol.chains.length - 4}
             </span>
           )}
@@ -251,7 +210,7 @@ function ProtocolCard({ protocol }: { protocol: ProtocolEntry }) {
         {/* Row 3: risk + audit + supported */}
         <div className="flex flex-wrap items-center gap-2 mb-3">
           {/* Risk dot */}
-          <span className="inline-flex items-center gap-1.5 text-[10px]" style={{ color: "rgba(240,244,255,0.4)" }}>
+          <span className="inline-flex items-center gap-1.5 text-[10px] text-on-surface-variant/60">
             <span
               className="w-1.5 h-1.5 rounded-full shrink-0"
               style={{ background: riskDot(protocol.riskLevel) }}
@@ -261,13 +220,13 @@ function ProtocolCard({ protocol }: { protocol: ProtocolEntry }) {
 
           {/* Audit status */}
           {protocol.audited ? (
-            <span className="inline-flex items-center gap-1 text-[10px]" style={{ color: "rgba(240,244,255,0.35)" }}>
+            <span className="inline-flex items-center gap-1 text-[10px] text-on-surface-variant/50">
               <Shield className="w-3 h-3" style={{ color: "#22c55e" }} />
               {protocol.auditors.length > 0 ? protocol.auditors[0] : "Audited"}
               {protocol.auditors.length > 1 && ` +${protocol.auditors.length - 1}`}
             </span>
           ) : (
-            <span className="text-[10px]" style={{ color: "rgba(240,244,255,0.25)" }}>
+            <span className="text-[10px] text-[#475569]">
               Unaudited
             </span>
           )}
@@ -289,10 +248,7 @@ function ProtocolCard({ protocol }: { protocol: ProtocolEntry }) {
         </div>
 
         {/* Row 4: description */}
-        <p
-          className="text-xs leading-relaxed line-clamp-2"
-          style={{ color: "rgba(240,244,255,0.35)" }}
-        >
+        <p className="text-xs leading-relaxed line-clamp-2 text-on-surface-variant/50">
           {protocol.description}
         </p>
       </div>

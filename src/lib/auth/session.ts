@@ -3,6 +3,11 @@ import { cookies } from "next/headers";
 
 export interface SessionData {
   userId?: string;
+  email?: string;
+  tier?: string;
+  emailVerified?: boolean;
+  displayName?: string;
+  photoURL?: string;
   isLoggedIn: boolean;
 }
 

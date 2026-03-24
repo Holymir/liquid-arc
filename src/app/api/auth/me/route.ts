@@ -17,6 +17,9 @@ export async function GET() {
       tier: true,
       emailVerified: true,
       subscriptionStatus: true,
+      displayName: true,
+      photoURL: true,
+      authProvider: true,
     },
   });
 

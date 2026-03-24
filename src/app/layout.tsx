@@ -5,6 +5,7 @@ import { Syne } from "next/font/google";
 import "./globals.css";
 import { SessionProvider } from "@/components/providers/SessionProvider";
 import { PortfolioCacheProvider } from "@/components/providers/PortfolioCacheProvider";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { RouteProgress } from "@/components/layout/RouteProgress";
 import { Analytics } from "@vercel/analytics/next";
 
@@ -39,13 +40,16 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${syne.variable} font-[family-name:var(--font-geist-sans)] antialiased text-slate-200`}
+        className={`${geistSans.variable} ${geistMono.variable} ${syne.variable} font-[family-name:var(--font-geist-sans)] antialiased`}
+        style={{ color: "#dae3f1", background: "#0a141d" }}
       >
         <Suspense>
           <RouteProgress />
         </Suspense>
         <SessionProvider>
-          <PortfolioCacheProvider>{children}</PortfolioCacheProvider>
+          <ErrorBoundary>
+            <PortfolioCacheProvider>{children}</PortfolioCacheProvider>
+          </ErrorBoundary>
         </SessionProvider>
         <Analytics />
       </body>

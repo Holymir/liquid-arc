@@ -5,15 +5,15 @@ export default function PoolsLoading() {
     <AppLayoutSkeleton>
       {/* Page header */}
       <div className="mb-6">
-        <div className="w-32 h-6 bg-slate-800/40 rounded animate-pulse mb-2" />
-        <div className="w-52 h-3 bg-slate-800/25 rounded animate-pulse" />
+        <div className="w-32 h-6 bg-surface-container-high/40 rounded animate-pulse mb-2" />
+        <div className="w-52 h-3 bg-surface-container-high/25 rounded animate-pulse" />
       </div>
 
       {/* Filters bar */}
       <div className="flex items-center gap-3 mb-5">
-        <div className="flex-1 max-w-xs h-9 bg-slate-800/30 rounded-lg animate-pulse" />
-        <div className="w-24 h-9 bg-slate-800/30 rounded-lg animate-pulse" />
-        <div className="w-20 h-9 bg-slate-800/20 rounded-lg animate-pulse" />
+        <div className="flex-1 max-w-xs h-9 bg-surface-container-high/30 rounded-lg animate-pulse" />
+        <div className="w-24 h-9 bg-surface-container-high/30 rounded-lg animate-pulse" />
+        <div className="w-20 h-9 bg-surface-container/20 rounded-lg animate-pulse" />
       </div>
 
       {/* Table */}
@@ -26,7 +26,7 @@ export default function PoolsLoading() {
           {[40, 100, 60, 60, 60, 60].map((w, i) => (
             <div
               key={i}
-              className="h-2.5 rounded bg-slate-700/20 animate-pulse"
+              className="h-2.5 rounded bg-surface-container-highest/20 animate-pulse"
               style={{ width: w, animationDelay: `${i * 40}ms` }}
             />
           ))}
@@ -40,7 +40,7 @@ export default function PoolsLoading() {
             style={{ borderBottom: "1px solid rgba(255,255,255,0.025)" }}
           >
             <div
-              className="h-4 rounded bg-slate-800/20 animate-pulse"
+              className="h-4 rounded bg-surface-container/20 animate-pulse"
               style={{ animationDelay: `${i * 45}ms` }}
             />
           </div>

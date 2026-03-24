@@ -67,66 +67,85 @@ export default function BillingPage() {
   };
 
   return (
-    <AppLayout
-      sidebarTitle="Settings"
-      sidebarSlot={<SettingsSidebar />}
-    >
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
-        <div className="mb-8">
-          <h1 className="text-xl font-bold text-slate-100 mb-1">Plans & Billing</h1>
-          <p className="text-sm text-slate-500">
-            Current plan: <span className="text-arc-400 capitalize">{user.tier}</span>
-          </p>
-        </div>
+    <AppLayout>
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 pb-20">
+        <div className="grid grid-cols-12 gap-6 lg:gap-8">
+          {/* Inline sidebar -- hidden on mobile, shown on lg */}
+          <aside className="hidden lg:block col-span-3">
+            <div className="sticky top-24">
+              <SettingsSidebar />
+            </div>
+          </aside>
 
-        <div className="grid sm:grid-cols-3 gap-4">
-          {PLANS.map((plan) => {
-            const isCurrent = user.tier === plan.tier;
-            return (
-              <div
-                key={plan.tier}
-                className={`rounded-2xl p-5 border transition-all ${
-                  plan.popular
-                    ? "bg-arc-500/5 border-arc-500/30"
-                    : "bg-slate-800/20 border-slate-700/20"
-                }`}
+          {/* Main content */}
+          <div className="col-span-12 lg:col-span-9">
+            <div className="mb-8">
+              <h1
+                className="text-xl font-bold text-on-surface mb-1"
+                style={{ fontFamily: "var(--font-syne), sans-serif" }}
               >
-                {plan.popular && (
-                  <div className="flex items-center gap-1 text-[10px] text-arc-400 font-semibold uppercase tracking-wider mb-3">
-                    <Zap className="w-3 h-3" /> Most Popular
+                Plans & Billing
+              </h1>
+              <p className="text-sm text-[#94a3b8]">
+                Current plan: <span className="text-arc-400 capitalize">{user.tier}</span>
+              </p>
+            </div>
+
+            <div className="grid sm:grid-cols-3 gap-4">
+              {PLANS.map((plan) => {
+                const isCurrent = user.tier === plan.tier;
+                return (
+                  <div
+                    key={plan.tier}
+                    className={`rounded-2xl p-5 border transition-all ${
+                      plan.popular
+                        ? "bg-arc-500/5 border-arc-500/30"
+                        : "glass-card"
+                    }`}
+                  >
+                    {plan.popular && (
+                      <div className="flex items-center gap-1 text-[10px] text-arc-400 font-semibold uppercase tracking-wider mb-3 font-mono">
+                        <Zap className="w-3 h-3" /> Most Popular
+                      </div>
+                    )}
+                    <h3
+                      className="text-on-surface font-semibold"
+                      style={{ fontFamily: "var(--font-syne), sans-serif" }}
+                    >
+                      {plan.name}
+                    </h3>
+                    <div className="flex items-baseline gap-1 mt-2">
+                      <span className="text-2xl font-bold text-on-surface">{plan.price}</span>
+                      <span className="text-xs text-[#94a3b8]">{plan.period}</span>
+                    </div>
+
+                    <ul className="mt-4 space-y-2">
+                      {plan.features.map((f) => (
+                        <li key={f} className="flex items-start gap-2 text-xs text-on-surface-variant">
+                          <Check className="w-3 h-3 text-emerald-400 shrink-0 mt-0.5" />
+                          {f}
+                        </li>
+                      ))}
+                    </ul>
+
+                    <button
+                      onClick={() => handleUpgrade(plan.tier)}
+                      disabled={isCurrent}
+                      className={`w-full mt-5 py-2 rounded-xl text-sm font-semibold transition-all ${
+                        isCurrent
+                          ? "bg-surface-container-high text-[#94a3b8] cursor-not-allowed"
+                          : plan.popular
+                          ? "bg-arc-600 hover:bg-arc-500 text-white shadow-lg shadow-arc-600/20"
+                          : "bg-surface-container-high hover:bg-surface-container-highest text-on-surface"
+                      }`}
+                    >
+                      {isCurrent ? "Current plan" : "Upgrade"}
+                    </button>
                   </div>
-                )}
-                <h3 className="text-slate-200 font-semibold">{plan.name}</h3>
-                <div className="flex items-baseline gap-1 mt-2">
-                  <span className="text-2xl font-bold text-slate-100">{plan.price}</span>
-                  <span className="text-xs text-slate-500">{plan.period}</span>
-                </div>
-
-                <ul className="mt-4 space-y-2">
-                  {plan.features.map((f) => (
-                    <li key={f} className="flex items-start gap-2 text-xs text-slate-400">
-                      <Check className="w-3 h-3 text-emerald-400 shrink-0 mt-0.5" />
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-
-                <button
-                  onClick={() => handleUpgrade(plan.tier)}
-                  disabled={isCurrent}
-                  className={`w-full mt-5 py-2 rounded-xl text-sm font-semibold transition-all ${
-                    isCurrent
-                      ? "bg-slate-800/40 text-slate-500 cursor-not-allowed"
-                      : plan.popular
-                      ? "bg-arc-600 hover:bg-arc-500 text-white shadow-lg shadow-arc-600/20"
-                      : "bg-slate-800/40 hover:bg-slate-700/40 text-slate-300"
-                  }`}
-                >
-                  {isCurrent ? "Current plan" : "Upgrade"}
-                </button>
-              </div>
-            );
-          })}
+                );
+              })}
+            </div>
+          </div>
         </div>
       </div>
     </AppLayout>
