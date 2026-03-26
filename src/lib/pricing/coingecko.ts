@@ -59,6 +59,11 @@ export async function getTokenPrices(
   );
 
   if (!response.ok) {
+    // Batch request failed (free tier limits to 1 address per request).
+    // Fall back to individual per-address requests.
+    if (addresses.length > 1) {
+      return getTokenPricesIndividually(platform, addresses, apiUrl, apiKey);
+    }
     return new Map();
   }
 
@@ -75,5 +80,50 @@ export async function getTokenPrices(
   }
 
   cache.set(cacheKey, { prices, expiresAt: Date.now() + CACHE_TTL_MS });
+  return prices;
+}
+
+/**
+ * Fetch prices one address at a time — used when CoinGecko's batch endpoint
+ * rejects multi-address requests (free tier: 1 address per request).
+ */
+async function getTokenPricesIndividually(
+  platform: string,
+  addresses: string[],
+  apiUrl: string,
+  apiKey?: string,
+): Promise<Map<string, number>> {
+  const prices = new Map<string, number>();
+  const headers: Record<string, string> = { Accept: "application/json" };
+  if (apiKey) headers["x-cg-demo-api-key"] = apiKey;
+
+  const results = await Promise.allSettled(
+    addresses.map(async (addr) => {
+      const params = new URLSearchParams({
+        contract_addresses: addr,
+        vs_currencies: "usd",
+      });
+
+      const res = await fetch(
+        `${apiUrl}/simple/token_price/${platform}?${params}`,
+        { headers, next: { revalidate: 0 } },
+      );
+      if (!res.ok) return;
+
+      const data = (await res.json()) as Record<string, { usd?: number }>;
+      for (const [a, priceData] of Object.entries(data)) {
+        if (priceData.usd !== undefined) {
+          prices.set(a.toLowerCase(), priceData.usd);
+        }
+      }
+    }),
+  );
+
+  // Log failures for debugging
+  const failures = results.filter((r) => r.status === "rejected");
+  if (failures.length > 0) {
+    console.warn(`[coingecko] ${failures.length}/${addresses.length} individual price fetches failed`);
+  }
+
   return prices;
 }
