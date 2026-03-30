@@ -56,9 +56,10 @@ const KNOWN_SYMBOLS: Record<string, string> = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────
 
-/** Ensure data is a Buffer (not Uint8Array) so .readBigUInt64LE etc. work */
+/** Ensure data is a Node Buffer so .readBigUInt64LE etc. work */
 function ensureBuffer(data: Buffer | Uint8Array): Buffer {
-  return Buffer.isBuffer(data) ? data : Buffer.from(data);
+  if (Buffer.isBuffer(data)) return data;
+  try { return Buffer.from(data); } catch { return data as Buffer; }
 }
 
 function readU128LE(buf: Buffer, offset: number): bigint {
@@ -75,14 +76,19 @@ function readU128LE(buf: Buffer, offset: number): bigint {
  * lost.
  */
 function computeDelta(growthInside: bigint, growthInsideLast: bigint, liquidity: bigint): bigint {
-  const growthDelta = (growthInside - growthInsideLast) & MASK128;
-  if (growthDelta === 0n) return 0n;
-  const numerator = growthDelta * liquidity;
-  const intPart = numerator / Q64;
-  if (intPart > 0n) return intPart;
-  // Bigint division truncated to 0 — recover with float math
-  const floatResult = Number(growthDelta) * Number(liquidity) / Number(Q64);
-  return BigInt(Math.floor(floatResult));
+  try {
+    const growthDelta = (growthInside - growthInsideLast) & MASK128;
+    if (growthDelta === 0n) return 0n;
+    const numerator = growthDelta * liquidity;
+    const intPart = numerator / Q64;
+    if (intPart > 0n) return intPart;
+    // Bigint division truncated to 0 — recover with float math
+    const floatResult = Number(growthDelta) * Number(liquidity) / Number(Q64);
+    if (!isFinite(floatResult) || floatResult < 0) return 0n;
+    return BigInt(Math.floor(floatResult));
+  } catch {
+    return 0n;
+  }
 }
 
 async function resolveSymbol(mint: string): Promise<{ symbol: string; decimals: number }> {
@@ -406,10 +412,9 @@ export class RaydiumCLMMAdapter implements DefiProtocolAdapter {
 
           console.log(
             `[raydium] Fees for ${meta0.symbol}/${meta1.symbol}: ` +
-            `${fees0.toFixed(6)} ${meta0.symbol} ($${(fees0 * 1).toFixed(4)}), ` +
-            `${fees1.toFixed(6)} ${meta1.symbol} — ` +
-            `feeDelta0=${feeDelta0}, feeDelta1=${feeDelta1}, ` +
-            `staleOwed0=${feesOwed0}, staleOwed1=${feesOwed1}`
+            `token0=${fees0} token1=${fees1} ` +
+            `(delta0=${String(feeDelta0)}, delta1=${String(feeDelta1)}, ` +
+            `stale0=${String(feesOwed0)}, stale1=${String(feesOwed1)})`
           );
 
           // ── Compute pending rewards ─────────────────────────────
