@@ -17,6 +17,7 @@ export interface AggregatePortfolio {
   totalLpValue: number;
   totalTokenValue: number;
   totalClaimable: number;
+  totalAvgDailyEarn: number;
   allPositions: (LPPositionJSON & { walletAddress: string; walletLabel: string | null; walletChainId: string })[];
   allTokens: (TokenBalanceJSON & { walletAddress: string; walletLabel: string | null })[];
   walletCount: number;
@@ -154,6 +155,7 @@ export function useAllPortfolios(wallets: TrackedWallet[]): UseAllPortfoliosResu
       totalLpValue: 0,
       totalTokenValue: 0,
       totalClaimable: 0,
+      totalAvgDailyEarn: 0,
       allPositions: [],
       allTokens: [],
       walletCount: 0,
@@ -168,6 +170,7 @@ export function useAllPortfolios(wallets: TrackedWallet[]): UseAllPortfoliosResu
       const tokenVal = wp.data.tokenBalances.reduce((s, t) => s + (t.usdValue ?? 0), 0);
       agg.totalLpValue += lpVal;
       agg.totalTokenValue += tokenVal;
+      agg.totalAvgDailyEarn += wp.data.avgDailyEarn ?? 0;
 
       for (const pos of wp.data.lpPositions) {
         const claimable = (pos.feesEarnedUsd ?? 0) + (pos.emissionsEarnedUsd ?? 0);
