@@ -168,6 +168,22 @@ function PositionCard({
                   {inRange ? "Active" : "Inactive"}
                 </span>
               </div>
+              {pnl?.last24hEarn != null && pnl.last24hEarn > 0 && (
+                <div>
+                  <span className="text-slate-500">24h </span>
+                  <span className="text-emerald-400 font-semibold tabular-nums">
+                    +{formatUsd(pnl.last24hEarn)}
+                  </span>
+                </div>
+              )}
+              {pnl?.avgDailyEarn != null && pnl.avgDailyEarn > 0 && (
+                <div>
+                  <span className="text-slate-500">Avg </span>
+                  <span className="text-emerald-400/60 font-semibold tabular-nums">
+                    ~{formatUsd(pnl.avgDailyEarn)}/d
+                  </span>
+                </div>
+              )}
             </div>
 
             <div className="flex gap-4 text-xs">
@@ -305,6 +321,20 @@ export function AggregateOverview({
                   </>
                 )}
               </div>
+              {aggregate.totalAvgDailyEarn > 0 && (
+                <div className="flex items-center gap-3 mt-1">
+                  <span className="text-slate-600 text-[10px] uppercase tracking-wider">Projected</span>
+                  <span className="text-slate-400/70 text-[11px] tabular-nums">
+                    ~{formatUsd(aggregate.totalAvgDailyEarn * 7)}/wk
+                  </span>
+                  <span className="text-slate-400/70 text-[11px] tabular-nums">
+                    ~{formatUsd(aggregate.totalAvgDailyEarn * 30)}/mo
+                  </span>
+                  <span className="text-slate-400/70 text-[11px] tabular-nums">
+                    ~{formatUsd(aggregate.totalAvgDailyEarn * 365)}/yr
+                  </span>
+                </div>
+              )}
             </div>
 
             <div className="flex items-center gap-5 shrink-0">

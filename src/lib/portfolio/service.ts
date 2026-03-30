@@ -344,9 +344,12 @@ export async function getPortfolio(
           ? (earnings / entry.positionUsd) * (365 / daysElapsed) * 100
           : 0;
 
-        // Accumulate daily earn rate (skip very new positions to avoid inflated rates)
-        if (daysElapsed >= 0.5 && earnings > 0) {
-          totalDailyEarn += earnings / daysElapsed;
+        // Per-position daily earn rate (skip very new positions to avoid inflated rates)
+        const posAvgDailyEarn = daysElapsed >= 0.5 && earnings > 0
+          ? earnings / daysElapsed
+          : undefined;
+        if (posAvgDailyEarn) {
+          totalDailyEarn += posAvgDailyEarn;
         }
 
         pnlSummaries.set(entry.nftTokenId, {
@@ -354,6 +357,7 @@ export async function getPortfolio(
           totalPnlPercent,
           entryValueUsd: entry.positionUsd,
           apr,
+          avgDailyEarn: posAvgDailyEarn,
           entrySource: (entry.entrySource as PnLSummary["entrySource"]) ?? "first-seen",
         });
       }
@@ -409,7 +413,12 @@ export async function getPortfolio(
           const oldEarnings = old.feesUsd + old.emissionsUsd;
           const delta = currentEarnings - oldEarnings;
           // Clamp to 0 — negative means user claimed rewards in between
-          if (delta > 0) total24h += delta;
+          if (delta > 0) {
+            total24h += delta;
+            // Attach per-position last24hEarn to existing PnLSummary
+            const summary = pnlSummaries.get(lp.nftTokenId);
+            if (summary) summary.last24hEarn = delta;
+          }
         }
         if (total24h > 0) last24hEarn = total24h;
       }

@@ -56,6 +56,8 @@ export interface PnLSummary {
   totalPnlPercent: number;
   entryValueUsd: number;
   apr: number;           // Annualized return from fees + emissions
+  avgDailyEarn?: number; // Average daily earnings from fees + emissions
+  last24hEarn?: number;  // Actual earnings in the last 24h (snapshot delta)
   entrySource: "on-chain" | "first-seen" | "manual";
 }
 
