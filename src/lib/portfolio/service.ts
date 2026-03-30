@@ -366,12 +366,65 @@ export async function getPortfolio(
     }
   }
 
+  // 9b. Compute last 24h earnings from position snapshot deltas
+  let last24hEarn: number | null = null;
+  if (wallet && enrichedLPs.length > 0) {
+    try {
+      const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const nftIds = enrichedLPs.map((lp) => lp.nftTokenId);
+
+      // Find the oldest non-entry snapshot within the last 24h for each position
+      const oldSnapshots = await prisma.positionSnapshot.findMany({
+        where: {
+          walletId: wallet.id,
+          nftTokenId: { in: nftIds },
+          isEntry: false,
+          snapshotAt: { gte: since24h },
+        },
+        orderBy: { snapshotAt: "asc" },
+        select: {
+          nftTokenId: true,
+          feesUsd: true,
+          emissionsUsd: true,
+        },
+      });
+
+      // Keep only the oldest snapshot per position
+      const oldestByPosition = new Map<string, { feesUsd: number; emissionsUsd: number }>();
+      for (const snap of oldSnapshots) {
+        if (!oldestByPosition.has(snap.nftTokenId)) {
+          oldestByPosition.set(snap.nftTokenId, {
+            feesUsd: snap.feesUsd,
+            emissionsUsd: snap.emissionsUsd,
+          });
+        }
+      }
+
+      if (oldestByPosition.size > 0) {
+        let total24h = 0;
+        for (const lp of enrichedLPs) {
+          const old = oldestByPosition.get(lp.nftTokenId);
+          if (!old) continue;
+          const currentEarnings = (lp.feesEarnedUsd ?? 0) + (lp.emissionsEarnedUsd ?? 0);
+          const oldEarnings = old.feesUsd + old.emissionsUsd;
+          const delta = currentEarnings - oldEarnings;
+          // Clamp to 0 — negative means user claimed rewards in between
+          if (delta > 0) total24h += delta;
+        }
+        if (total24h > 0) last24hEarn = total24h;
+      }
+    } catch (err) {
+      console.warn("[portfolio] last 24h earn computation failed:", err);
+    }
+  }
+
   // 10. Serialize BigInts to strings for JSON response
   return {
     walletAddress: address,
     chainId,
     totalUsdValue,
     avgDailyEarn,
+    last24hEarn,
     tokenBalances: enrichedTokens.map((t) => ({
       ...t,
       balance: t.balance.toString(),
