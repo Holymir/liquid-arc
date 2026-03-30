@@ -93,6 +93,7 @@ export function Dashboard({ address, chainId = "base" }: DashboardProps) {
         tokenValue={data?.tokenBalances.reduce((sum, t) => sum + (t.usdValue ?? 0), 0) ?? 0}
         pnl={data?.pnl}
         avgDailyEarn={data?.avgDailyEarn}
+        last24hEarn={data?.last24hEarn}
         lastUpdated={data?.lastUpdated}
         isLoading={isLoading}
         onRefresh={refresh}

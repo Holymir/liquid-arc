@@ -151,6 +151,7 @@ export interface PortfolioResponse {
   lastUpdated: string;
   pnl?: PnLResult | null;
   avgDailyEarn?: number | null;
+  last24hEarn?: number | null;
 }
 
 export interface PnLResult {

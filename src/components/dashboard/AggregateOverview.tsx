@@ -288,11 +288,19 @@ export function AggregateOverview({
                     </span>
                   </>
                 )}
+                {aggregate.totalLast24hEarn > 0 && (
+                  <>
+                    <span className="text-slate-700">|</span>
+                    <span className="text-emerald-400 text-xs font-semibold tabular-nums">
+                      +{formatUsd(aggregate.totalLast24hEarn)} 24h
+                    </span>
+                  </>
+                )}
                 {aggregate.totalAvgDailyEarn > 0 && (
                   <>
                     <span className="text-slate-700">|</span>
-                    <span className="text-emerald-400/80 text-xs font-semibold tabular-nums">
-                      ~{formatUsd(aggregate.totalAvgDailyEarn)} / day
+                    <span className="text-emerald-400/60 text-xs font-semibold tabular-nums">
+                      ~{formatUsd(aggregate.totalAvgDailyEarn)}/d avg
                     </span>
                   </>
                 )}

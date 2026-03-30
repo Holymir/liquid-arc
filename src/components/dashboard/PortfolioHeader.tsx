@@ -14,6 +14,7 @@ interface PortfolioHeaderProps {
   tokenValue: number;
   pnl?: PnLData | null;
   avgDailyEarn?: number | null;
+  last24hEarn?: number | null;
   lastUpdated?: string;
   isLoading?: boolean;
   onRefresh?: () => void;
@@ -94,6 +95,7 @@ export function PortfolioHeader({
   tokenValue,
   pnl,
   avgDailyEarn,
+  last24hEarn,
   lastUpdated,
   isLoading,
   onRefresh,
@@ -167,13 +169,24 @@ export function PortfolioHeader({
               </div>
             )}
 
-            {avgDailyEarn != null && avgDailyEarn > 0 && (
-              <div className="flex items-center gap-1.5 mt-1">
-                <span className="text-slate-500 text-xs">Avg earn</span>
-                <span className="text-emerald-400/80 text-xs font-semibold tabular-nums">
-                  ~{formatUsd(avgDailyEarn)}
-                </span>
-                <span className="text-slate-500 text-xs">/ day</span>
+            {(avgDailyEarn != null && avgDailyEarn > 0 || last24hEarn != null && last24hEarn > 0) && (
+              <div className="flex items-center gap-3 mt-1">
+                {last24hEarn != null && last24hEarn > 0 && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-slate-500 text-xs">24h earn</span>
+                    <span className="text-emerald-400 text-xs font-semibold tabular-nums">
+                      +{formatUsd(last24hEarn)}
+                    </span>
+                  </div>
+                )}
+                {avgDailyEarn != null && avgDailyEarn > 0 && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-slate-500 text-xs">Avg</span>
+                    <span className="text-emerald-400/60 text-xs font-semibold tabular-nums">
+                      ~{formatUsd(avgDailyEarn)}/d
+                    </span>
+                  </div>
+                )}
               </div>
             )}
           </div>
