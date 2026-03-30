@@ -429,12 +429,29 @@ export class RaydiumCLMMAdapter implements DefiProtocolAdapter {
             ...(rewardTokens.length > 0 ? { rewardTokens } : {}),
           });
         } else {
-          // Tick arrays unavailable — fall back to stale token_fees_owed
+          // Tick arrays unavailable — fall back to stale token_fees_owed and reward_amount_owed
           console.warn(
-            `[raydium] Tick array fetch failed for NFT ${positionPDAs[i].mint}, using stale fees`
+            `[raydium] Tick array fetch failed for NFT ${positionPDAs[i].mint}, using stale fees/rewards (no growth delta)`
           );
           fees0 = Number(feesOwed0) / 10 ** dec0;
           fees1 = Number(feesOwed1) / 10 ** dec1;
+
+          // Compute stale rewards from position reward_amount_owed
+          const rewardTokens: LPPositionData["rewardTokens"] = [];
+          for (let r = 0; r < poolRewardInfos.length; r++) {
+            const poolReward = poolRewardInfos[r];
+            if (!poolReward.active) continue;
+
+            const rewardAmount = Number(posRewardInfos[r].rewardAmountOwed) / 10 ** poolReward.decimals;
+            if (rewardAmount > 0) {
+              rewardTokens.push({
+                address: poolReward.tokenMint,
+                symbol: poolReward.symbol,
+                decimals: poolReward.decimals,
+                amount: rewardAmount,
+              });
+            }
+          }
 
           positions.push({
             nftTokenId: positionPDAs[i].mint,
@@ -454,6 +471,7 @@ export class RaydiumCLMMAdapter implements DefiProtocolAdapter {
             token1Amount: amount1,
             fees0Amount: fees0,
             fees1Amount: fees1,
+            ...(rewardTokens.length > 0 ? { rewardTokens } : {}),
           });
         }
       } catch (err) {

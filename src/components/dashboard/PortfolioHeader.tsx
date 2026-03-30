@@ -13,6 +13,7 @@ interface PortfolioHeaderProps {
   lpValue: number;
   tokenValue: number;
   pnl?: PnLData | null;
+  avgDailyEarn?: number | null;
   lastUpdated?: string;
   isLoading?: boolean;
   onRefresh?: () => void;
@@ -92,6 +93,7 @@ export function PortfolioHeader({
   lpValue,
   tokenValue,
   pnl,
+  avgDailyEarn,
   lastUpdated,
   isLoading,
   onRefresh,
@@ -162,6 +164,16 @@ export function PortfolioHeader({
                   {pnl.percentChange.toFixed(2)}%
                 </span>
                 <span className="text-slate-600 text-xs">{pnl.period}</span>
+              </div>
+            )}
+
+            {avgDailyEarn != null && avgDailyEarn > 0 && (
+              <div className="flex items-center gap-1.5 mt-1">
+                <span className="text-slate-500 text-xs">Avg earn</span>
+                <span className="text-emerald-400/80 text-xs font-semibold tabular-nums">
+                  ~{formatUsd(avgDailyEarn)}
+                </span>
+                <span className="text-slate-500 text-xs">/ day</span>
               </div>
             )}
           </div>

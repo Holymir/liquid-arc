@@ -150,6 +150,7 @@ export interface PortfolioResponse {
   lpPositions: LPPositionJSON[];
   lastUpdated: string;
   pnl?: PnLResult | null;
+  avgDailyEarn?: number | null;
 }
 
 export interface PnLResult {

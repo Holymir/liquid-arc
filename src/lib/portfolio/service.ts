@@ -309,6 +309,7 @@ export async function getPortfolio(
 
   // 9. Compute lightweight P&L summaries for each position (if entry snapshots exist)
   const pnlSummaries = new Map<string, PnLSummary>();
+  let avgDailyEarn: number | null = null;
   if (wallet && enrichedLPs.length > 0) {
     try {
       const entries = await prisma.positionSnapshot.findMany({
@@ -324,6 +325,8 @@ export async function getPortfolio(
           snapshotAt: true,
         },
       });
+
+      let totalDailyEarn = 0;
 
       for (const entry of entries) {
         const lp = enrichedLPs.find((l) => l.nftTokenId === entry.nftTokenId);
@@ -341,6 +344,11 @@ export async function getPortfolio(
           ? (earnings / entry.positionUsd) * (365 / daysElapsed) * 100
           : 0;
 
+        // Accumulate daily earn rate (skip very new positions to avoid inflated rates)
+        if (daysElapsed >= 0.5 && earnings > 0) {
+          totalDailyEarn += earnings / daysElapsed;
+        }
+
         pnlSummaries.set(entry.nftTokenId, {
           totalPnl,
           totalPnlPercent,
@@ -348,6 +356,10 @@ export async function getPortfolio(
           apr,
           entrySource: (entry.entrySource as PnLSummary["entrySource"]) ?? "first-seen",
         });
+      }
+
+      if (totalDailyEarn > 0) {
+        avgDailyEarn = totalDailyEarn;
       }
     } catch (err) {
       console.warn("[portfolio] P&L summary computation failed:", err);
@@ -359,6 +371,7 @@ export async function getPortfolio(
     walletAddress: address,
     chainId,
     totalUsdValue,
+    avgDailyEarn,
     tokenBalances: enrichedTokens.map((t) => ({
       ...t,
       balance: t.balance.toString(),
