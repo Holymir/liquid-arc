@@ -56,10 +56,33 @@ const KNOWN_SYMBOLS: Record<string, string> = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────
 
+/** Ensure data is a Buffer (not Uint8Array) so .readBigUInt64LE etc. work */
+function ensureBuffer(data: Buffer | Uint8Array): Buffer {
+  return Buffer.isBuffer(data) ? data : Buffer.from(data);
+}
+
 function readU128LE(buf: Buffer, offset: number): bigint {
   const low = buf.readBigUInt64LE(offset);
   const high = buf.readBigUInt64LE(offset + 8);
   return (high << 64n) | low;
+}
+
+/**
+ * Compute a fee/reward delta avoiding bigint truncation.
+ * Pure bigint division `(growthDelta * liquidity) / Q64` truncates to 0 for
+ * moderate positions because Q64 = 2^64 ≈ 1.8e19.  Instead, split into an
+ * integer part (bigint) + fractional remainder (float) so small amounts aren't
+ * lost.
+ */
+function computeDelta(growthInside: bigint, growthInsideLast: bigint, liquidity: bigint): bigint {
+  const growthDelta = (growthInside - growthInsideLast) & MASK128;
+  if (growthDelta === 0n) return 0n;
+  const numerator = growthDelta * liquidity;
+  const intPart = numerator / Q64;
+  if (intPart > 0n) return intPart;
+  // Bigint division truncated to 0 — recover with float math
+  const floatResult = Number(growthDelta) * Number(liquidity) / Number(Q64);
+  return BigInt(Math.floor(floatResult));
 }
 
 async function resolveSymbol(mint: string): Promise<{ symbol: string; decimals: number }> {
@@ -191,7 +214,7 @@ export class RaydiumCLMMAdapter implements DefiProtocolAdapter {
       if (!info || !info.owner.equals(RAYDIUM_CLMM_PROGRAM)) continue;
 
       try {
-        const data = info.data;
+        const data = ensureBuffer(info.data);
         if (data.length < POS_REWARD_INFOS_OFFSET + POS_REWARD_INFO_SIZE * 3) continue;
 
         // PersonalPositionState layout (from Raydium CLMM IDL):
@@ -241,7 +264,7 @@ export class RaydiumCLMMAdapter implements DefiProtocolAdapter {
         const poolInfo = await connection.getAccountInfo(poolId);
         if (!poolInfo) continue;
 
-        const poolData = poolInfo.data;
+        const poolData = ensureBuffer(poolInfo.data);
 
         const tokenMint0 = new PublicKey(poolData.subarray(73, 105));
         const tokenMint1 = new PublicKey(poolData.subarray(105, 137));
@@ -357,10 +380,10 @@ export class RaydiumCLMMAdapter implements DefiProtocolAdapter {
 
         if (tickArrayLower && tickArrayUpper) {
           const lowerGrowth = readTickGrowthOutside(
-            tickArrayLower.data as Buffer, tickLower, startLower, tickSpacing
+            ensureBuffer(tickArrayLower.data), tickLower, startLower, tickSpacing
           );
           const upperGrowth = readTickGrowthOutside(
-            tickArrayUpper.data as Buffer, tickUpper, startUpper, tickSpacing
+            ensureBuffer(tickArrayUpper.data), tickUpper, startUpper, tickSpacing
           );
 
           // Fee growth inside current
@@ -373,13 +396,21 @@ export class RaydiumCLMMAdapter implements DefiProtocolAdapter {
             feeGrowthGlobal1, lowerGrowth.feeGrowthOutside1, upperGrowth.feeGrowthOutside1
           );
 
-          // Uncollected fee delta: (current_inside - last_inside) * liquidity / 2^64
-          const feeDelta0 = ((feeGrowthInside0 - feeGrowthInsideLast0) & MASK128) * liquidity / Q64;
-          const feeDelta1 = ((feeGrowthInside1 - feeGrowthInsideLast1) & MASK128) * liquidity / Q64;
+          // Uncollected fee delta (uses computeDelta to avoid bigint truncation)
+          const feeDelta0 = computeDelta(feeGrowthInside0, feeGrowthInsideLast0, liquidity);
+          const feeDelta1 = computeDelta(feeGrowthInside1, feeGrowthInsideLast1, liquidity);
 
           // Total pending = stale owed + uncollected delta
           fees0 = Number(feesOwed0 + feeDelta0) / 10 ** dec0;
           fees1 = Number(feesOwed1 + feeDelta1) / 10 ** dec1;
+
+          console.log(
+            `[raydium] Fees for ${meta0.symbol}/${meta1.symbol}: ` +
+            `${fees0.toFixed(6)} ${meta0.symbol} ($${(fees0 * 1).toFixed(4)}), ` +
+            `${fees1.toFixed(6)} ${meta1.symbol} — ` +
+            `feeDelta0=${feeDelta0}, feeDelta1=${feeDelta1}, ` +
+            `staleOwed0=${feesOwed0}, staleOwed1=${feesOwed1}`
+          );
 
           // ── Compute pending rewards ─────────────────────────────
           const rewardTokens: LPPositionData["rewardTokens"] = [];
@@ -393,8 +424,7 @@ export class RaydiumCLMMAdapter implements DefiProtocolAdapter {
               lowerGrowth.rewardGrowthsOutside[r],
               upperGrowth.rewardGrowthsOutside[r]
             );
-            const rewardDelta =
-              ((rewardGrowthInside - posRewardInfos[r].growthInsideLast) & MASK128) * liquidity / Q64;
+            const rewardDelta = computeDelta(rewardGrowthInside, posRewardInfos[r].growthInsideLast, liquidity);
             const totalReward = posRewardInfos[r].rewardAmountOwed + rewardDelta;
             const rewardAmount = Number(totalReward) / 10 ** poolReward.decimals;
 
