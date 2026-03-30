@@ -139,6 +139,22 @@ function PositionCard({
                   {inRange ? "Active" : "Inactive"}
                 </span>
               </div>
+              {pnl?.last24hEarn != null && pnl.last24hEarn > 0 && (
+                <div>
+                  <span className="text-slate-500">24h </span>
+                  <span className="text-emerald-400 font-semibold tabular-nums">
+                    +{formatUsd(pnl.last24hEarn)}
+                  </span>
+                </div>
+              )}
+              {pnl?.avgDailyEarn != null && pnl.avgDailyEarn > 0 && (
+                <div>
+                  <span className="text-slate-500">Avg </span>
+                  <span className="text-emerald-400/60 font-semibold tabular-nums">
+                    ~{formatUsd(pnl.avgDailyEarn)}/d
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Token composition — compact */}

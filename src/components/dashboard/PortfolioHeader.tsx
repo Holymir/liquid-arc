@@ -189,6 +189,21 @@ export function PortfolioHeader({
                 )}
               </div>
             )}
+
+            {avgDailyEarn != null && avgDailyEarn > 0 && (
+              <div className="flex items-center gap-3 mt-1">
+                <span className="text-slate-600 text-[10px] uppercase tracking-wider">Projected</span>
+                <span className="text-slate-400/70 text-[11px] tabular-nums">
+                  ~{formatUsd(avgDailyEarn * 7)}/wk
+                </span>
+                <span className="text-slate-400/70 text-[11px] tabular-nums">
+                  ~{formatUsd(avgDailyEarn * 30)}/mo
+                </span>
+                <span className="text-slate-400/70 text-[11px] tabular-nums">
+                  ~{formatUsd(avgDailyEarn * 365)}/yr
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Right: Breakdown + Donut chart */}
