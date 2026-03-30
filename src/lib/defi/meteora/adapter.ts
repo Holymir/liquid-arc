@@ -194,11 +194,13 @@ export class MeteoraAdapter implements DefiProtocolAdapter {
     const parsed: ParsedPosition[] = [];
 
     for (const { pubkey, account } of v1Accounts) {
-      const p = parsePositionV1(pubkey.toBase58(), account.data as Buffer);
+      const buf = Buffer.isBuffer(account.data) ? account.data : Buffer.from(account.data as Uint8Array);
+      const p = parsePositionV1(pubkey.toBase58(), buf);
       if (p) parsed.push(p);
     }
     for (const { pubkey, account } of v2Accounts) {
-      const p = parsePositionV2(pubkey.toBase58(), account.data as Buffer);
+      const buf = Buffer.isBuffer(account.data) ? account.data : Buffer.from(account.data as Uint8Array);
+      const p = parsePositionV2(pubkey.toBase58(), buf);
       if (p) parsed.push(p);
     }
 
@@ -236,7 +238,7 @@ export class MeteoraAdapter implements DefiProtocolAdapter {
           // Fallback: read pair account on-chain
           const pairAccount = await connection.getAccountInfo(new PublicKey(pos.lbPair));
           if (!pairAccount) continue;
-          const pairData = pairAccount.data;
+          const pairData = Buffer.isBuffer(pairAccount.data) ? pairAccount.data : Buffer.from(pairAccount.data as Uint8Array);
           tokenXAddr = new PublicKey(pairData.subarray(72, 104)).toBase58();
           tokenYAddr = new PublicKey(pairData.subarray(104, 136)).toBase58();
           activeBinId = pairData.readInt32LE(136);

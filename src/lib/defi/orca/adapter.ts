@@ -85,7 +85,7 @@ export class OrcaWhirlpoolAdapter implements DefiProtocolAdapter {
       if (!info || !info.owner.equals(WHIRLPOOL_PROGRAM)) continue;
 
       try {
-        const data = info.data;
+        const data = Buffer.isBuffer(info.data) ? info.data : Buffer.from(info.data);
         if (data.length < 144) continue;
 
         // Position layout (from Orca Whirlpool IDL):
@@ -121,7 +121,7 @@ export class OrcaWhirlpoolAdapter implements DefiProtocolAdapter {
         const whirlpoolInfo = await connection.getAccountInfo(whirlpoolAddr);
         if (!whirlpoolInfo) continue;
 
-        const wpData = whirlpoolInfo.data;
+        const wpData = Buffer.isBuffer(whirlpoolInfo.data) ? whirlpoolInfo.data : Buffer.from(whirlpoolInfo.data);
 
         // Whirlpool layout (from Orca Whirlpool IDL):
         // 0-7:     discriminator (8 bytes)
