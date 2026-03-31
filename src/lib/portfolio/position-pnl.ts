@@ -15,7 +15,8 @@ export async function calculatePositionPnL(
   position: LPPositionJSON,
   currentToken0Price: number,
   currentToken1Price: number,
-  chainId: string = "base"
+  chainId: string = "base",
+  poolData?: { apr24h: number | null; emissionsApr: number | null } | null
 ): Promise<PositionPnL | null> {
   // Load the entry snapshot
   const entry = await prisma.positionSnapshot.findFirst({
@@ -110,14 +111,35 @@ export async function calculatePositionPnL(
     holdToken1Value,
     hold5050Value,
 
-    apr: (() => {
+    ...(() => {
       const earnings = feesEarnedUsd + emissionsEarnedUsd;
       const msElapsed = Date.now() - entry.snapshotAt.getTime();
       const daysElapsed = msElapsed / (1000 * 60 * 60 * 24);
-      return daysElapsed > 0 && entryValueUsd > 0
-        ? (earnings / entryValueUsd) * (365 / daysElapsed) * 100
+
+      const feeApr = daysElapsed > 0 && entryValueUsd > 0
+        ? (feesEarnedUsd / entryValueUsd) * (365 / daysElapsed) * 100
         : 0;
+      const emissionsAprVal = daysElapsed > 0 && entryValueUsd > 0
+        ? (emissionsEarnedUsd / entryValueUsd) * (365 / daysElapsed) * 100
+        : 0;
+
+      const avgDailyEarn = daysElapsed >= 1 && earnings > 0
+        ? earnings / daysElapsed
+        : 0;
+
+      return {
+        apr: feeApr + emissionsAprVal,
+        feeApr,
+        emissionsApr: emissionsAprVal,
+        avgDailyEarn,
+        projectedDaily: avgDailyEarn,
+        projectedWeekly: avgDailyEarn * 7,
+        projectedMonthly: avgDailyEarn * 30,
+      };
     })(),
+
+    poolFeeApr24h: poolData?.apr24h ?? null,
+    poolEmissionsApr: poolData?.emissionsApr ?? null,
 
     tickLower: position.tickLower,
     tickUpper: position.tickUpper,
