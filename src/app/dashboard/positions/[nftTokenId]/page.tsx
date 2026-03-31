@@ -247,35 +247,65 @@ export default function PositionPage() {
                   </p>
                 </div>
 
-                {/* APR */}
+                {/* APR Breakdown */}
                 <div>
                   <p className="text-slate-500 text-[10px] uppercase tracking-widest font-medium mb-1.5">
-                    Est. APR
+                    APR Breakdown
                   </p>
                   <p className="text-arc-400 font-bold text-2xl tabular-nums">
                     {pnl.apr.toFixed(1)}%
                   </p>
-                  <p className="text-slate-600 text-[11px] mt-1">
-                    Fees + emissions
-                  </p>
-                </div>
-
-                {/* Rewards */}
-                <div>
-                  <p className="text-slate-500 text-[10px] uppercase tracking-widest font-medium mb-1.5">
-                    Rewards Earned
-                  </p>
-                  <p className="text-emerald-400 font-bold text-2xl tabular-nums">
-                    +{formatUsd(pnl.feesEarnedUsd + pnl.emissionsEarnedUsd)}
-                  </p>
-                  <div className="flex gap-3 text-[11px] mt-1">
-                    {pnl.feesEarnedUsd > 0 && (
-                      <span className="text-slate-600">Fees {formatUsd(pnl.feesEarnedUsd)}</span>
-                    )}
-                    {pnl.emissionsEarnedUsd > 0 && (
-                      <span className="text-slate-600">Emissions {formatUsd(pnl.emissionsEarnedUsd)}</span>
+                  <div className="flex flex-wrap gap-x-2 text-[11px] mt-1">
+                    <span className="text-arc-400">Fees {pnl.feeApr.toFixed(1)}%</span>
+                    {pnl.emissionsApr > 0 && (
+                      <span className="text-arc-400/60">Emissions {pnl.emissionsApr.toFixed(1)}%</span>
                     )}
                   </div>
+                  {(pnl.poolFeeApr24h != null || pnl.poolEmissionsApr != null) && (
+                    <p className="text-slate-600 text-[10px] mt-1">
+                      Pool 24h:{" "}
+                      {pnl.poolFeeApr24h != null && <span>{pnl.poolFeeApr24h.toFixed(1)}% fee</span>}
+                      {pnl.poolFeeApr24h != null && pnl.poolEmissionsApr != null && pnl.poolEmissionsApr > 0 && " + "}
+                      {pnl.poolEmissionsApr != null && pnl.poolEmissionsApr > 0 && <span>{pnl.poolEmissionsApr.toFixed(1)}% em</span>}
+                    </p>
+                  )}
+                </div>
+
+                {/* Projected Earnings */}
+                <div>
+                  <p className="text-slate-500 text-[10px] uppercase tracking-widest font-medium mb-1.5">
+                    Projected Earnings
+                  </p>
+                  {pnl.avgDailyEarn > 0 ? (
+                    <div className="space-y-0.5">
+                      <div className="flex items-baseline justify-between">
+                        <span className="text-slate-500 text-[11px]">Daily</span>
+                        <span className="text-emerald-400 font-bold text-lg tabular-nums">
+                          {formatUsd(pnl.projectedDaily)}
+                        </span>
+                      </div>
+                      <div className="flex items-baseline justify-between">
+                        <span className="text-slate-500 text-[11px]">7d</span>
+                        <span className="text-slate-300 font-medium text-sm tabular-nums">
+                          {formatUsd(pnl.projectedWeekly)}
+                        </span>
+                      </div>
+                      <div className="flex items-baseline justify-between">
+                        <span className="text-slate-500 text-[11px]">30d</span>
+                        <span className="text-slate-300 font-medium text-sm tabular-nums">
+                          {formatUsd(pnl.projectedMonthly)}
+                        </span>
+                      </div>
+                      <p className="text-slate-600 text-[10px] mt-0.5">avg daily rate</p>
+                    </div>
+                  ) : (
+                    <div>
+                      <p className="text-slate-500 text-sm mt-1">Insufficient data</p>
+                      <p className="text-slate-600 text-[10px] mt-0.5">
+                        Available after 24h
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

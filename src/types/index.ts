@@ -132,7 +132,19 @@ export interface PositionPnL {
   hold5050Value: number;
 
   // APR
-  apr: number;           // Annualized return from fees + emissions
+  apr: number;           // Annualized return from fees + emissions (combined)
+  feeApr: number;        // APR from trading fees only
+  emissionsApr: number;  // APR from emissions only
+
+  // Projections (based on position's historical avg daily earn rate)
+  avgDailyEarn: number;
+  projectedDaily: number;
+  projectedWeekly: number;
+  projectedMonthly: number;
+
+  // Pool-level forward APRs (for context)
+  poolFeeApr24h: number | null;
+  poolEmissionsApr: number | null;
 
   // Position details
   tickLower?: number;

@@ -56,10 +56,19 @@ export async function GET(
       );
     }
 
-    // Get current token prices
-    const prices = await pricingService.getPrices(chainId, [
-      position.token0Address,
-      position.token1Address,
+    // Get current token prices and pool-level APR data in parallel
+    const [prices, poolData] = await Promise.all([
+      pricingService.getPrices(chainId, [
+        position.token0Address,
+        position.token1Address,
+      ]),
+      prisma.pool.findFirst({
+        where: {
+          poolAddress: isSolana ? position.poolAddress : position.poolAddress.toLowerCase(),
+          chainId,
+        },
+        select: { apr24h: true, emissionsApr: true },
+      }),
     ]);
 
     const norm = (a: string) => isSolana ? a : a.toLowerCase();
@@ -72,7 +81,8 @@ export async function GET(
       position,
       currentToken0Price,
       currentToken1Price,
-      chainId
+      chainId,
+      poolData
     );
 
     if (!pnl) {
