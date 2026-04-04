@@ -18,10 +18,10 @@ model User {
 
   // Email verification
   emailVerified     Boolean  @default(false) @map("email_verified")
-  verificationToken String?  @map("verification_token")
+  verificationToken String?  @unique @map("verification_token")
 
   // Password reset
-  resetToken        String?  @map("reset_token")
+  resetToken        String?   @unique @map("reset_token")
   resetTokenExpiry  DateTime? @map("reset_token_expiry")
 
   // SaaS subscription (Stripe-ready, nullable until billing is live)
