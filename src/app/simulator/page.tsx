@@ -21,7 +21,7 @@ import {
   AlertTriangle,
   Zap,
 } from "lucide-react";
-import { AppHeader } from "@/components/layout/AppHeader";
+import { AppLayout } from "@/components/layout/AppLayout";
 import { runSimulation } from "@/lib/simulator/engine";
 import type { SimulatorInput, SimulatorResult } from "@/lib/simulator/types";
 
@@ -473,19 +473,8 @@ export default function SimulatorPage() {
   }, [parsed]);
 
   return (
-    <div className="min-h-screen" style={{ background: "#030b14" }}>
-      <AppHeader />
-
-      {/* Ambient glow */}
-      <div
-        className="fixed top-0 right-0 w-[60vw] h-[60vw] pointer-events-none"
-        style={{
-          background:
-            "radial-gradient(circle at 80% 20%, rgba(0,229,196,0.04) 0%, transparent 60%)",
-        }}
-      />
-
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <AppLayout>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
         {/* Page Header */}
         <div className="mb-8">
           <div
@@ -1332,6 +1321,6 @@ export default function SimulatorPage() {
           </div>
         </div>
       </div>
-    </div>
+    </AppLayout>
   );
 }
