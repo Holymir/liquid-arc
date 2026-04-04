@@ -53,6 +53,7 @@ export async function GET(
       nftTokenId,
       snapshotAt: { gte: since },
     },
+    take: 1000, // Safety cap — prevents unbounded scans ("all" period = ~114 years)
     orderBy: { snapshotAt: "asc" },
     select: {
       positionUsd: true,
