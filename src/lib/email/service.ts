@@ -57,6 +57,23 @@ export function verificationEmailHtml(verifyUrl: string): string {
   `;
 }
 
+export function welcomeEmailHtml(dashboardUrl: string): string {
+  return `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px;">
+      <h2 style="color: #f1f5f9; font-size: 20px; margin-bottom: 16px;">Welcome to LiquidArc 🎉</h2>
+      <p style="color: #94a3b8; font-size: 14px; line-height: 1.6;">
+        Your account is ready. LiquidArc helps you track and optimize your liquidity positions across chains — all in one place.
+      </p>
+      <a href="${dashboardUrl}" style="display: inline-block; background: #4f46e5; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px; margin: 24px 0;">
+        Go to Dashboard
+      </a>
+      <p style="color: #64748b; font-size: 12px;">
+        If you have any questions, just reply to this email — we're here to help.
+      </p>
+    </div>
+  `;
+}
+
 export function passwordResetEmailHtml(resetUrl: string): string {
   return `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px;">
