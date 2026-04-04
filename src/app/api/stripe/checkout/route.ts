@@ -4,6 +4,10 @@ import { stripe, STRIPE_PLANS, type PlanTier } from "@/lib/stripe";
 import { prisma } from "@/lib/db/prisma";
 
 export async function POST(req: NextRequest) {
+  if (!stripe) {
+    return NextResponse.json({ error: "Stripe is not configured" }, { status: 503 });
+  }
+
   try {
     const session = await requireAuth();
     const { tier } = await req.json();

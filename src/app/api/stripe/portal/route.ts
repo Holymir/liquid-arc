@@ -4,6 +4,10 @@ import { stripe } from "@/lib/stripe";
 import { prisma } from "@/lib/db/prisma";
 
 export async function POST() {
+  if (!stripe) {
+    return NextResponse.json({ error: "Stripe is not configured" }, { status: 503 });
+  }
+
   try {
     const session = await requireAuth();
 

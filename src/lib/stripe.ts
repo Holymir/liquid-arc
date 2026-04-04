@@ -1,13 +1,14 @@
 import Stripe from "stripe";
 
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error("Missing STRIPE_SECRET_KEY environment variable");
-}
-
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2026-03-25.dahlia",
-  typescript: true,
-});
+// Gracefully handle missing STRIPE_SECRET_KEY — the app should still boot
+// in environments where Stripe isn't configured (CI, dev without billing, etc.).
+// All Stripe routes guard against a null client before use.
+export const stripe: Stripe | null = process.env.STRIPE_SECRET_KEY
+  ? new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: "2026-03-25.dahlia",
+      typescript: true,
+    })
+  : null;
 
 export const STRIPE_PLANS = {
   pro: {
