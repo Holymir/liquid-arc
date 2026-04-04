@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "@/components/providers/SessionProvider";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { SettingsSidebar } from "@/components/settings/SettingsSidebar";
-import { Check, Zap } from "lucide-react";
+import { Check, Zap, Settings, CheckCircle, XCircle } from "lucide-react";
 
 const PLANS = [
   {
@@ -23,7 +23,7 @@ const PLANS = [
   {
     name: "Pro",
     tier: "pro",
-    price: "$19",
+    price: "$15",
     period: "/month",
     popular: true,
     features: [
@@ -37,7 +37,7 @@ const PLANS = [
   {
     name: "Enterprise",
     tier: "enterprise",
-    price: "$49",
+    price: "$99",
     period: "/month",
     features: [
       "50 wallets",
@@ -50,43 +50,133 @@ const PLANS = [
   },
 ];
 
-export default function BillingPage() {
+function BillingContent() {
   const { user, status } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const [loading, setLoading] = useState<string | null>(null);
+  const [portalLoading, setPortalLoading] = useState(false);
+  const [toast, setToast] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   useEffect(() => {
     if (status === "unauthenticated") router.replace("/login");
   }, [status, router]);
 
+  // Handle Stripe redirect callbacks
+  useEffect(() => {
+    if (searchParams.get("success") === "1") {
+      setToast({ type: "success", message: "Subscription activated! Your plan has been upgraded." });
+      router.replace("/settings/billing");
+    } else if (searchParams.get("canceled") === "1") {
+      setToast({ type: "error", message: "Checkout canceled. No charges were made." });
+      router.replace("/settings/billing");
+    }
+  }, [searchParams, router]);
+
+  // Auto-dismiss toast
+  useEffect(() => {
+    if (toast) {
+      const t = setTimeout(() => setToast(null), 5000);
+      return () => clearTimeout(t);
+    }
+  }, [toast]);
+
   if (status === "loading" || !user) return null;
 
+  const hasSubscription = user.tier !== "free";
+
   const handleUpgrade = async (tier: string) => {
-    if (tier === "free") return;
-    // TODO: Stripe checkout integration
-    alert(`Stripe checkout for ${tier} plan coming soon!`);
+    if (tier === "free" || tier === user.tier) return;
+    setLoading(tier);
+    try {
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tier }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed to create checkout session");
+      if (data.url) window.location.href = data.url;
+    } catch (err) {
+      setToast({ type: "error", message: err instanceof Error ? err.message : "Something went wrong" });
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  const handleManageSubscription = async () => {
+    setPortalLoading(true);
+    try {
+      const res = await fetch("/api/stripe/portal", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed to open billing portal");
+      if (data.url) window.location.href = data.url;
+    } catch (err) {
+      setToast({ type: "error", message: err instanceof Error ? err.message : "Something went wrong" });
+    } finally {
+      setPortalLoading(false);
+    }
   };
 
   return (
-    <AppLayout
-      sidebarTitle="Settings"
-      sidebarSlot={<SettingsSidebar />}
-    >
+    <AppLayout sidebarTitle="Settings" sidebarSlot={<SettingsSidebar />}>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
-        <div className="mb-8">
-          <h1 className="text-xl font-bold text-slate-100 mb-1">Plans & Billing</h1>
-          <p className="text-sm text-slate-500">
-            Current plan: <span className="text-arc-400 capitalize">{user.tier}</span>
-          </p>
+        {/* Toast */}
+        {toast && (
+          <div
+            className={`mb-6 flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium border ${
+              toast.type === "success"
+                ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
+                : "bg-red-500/10 border-red-500/30 text-red-300"
+            }`}
+          >
+            {toast.type === "success" ? (
+              <CheckCircle className="w-4 h-4 shrink-0" />
+            ) : (
+              <XCircle className="w-4 h-4 shrink-0" />
+            )}
+            {toast.message}
+          </div>
+        )}
+
+        <div className="mb-8 flex items-start justify-between flex-wrap gap-4">
+          <div>
+            <h1 className="text-xl font-bold text-slate-100 mb-1">Plans & Billing</h1>
+            <p className="text-sm text-slate-500">
+              Current plan:{" "}
+              <span className="text-arc-400 capitalize font-semibold">{user.tier}</span>
+              {(user as { subscriptionStatus?: string }).subscriptionStatus && user.tier !== "free" && (
+                <span className="ml-2 text-slate-600">
+                  ({(user as { subscriptionStatus?: string }).subscriptionStatus})
+                </span>
+              )}
+            </p>
+          </div>
+
+          {hasSubscription && (
+            <button
+              onClick={handleManageSubscription}
+              disabled={portalLoading}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-slate-800/40 hover:bg-slate-700/40 border border-slate-700/30 text-slate-300 transition-all disabled:opacity-50"
+            >
+              <Settings className="w-4 h-4" />
+              {portalLoading ? "Opening portal…" : "Manage subscription"}
+            </button>
+          )}
         </div>
 
         <div className="grid sm:grid-cols-3 gap-4">
           {PLANS.map((plan) => {
             const isCurrent = user.tier === plan.tier;
+            const isLoading = loading === plan.tier;
+
             return (
               <div
                 key={plan.tier}
                 className={`rounded-2xl p-5 border transition-all ${
-                  plan.popular
+                  isCurrent
+                    ? "bg-arc-500/10 border-arc-500/40 ring-1 ring-arc-500/20"
+                    : plan.popular
                     ? "bg-arc-500/5 border-arc-500/30"
                     : "bg-slate-800/20 border-slate-700/20"
                 }`}
@@ -113,22 +203,42 @@ export default function BillingPage() {
 
                 <button
                   onClick={() => handleUpgrade(plan.tier)}
-                  disabled={isCurrent}
+                  disabled={isCurrent || plan.tier === "free" || isLoading}
                   className={`w-full mt-5 py-2 rounded-xl text-sm font-semibold transition-all ${
                     isCurrent
                       ? "bg-slate-800/40 text-slate-500 cursor-not-allowed"
+                      : plan.tier === "free"
+                      ? "bg-slate-800/40 text-slate-500 cursor-not-allowed"
                       : plan.popular
-                      ? "bg-arc-600 hover:bg-arc-500 text-white shadow-lg shadow-arc-600/20"
-                      : "bg-slate-800/40 hover:bg-slate-700/40 text-slate-300"
+                      ? "bg-arc-600 hover:bg-arc-500 text-white shadow-lg shadow-arc-600/20 disabled:opacity-50"
+                      : "bg-slate-800/40 hover:bg-slate-700/40 text-slate-300 disabled:opacity-50"
                   }`}
                 >
-                  {isCurrent ? "Current plan" : "Upgrade"}
+                  {isCurrent
+                    ? "Current plan"
+                    : plan.tier === "free"
+                    ? "Free forever"
+                    : isLoading
+                    ? "Redirecting…"
+                    : "Upgrade"}
                 </button>
               </div>
             );
           })}
         </div>
+
+        <p className="mt-6 text-xs text-slate-600 text-center">
+          Secure payments powered by Stripe. Cancel anytime.
+        </p>
       </div>
     </AppLayout>
+  );
+}
+
+export default function BillingPage() {
+  return (
+    <Suspense fallback={null}>
+      <BillingContent />
+    </Suspense>
   );
 }
