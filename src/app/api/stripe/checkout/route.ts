@@ -18,6 +18,14 @@ export async function POST(req: NextRequest) {
 
     const plan = STRIPE_PLANS[tier as PlanTier];
 
+    // Guard against missing price ID env vars
+    if (!plan.priceId) {
+      return NextResponse.json(
+        { error: `Price ID for plan "${tier}" is not configured. Set STRIPE_${tier.toUpperCase()}_PRICE_ID.` },
+        { status: 503 }
+      );
+    }
+
     // Get or create Stripe customer
     const user = await prisma.user.findUnique({
       where: { id: session.userId },

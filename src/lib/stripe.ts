@@ -13,12 +13,12 @@ export const stripe: Stripe | null = process.env.STRIPE_SECRET_KEY
 export const STRIPE_PLANS = {
   pro: {
     name: "Pro",
-    priceId: process.env.STRIPE_PRO_PRICE_ID!,
+    priceId: process.env.STRIPE_PRO_PRICE_ID ?? "",
     amount: 1500, // $15.00
   },
   enterprise: {
     name: "Enterprise",
-    priceId: process.env.STRIPE_ENTERPRISE_PRICE_ID!,
+    priceId: process.env.STRIPE_ENTERPRISE_PRICE_ID ?? "",
     amount: 9900, // $99.00
   },
 } as const;
