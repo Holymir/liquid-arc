@@ -1,4 +1,6 @@
-// CoinGecko price client with 60-second in-memory cache
+// CoinGecko price client with 60-second Redis-backed cache (in-memory fallback on local dev)
+
+import { cacheGet, cacheSet } from "@/lib/cache";
 
 const COINGECKO_PLATFORM: Record<string, string> = {
   base: "base",
@@ -11,13 +13,7 @@ const COINGECKO_PLATFORM: Record<string, string> = {
   solana: "solana",
 };
 
-interface CacheEntry {
-  prices: Map<string, number>;
-  expiresAt: number;
-}
-
-const cache = new Map<string, CacheEntry>();
-const CACHE_TTL_MS = 60_000;
+const CACHE_TTL_S = 60;
 
 export async function getTokenPrices(
   chainId: string,
@@ -28,14 +24,13 @@ export async function getTokenPrices(
   const platform = COINGECKO_PLATFORM[chainId];
   if (!platform) return new Map();
 
-  const cacheKey = `${chainId}:${addresses
+  const cacheKey = `coingecko:prices:${chainId}:${addresses
     .map((a) => a.toLowerCase())
     .sort()
     .join(",")}`;
-  const cached = cache.get(cacheKey);
-
-  if (cached && Date.now() < cached.expiresAt) {
-    return cached.prices;
+  const cachedEntries = await cacheGet<[string, number][]>(cacheKey);
+  if (cachedEntries) {
+    return new Map(cachedEntries);
   }
 
   const apiUrl = process.env.COINGECKO_API_URL ?? "https://api.coingecko.com/api/v3";
@@ -79,7 +74,7 @@ export async function getTokenPrices(
     }
   }
 
-  cache.set(cacheKey, { prices, expiresAt: Date.now() + CACHE_TTL_MS });
+  await cacheSet(cacheKey, Array.from(prices.entries()), CACHE_TTL_S);
   return prices;
 }
 

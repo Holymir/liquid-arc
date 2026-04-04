@@ -1,6 +1,6 @@
-// CoinGecko market data client with in-memory cache
-// Mirrors the pattern from src/lib/pricing/coingecko.ts
+// CoinGecko market data client with Redis-backed cache (in-memory fallback on local dev)
 
+import { cacheGet, cacheSet } from "@/lib/cache";
 import type {
   CoinMarketData,
   TrendingCoin,
@@ -12,25 +12,13 @@ import type {
   TopMover,
 } from "./types";
 
-interface CacheEntry<T> {
-  data: T;
-  expiresAt: number;
+// Cache helpers wrap the shared Redis/memory cache
+async function getCached<T>(key: string): Promise<T | undefined> {
+  return cacheGet<T>(`market:${key}`);
 }
 
-const cache = new Map<string, CacheEntry<unknown>>();
-
-function getCached<T>(key: string): T | undefined {
-  const entry = cache.get(key) as CacheEntry<T> | undefined;
-  if (!entry) return undefined;
-  if (Date.now() > entry.expiresAt) {
-    cache.delete(key);
-    return undefined;
-  }
-  return entry.data;
-}
-
-function setCache<T>(key: string, data: T, ttlSeconds: number): void {
-  cache.set(key, { data, expiresAt: Date.now() + ttlSeconds * 1000 });
+async function setCache<T>(key: string, data: T, ttlSeconds: number): Promise<void> {
+  return cacheSet<T>(`market:${key}`, data, ttlSeconds);
 }
 
 /**
@@ -107,7 +95,7 @@ export async function getTopCoins(
   category?: string
 ): Promise<CoinMarketData[]> {
   const cacheKey = `top-coins:${page}:${perPage}:${category ?? "all"}`;
-  const cached = getCached<CoinMarketData[]>(cacheKey);
+  const cached = await getCached<CoinMarketData[]>(cacheKey);
   if (cached) return cached;
 
   const params = new URLSearchParams({
@@ -150,7 +138,7 @@ export async function getTopCoins(
     athChangePercentage: Number(c.ath_change_percentage ?? 0),
   }));
 
-  setCache(cacheKey, coins, 120);
+  await setCache(cacheKey, coins, 120);
   return coins;
 }
 
@@ -160,7 +148,7 @@ export async function getTopCoins(
 
 export async function getTrendingCoins(): Promise<TrendingCoin[]> {
   const cacheKey = "trending-coins";
-  const cached = getCached<TrendingCoin[]>(cacheKey);
+  const cached = await getCached<TrendingCoin[]>(cacheKey);
   if (cached) return cached;
 
   const raw = await fetchCoinGecko<{
@@ -186,7 +174,7 @@ export async function getTrendingCoins(): Promise<TrendingCoin[]> {
     ),
   }));
 
-  setCache(cacheKey, coins, 300);
+  await setCache(cacheKey, coins, 300);
   return coins;
 }
 
@@ -198,7 +186,7 @@ export async function getCoinDetail(
   coinId: string
 ): Promise<CoinDetail | null> {
   const cacheKey = `coin-detail:${coinId}`;
-  const cached = getCached<CoinDetail>(cacheKey);
+  const cached = await getCached<CoinDetail>(cacheKey);
   if (cached) return cached;
 
   const raw = await fetchCoinGecko<Record<string, unknown>>(
@@ -269,7 +257,7 @@ export async function getCoinDetail(
     },
   };
 
-  setCache(cacheKey, coin, 300);
+  await setCache(cacheKey, coin, 300);
   return coin;
 }
 
@@ -282,7 +270,7 @@ export async function getCoinChart(
   days: number
 ): Promise<ChartPoint[]> {
   const cacheKey = `coin-chart:${coinId}:${days}`;
-  const cached = getCached<ChartPoint[]>(cacheKey);
+  const cached = await getCached<ChartPoint[]>(cacheKey);
   if (cached) return cached;
 
   const raw = await fetchCoinGecko<{ prices: [number, number][] }>(
@@ -295,7 +283,7 @@ export async function getCoinChart(
     price,
   }));
 
-  setCache(cacheKey, chart, 300);
+  await setCache(cacheKey, chart, 300);
   return chart;
 }
 
@@ -305,7 +293,7 @@ export async function getCoinChart(
 
 export async function getMarketCategories(): Promise<MarketCategory[]> {
   const cacheKey = "market-categories";
-  const cached = getCached<MarketCategory[]>(cacheKey);
+  const cached = await getCached<MarketCategory[]>(cacheKey);
   if (cached) return cached;
 
   const raw = await fetchCoinGecko<Record<string, unknown>[]>(
@@ -324,7 +312,7 @@ export async function getMarketCategories(): Promise<MarketCategory[]> {
       : [],
   }));
 
-  setCache(cacheKey, categories, 1800);
+  await setCache(cacheKey, categories, 1800);
   return categories;
 }
 
@@ -334,7 +322,7 @@ export async function getMarketCategories(): Promise<MarketCategory[]> {
 
 export async function getGlobalMarketData(): Promise<GlobalMarketData | null> {
   const cacheKey = "global-market-data";
-  const cached = getCached<GlobalMarketData>(cacheKey);
+  const cached = await getCached<GlobalMarketData>(cacheKey);
   if (cached) return cached;
 
   const raw = await fetchCoinGecko<{
@@ -362,7 +350,7 @@ export async function getGlobalMarketData(): Promise<GlobalMarketData | null> {
     activeCryptocurrencies: Number(d.active_cryptocurrencies ?? 0),
   };
 
-  setCache(cacheKey, globalData, 120);
+  await setCache(cacheKey, globalData, 120);
   return globalData;
 }
 
@@ -372,7 +360,7 @@ export async function getGlobalMarketData(): Promise<GlobalMarketData | null> {
 
 export async function getFearGreedIndex(): Promise<FearGreedData | null> {
   const cacheKey = "fear-greed-index";
-  const cached = getCached<FearGreedData>(cacheKey);
+  const cached = await getCached<FearGreedData>(cacheKey);
   if (cached) return cached;
 
   try {
@@ -404,7 +392,7 @@ export async function getFearGreedIndex(): Promise<FearGreedData | null> {
       previousClose: previous ? Number(previous.value) : Number(current.value),
     };
 
-    setCache(cacheKey, fearGreed, 300);
+    await setCache(cacheKey, fearGreed, 300);
     return fearGreed;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

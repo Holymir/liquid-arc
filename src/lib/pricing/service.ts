@@ -15,7 +15,7 @@ export class PricingService {
    * Fetches USD prices for a list of token addresses on a given chain.
    * Solana: Jupiter (primary) → DexScreener (fallback)
    * EVM:    CoinGecko (primary) → DexScreener (fallback)
-   * Results are cached for 30 seconds.
+   * Results are cached for 30 seconds in Redis (or in-memory on local dev).
    */
   async getPrices(
     chainId: string,
@@ -30,9 +30,15 @@ export class PricingService {
     const uncached: string[] = [];
 
     // Check cache first
-    for (const addr of unique) {
-      const key = `price:${chainId}:${addr}`;
-      const cached = cacheGet<number>(key);
+    const cacheChecks = await Promise.all(
+      unique.map(async (addr) => {
+        const key = `price:${chainId}:${addr}`;
+        const cached = await cacheGet<number>(key);
+        return { addr, cached };
+      })
+    );
+
+    for (const { addr, cached } of cacheChecks) {
       if (cached !== undefined) {
         result.set(addr, cached);
       } else {
@@ -69,10 +75,12 @@ export class PricingService {
     }
 
     // Cache and merge
-    for (const [addr, price] of prices) {
-      cacheSet(`price:${chainId}:${addr}`, price, PRICE_CACHE_TTL);
-      result.set(addr, price);
-    }
+    await Promise.all(
+      Array.from(prices.entries()).map(async ([addr, price]) => {
+        await cacheSet(`price:${chainId}:${addr}`, price, PRICE_CACHE_TTL);
+        result.set(addr, price);
+      })
+    );
 
     return result;
   }
