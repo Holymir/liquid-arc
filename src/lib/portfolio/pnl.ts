@@ -19,9 +19,14 @@ export async function calculatePnL(
       where: { walletId },
       orderBy: { snapshotAt: "desc" },
     }),
+    // Find the most recent snapshot BEFORE the period start as the baseline.
+    // Using { lte: since } + desc ordering gives us the snapshot closest to
+    // the start of the window, which is the correct P&L baseline.
+    // (Previously used { gte: since } + asc, which returned a snapshot *within*
+    // the window — causing 0% P&L whenever no snapshots fell exactly at 'since'.)
     prisma.portfolioSnapshot.findFirst({
-      where: { walletId, snapshotAt: { gte: since } },
-      orderBy: { snapshotAt: "asc" },
+      where: { walletId, snapshotAt: { lte: since } },
+      orderBy: { snapshotAt: "desc" },
     }),
   ]);
 
