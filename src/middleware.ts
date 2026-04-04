@@ -26,15 +26,34 @@ export async function middleware(req: NextRequest) {
     pathname.startsWith("/api/auth/reset-password") ||
     pathname.startsWith("/api/auth/verify-email")
   ) {
-    const rl = checkRateLimit(`auth:${ip}`, RATE_LIMITS.auth);
+    const rl = await checkRateLimit(`auth:${ip}`, RATE_LIMITS.auth);
     if (!rl.allowed) {
       return NextResponse.json(
         { error: "Too many requests. Please try again later." },
-        { status: 429, headers: { "Retry-After": String(Math.ceil((rl.resetAt - Date.now()) / 1000)) } }
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(Math.ceil((rl.resetAt - Date.now()) / 1000)),
+          },
+        }
+      );
+    }
+  } else if (pathname.startsWith("/api/market/")) {
+    // Market routes proxy CoinGecko — rate-limit by IP to protect quota
+    const rl = await checkRateLimit(`market:${ip}`, RATE_LIMITS.market);
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: "Rate limit exceeded" },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(Math.ceil((rl.resetAt - Date.now()) / 1000)),
+          },
+        }
       );
     }
   } else if (pathname.startsWith("/api/pools")) {
-    const rl = checkRateLimit(`public:${ip}`, RATE_LIMITS.public);
+    const rl = await checkRateLimit(`public:${ip}`, RATE_LIMITS.public);
     if (!rl.allowed) {
       return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
     }
@@ -45,6 +64,7 @@ export async function middleware(req: NextRequest) {
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/api/pools") ||
     pathname.startsWith("/api/stripe") ||
+    pathname.startsWith("/api/market/") ||
     pathname === "/" ||
     pathname === "/login" ||
     pathname === "/register" ||
@@ -69,7 +89,7 @@ export async function middleware(req: NextRequest) {
 
   // ── Authenticated API rate limiting ───────────────────────────────────
   if (pathname.startsWith("/api/")) {
-    const rl = checkRateLimit(`api:${session.userId}`, RATE_LIMITS.api);
+    const rl = await checkRateLimit(`api:${session.userId}`, RATE_LIMITS.api);
     if (!rl.allowed) {
       return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
     }
@@ -93,6 +113,7 @@ export const config = {
     "/api/auth/reset-password",
     "/api/auth/verify-email",
     "/api/pools/:path*",
+    "/api/market/:path*",
     "/knowledge/:path*",
   ],
 };
