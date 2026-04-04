@@ -36,8 +36,12 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [status, setStatus] = useState<"loading" | "authenticated" | "unauthenticated">("loading");
 
   const refresh = useCallback(async () => {
+    const controller = new AbortController();
+    // Timeout fallback: if /api/auth/me hangs, don't stay in "loading" forever
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
     try {
-      const res = await fetch("/api/auth/me");
+      const res = await fetch("/api/auth/me", { signal: controller.signal });
+      clearTimeout(timeoutId);
       if (res.ok) {
         const data = await res.json();
         setUser(data.user);
@@ -47,6 +51,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         setStatus("unauthenticated");
       }
     } catch {
+      clearTimeout(timeoutId);
       setUser(null);
       setStatus("unauthenticated");
     }
