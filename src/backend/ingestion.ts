@@ -5,6 +5,7 @@
 
 import { prisma } from "@/lib/db/prisma";
 import { protocolRegistry } from "@/lib/defi/registry";
+import { fetchPoolEmissions } from "@/lib/defi/aerodrome/emissions";
 import type { RawPoolData, RawPoolDayData } from "@/lib/defi/types";
 
 export interface IngestionResult {
@@ -144,11 +145,28 @@ async function runPhase1(adapter: PoolAdapter, result: IngestionResult) {
     console.log(`[ingestion] Filtered ${filteredCount} invalid pools (${validPools.length} remaining)`);
   }
 
+  // Fetch emissions data for protocols with gauges (Aerodrome, Velodrome, etc.)
+  const poolTvlMap = new Map<string, number>();
+  for (const pool of validPools) {
+    poolTvlMap.set(pool.poolAddress.toLowerCase(), pool.tvlUsd);
+  }
+  let emissionsAprByPool = new Map<string, number>();
+  try {
+    const emissionsData = await fetchPoolEmissions(adapter.chainId, poolTvlMap);
+    emissionsAprByPool = emissionsData.emissionsAprByPool;
+    if (emissionsAprByPool.size > 0) {
+      console.log(`[ingestion] Got emissions APR for ${emissionsAprByPool.size} pools`);
+    }
+  } catch (err) {
+    console.warn(`[ingestion] Emissions fetch skipped for ${adapter.protocolId}:`, err instanceof Error ? err.message : err);
+  }
+
   // Upsert pools
   for (const pool of validPools) {
     try {
       const dayData = poolDayDataMap.get(pool.poolAddress) ?? [];
       const { volume7d, fees7d, apr24h, apr7d } = computePoolMetrics(pool, dayData);
+      const emissionsApr = emissionsAprByPool.get(pool.poolAddress.toLowerCase()) ?? null;
 
       await prisma.pool.upsert({
         where: {
@@ -165,6 +183,7 @@ async function runPhase1(adapter: PoolAdapter, result: IngestionResult) {
           fees7dUsd: fees7d,
           apr24h,
           apr7d,
+          emissionsApr,
           currentTick: pool.currentTick,
           totalLiquidity: pool.totalLiquidity,
           lastSyncedAt: new Date(),
@@ -189,6 +208,7 @@ async function runPhase1(adapter: PoolAdapter, result: IngestionResult) {
           fees7dUsd: fees7d,
           apr24h,
           apr7d,
+          emissionsApr,
           currentTick: pool.currentTick,
           totalLiquidity: pool.totalLiquidity,
           lastSyncedAt: new Date(),
