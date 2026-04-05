@@ -50,6 +50,7 @@ model Wallet {
   lpPositions       LPPosition[]
   snapshots         PortfolioSnapshot[]
   positionSnapshots PositionSnapshot[]
+  walletEvents      WalletEvent[]
 
   @@unique([address, chainId])
   @@index([userId])
@@ -266,4 +267,55 @@ model AlertHistory {
 
   @@index([alertId, sentAt(sort: Desc)])
   @@map("alert_history")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Wallet Events (LP transaction history — issue #52)
+// ──────────────────────────────────────────────────────────────────────────────
+
+model WalletEvent {
+  id            String   @id @default(uuid())
+  walletId      String   @map("wallet_id")
+
+  // Chain / tx identity
+  chainId       String   @map("chain_id")
+  txHash        String   @map("tx_hash")
+  blockNumber   BigInt   @map("block_number")
+  eventAt       DateTime @map("event_at")
+
+  // Event type: "add_liquidity" | "remove_liquidity" | "collect_fees" | "token_transfer"
+  eventType     String   @map("event_type")
+
+  // Position context (optional — set for LP events)
+  nftTokenId    String?  @map("nft_token_id")
+  poolAddress   String?  @map("pool_address")
+  protocol      String?
+
+  // Token flows
+  token0Address String?  @map("token0_address")
+  token0Symbol  String?  @map("token0_symbol")
+  token0Amount  Float?   @map("token0_amount")
+  token0Price   Float?   @map("token0_price")   // USD price at event time
+  token1Address String?  @map("token1_address")
+  token1Symbol  String?  @map("token1_symbol")
+  token1Amount  Float?   @map("token1_amount")
+  token1Price   Float?   @map("token1_price")
+
+  // USD value at event time
+  valueUsd      Float?   @map("value_usd")
+
+  // P&L (set for remove_liquidity / collect_fees relative to cost basis)
+  costBasisUsd  Float?   @map("cost_basis_usd")
+  pnlUsd        Float?   @map("pnl_usd")
+  pnlPct        Float?   @map("pnl_pct")
+
+  // Raw data from chain API
+  rawData       Json?    @map("raw_data")
+
+  wallet        Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@unique([walletId, chainId, txHash, eventType])
+  @@index([walletId, eventAt(sort: Desc)])
+  @@index([walletId, nftTokenId])
+  @@map("wallet_events")
 }
