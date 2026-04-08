@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { User, CreditCard, Bell } from "lucide-react";
+import { User, CreditCard, Bell, FileDown } from "lucide-react";
 
 // ─────────────────────────────────────────
 // SettingsSidebar — sub-navigation
@@ -12,6 +12,7 @@ const SETTINGS_LINKS = [
   { href: "/settings",         label: "Account",         icon: User,       exact: true },
   { href: "/settings/billing", label: "Billing & Plans", icon: CreditCard, exact: false },
   { href: "/settings/alerts",  label: "Alerts",          icon: Bell,       exact: false },
+  { href: "/settings/export",  label: "Tax CSV Export",  icon: FileDown,   exact: false },
 ];
 
 export function SettingsSidebar() {
