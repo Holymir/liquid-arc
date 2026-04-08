@@ -4,6 +4,24 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { calculatePnL } from "@/lib/portfolio/pnl";
 import { requireAuth } from "@/lib/auth/session";
+import { getTierLimits, checkHistoryAccess } from "@/lib/auth/tier";
+
+/** Map period string → days (for tier enforcement) */
+const PERIOD_DAYS: Record<string, number> = {
+  "24h": 1,
+  "7d": 7,
+  "30d": 30,
+  "90d": 90,
+  "all": 36500, // treat "all" as a very large number; enterprise (unlimited) passes
+};
+
+/** Map period string → hours (for DB query) */
+const PERIOD_HOURS: Record<string, number> = {
+  "24h": 24,
+  "7d": 168,
+  "30d": 720,
+  "90d": 2160,
+};
 
 export async function GET(
   request: NextRequest,
@@ -24,6 +42,28 @@ export async function GET(
     | "90d"
     | "all";
 
+  // ── Tier enforcement: history period ─────────────────────────────────────
+  const user = await prisma.user.findUnique({
+    where: { id: session.userId },
+    select: { tier: true },
+  });
+  const userTier = user?.tier ?? "free";
+  const limits = getTierLimits(userTier);
+  const requestedDays = PERIOD_DAYS[period] ?? 7;
+
+  const historyGuard = checkHistoryAccess(userTier, requestedDays);
+  if (!historyGuard.allowed && historyGuard.error) {
+    return NextResponse.json(
+      {
+        error: historyGuard.error.message,
+        code: historyGuard.error.code,
+        requiredTier: historyGuard.error.requiredTier,
+        maxHistoryDays: limits.historyDays,
+      },
+      { status: 403 }
+    );
+  }
+
   const isSolana = !address.startsWith("0x");
   const normalizedAddress = isSolana ? address : address.toLowerCase();
 
@@ -39,15 +79,8 @@ export async function GET(
     return NextResponse.json({ error: "Wallet not found" }, { status: 404 });
   }
 
-  const periodHours: Record<string, number> = {
-    "24h": 24,
-    "7d": 168,
-    "30d": 720,
-    "90d": 2160,
-  };
-
   const isAll = period === "all";
-  const hours = periodHours[period] ?? 168;
+  const hours = PERIOD_HOURS[period] ?? 168;
   const since = isAll ? undefined : new Date(Date.now() - hours * 60 * 60 * 1000);
 
   const pnlPeriod = isAll ? "30d" : period;
