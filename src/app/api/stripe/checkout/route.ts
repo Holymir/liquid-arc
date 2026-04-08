@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
     // Get or create Stripe customer
     const user = await prisma.user.findUnique({
       where: { id: session.userId },
-      select: { id: true, email: true, stripeCustomerId: true, tier: true },
+      select: { id: true, email: true, stripeCustomerId: true, tier: true, subscriptionId: true, subscriptionStatus: true },
     });
 
     if (!user) {
@@ -39,6 +39,26 @@ export async function POST(req: NextRequest) {
     // Don't allow downgrade via checkout
     if (user.tier === tier) {
       return NextResponse.json({ error: "Already on this plan" }, { status: 400 });
+    }
+
+    // Cancel any existing active subscription before creating a new checkout.
+    // This prevents users from accumulating multiple concurrent paid subscriptions.
+    const activeStatuses = ["active", "trialing", "past_due"];
+    if (
+      user.subscriptionId &&
+      user.subscriptionStatus &&
+      activeStatuses.includes(user.subscriptionStatus)
+    ) {
+      try {
+        await stripe.subscriptions.cancel(user.subscriptionId);
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { tier: "free", subscriptionId: null, subscriptionStatus: "canceled" },
+        });
+      } catch (cancelErr) {
+        // Log but don't block — Stripe may have already cancelled it
+        console.error("[stripe/checkout] Failed to cancel existing subscription:", cancelErr);
+      }
     }
 
     let customerId = user.stripeCustomerId;

@@ -51,10 +51,11 @@ const PLANS = [
 ];
 
 function BillingContent() {
-  const { user, status } = useSession();
+  const { user, status, refresh } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState<string | null>(null);
+  const [cancelLoading, setCancelLoading] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
   const [toast, setToast] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
@@ -85,8 +86,26 @@ function BillingContent() {
 
   const hasSubscription = user.tier !== "free";
 
+  const handleDowngradeToFree = async () => {
+    if (!confirm("Downgrade to Free? You\'ll lose access to paid features at the end of your billing period.")) return;
+    setCancelLoading(true);
+    try {
+      const res = await fetch("/api/stripe/cancel", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed to cancel subscription");
+      setToast({ type: "success", message: "Subscription cancelled. You\'ve been downgraded to the Free plan." });
+      // Refresh session to reflect new tier
+      await refresh();
+    } catch (err) {
+      setToast({ type: "error", message: err instanceof Error ? err.message : "Something went wrong" });
+    } finally {
+      setCancelLoading(false);
+    }
+  };
+
   const handleUpgrade = async (tier: string) => {
-    if (tier === "free" || tier === user.tier) return;
+    if (tier === user.tier) return;
+    if (tier === "free") { await handleDowngradeToFree(); return; }
     setLoading(tier);
     try {
       const res = await fetch("/api/stripe/checkout", {
@@ -104,6 +123,7 @@ function BillingContent() {
     }
   };
 
+  // handleManageSubscription opens Stripe's customer portal for invoice/payment management
   const handleManageSubscription = async () => {
     setPortalLoading(true);
     try {
@@ -203,12 +223,14 @@ function BillingContent() {
 
                 <button
                   onClick={() => handleUpgrade(plan.tier)}
-                  disabled={isCurrent || plan.tier === "free" || isLoading}
+                  disabled={isCurrent || (plan.tier === "free" && !hasSubscription) || isLoading || cancelLoading}
                   className={`w-full mt-5 py-2 rounded-xl text-sm font-semibold transition-all ${
                     isCurrent
                       ? "bg-slate-800/40 text-slate-500 cursor-not-allowed"
-                      : plan.tier === "free"
+                      : plan.tier === "free" && !hasSubscription
                       ? "bg-slate-800/40 text-slate-500 cursor-not-allowed"
+                      : plan.tier === "free" && hasSubscription
+                      ? "bg-red-900/30 hover:bg-red-900/50 text-red-400 border border-red-800/40 disabled:opacity-50"
                       : plan.popular
                       ? "bg-arc-600 hover:bg-arc-500 text-white shadow-lg shadow-arc-600/20 disabled:opacity-50"
                       : "bg-slate-800/40 hover:bg-slate-700/40 text-slate-300 disabled:opacity-50"
@@ -216,8 +238,12 @@ function BillingContent() {
                 >
                   {isCurrent
                     ? "Current plan"
-                    : plan.tier === "free"
+                    : plan.tier === "free" && !hasSubscription
                     ? "Free forever"
+                    : plan.tier === "free" && hasSubscription
+                    ? cancelLoading
+                      ? "Cancelling…"
+                      : "Downgrade to Free"
                     : isLoading
                     ? "Redirecting…"
                     : "Upgrade"}
