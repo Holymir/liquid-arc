@@ -57,11 +57,35 @@ export async function middleware(req: NextRequest) {
     if (!rl.allowed) {
       return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
     }
+  } else if (pathname.startsWith("/api/v1/")) {
+    // Public LP Analytics API — IP-level rate limiting on all v1 routes
+    // Per-key rate limiting is also applied inside each handler after key auth.
+    const rl = await checkRateLimit(`v1-ip:${ip}`, RATE_LIMITS.public);
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: "Rate limit exceeded" },
+        {
+          status: 429,
+          headers: { "Retry-After": String(Math.ceil((rl.resetAt - Date.now()) / 1000)) },
+        }
+      );
+    }
+  }
+
+  // ── CORS for public LP Analytics API ──────────────────────────────
+  if (pathname.startsWith("/api/v1/")) {
+    res.headers.set("Access-Control-Allow-Origin", "*");
+    res.headers.set("Access-Control-Allow-Methods", "GET, POST, DELETE, PATCH, OPTIONS");
+    res.headers.set("Access-Control-Allow-Headers", "x-api-key, Authorization, Content-Type");
+    if (req.method === "OPTIONS") {
+      return new NextResponse(null, { status: 204, headers: res.headers });
+    }
   }
 
   // ── Public routes — skip auth check ───────────────────────────────────
   if (
     pathname.startsWith("/api/auth") ||
+    pathname.startsWith("/api/v1/") ||
     pathname.startsWith("/api/pools") ||
     pathname.startsWith("/api/stripe") ||
     pathname.startsWith("/api/market/") ||
@@ -108,6 +132,7 @@ export const config = {
     "/api/alerts/:path*",
     "/api/telegram/:path*",
     "/api/export/:path*",
+    "/api/v1/:path*",
     "/api/auth/login",
     "/api/auth/register",
     "/api/auth/forgot-password",
