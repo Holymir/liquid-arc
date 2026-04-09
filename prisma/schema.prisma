@@ -254,7 +254,7 @@ model ApiKey {
   id          String    @id @default(uuid())
   userId      String    @map("user_id")
   keyHash     String    @unique @map("key_hash") // SHA-256 of the raw key
-  keyPrefix   String    @map("key_prefix")       // first 8 chars, shown in UI
+  keyPrefix   String    @map("key_prefix")       // first 11 chars: "la_" + 8 hex, shown in UI
   name        String    @default("Default")       // user-friendly label
   isActive    Boolean   @default(true) @map("is_active")
   lastUsedAt  DateTime? @map("last_used_at")

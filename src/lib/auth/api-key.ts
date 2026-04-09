@@ -60,7 +60,7 @@ export async function validateApiKey(req: NextRequest): Promise<ApiKeyContext | 
   // Fire-and-forget last_used_at update (don't await — keep latency low)
   prisma.apiKey
     .update({ where: { id: row.id }, data: { lastUsedAt: new Date() } })
-    .catch(() => {/* non-critical */});
+    .catch((err: unknown) => console.error("[api-key] lastUsedAt update failed:", err));
 
   return {
     userId: row.user.id,
