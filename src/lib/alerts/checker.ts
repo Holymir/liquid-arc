@@ -266,7 +266,7 @@ async function checkPriceChange(
     ((portfolio.totalUsdValue - baselineSnap.totalUsdValue) / baselineSnap.totalUsdValue) * 100;
   const absChange = Math.abs(changePercent);
 
-  if (absChange < thresholdPercent) return;
+  if (absChange < thresholdPercent) return false;
 
   const direction = changePercent > 0 ? "up" : "down";
   const message = buildPriceChangeMessage({
