@@ -45,6 +45,14 @@ interface PriceChangeConfig {
 
 // ── Notification dispatch ─────────────────────────────────────────────────────
 
+/**
+ * Strip MarkdownV2 escape characters so the same text can be used in email.
+ * MarkdownV2 requires escaping: _ * [ ] ( ) ~ ` > # + - = | { } . !
+ */
+function stripMarkdownV2(text: string): string {
+  return text.replace(/\\([_*[\]()~`>#+=|{}.!-])/g, "$1");
+}
+
 async function notify(
   channel: string,
   config: Record<string, unknown>,
@@ -62,11 +70,12 @@ async function notify(
     }
   }
 
-  // Default: email
+  // Default: email — strip MarkdownV2 escape chars before embedding in HTML
+  const emailBody = stripMarkdownV2(body);
   await sendEmail({
     to: userEmail,
     subject,
-    html: `<div style="font-family: sans-serif; padding: 24px;">${body.replace(/\n/g, "<br>")}</div>`,
+    html: `<div style="font-family: sans-serif; padding: 24px;">${emailBody.replace(/\n/g, "<br>")}</div>`,
   });
 }
 
@@ -150,8 +159,10 @@ async function evalILThreshold(
     orderBy: { snapshotAt: "desc" },
   });
 
+  // Use earliest entry snapshot as cost basis
   const entry = await prisma.positionSnapshot.findFirst({
     where: { nftTokenId: alertConfig.nftTokenId, isEntry: true },
+    orderBy: { snapshotAt: "asc" },
   });
 
   if (!latest || !entry || entry.positionUsd === 0) {
@@ -218,7 +229,13 @@ export async function runAlertEngine(): Promise<{ fired: number; errors: number 
         case "il_threshold":
           result = await evalILThreshold(cfg as unknown as ILThresholdConfig);
           break;
+        case "price_change":
+          // price_change not yet implemented — skip silently rather than crashing
+          // TODO: implement evalPriceChange() using market price history
+          console.debug(`[alerts] price_change alert ${alert.id} skipped — evaluator not yet implemented`);
+          continue;
         default:
+          console.warn(`[alerts] Unknown alert type: ${alert.type} on alert ${alert.id}`);
           continue;
       }
 
