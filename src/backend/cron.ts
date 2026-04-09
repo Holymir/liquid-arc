@@ -4,17 +4,32 @@
 // Each protocol is processed independently — if one fails, others continue.
 
 import { runFullIngestion } from "./ingestion";
+import { runAlertChecks } from "@/lib/alerts/checker";
 
 let cronInterval: ReturnType<typeof setInterval> | null = null;
+let alertInterval: ReturnType<typeof setInterval> | null = null;
 let isRunning = false;
 
 // Default: every 3 hours
 const CRON_INTERVAL_MS = parseInt(process.env.INGEST_INTERVAL_MS || String(3 * 60 * 60 * 1000), 10);
 
+// Alert checks: every 15 minutes
+const ALERT_INTERVAL_MS = parseInt(process.env.ALERT_INTERVAL_MS || String(15 * 60 * 1000), 10);
+
 export function scheduleCron() {
   console.log(
     `[cron] Scheduling pool ingestion every ${(CRON_INTERVAL_MS / 3600000).toFixed(1)}h`
   );
+
+  // Schedule alert checks
+  console.log(`[cron] Scheduling alert checks every ${(ALERT_INTERVAL_MS / 60000).toFixed(0)}m`);
+  alertInterval = setInterval(async () => {
+    try {
+      await runAlertChecks();
+    } catch (err) {
+      console.error("[cron] Alert check failed:", err);
+    }
+  }, ALERT_INTERVAL_MS);
 
   cronInterval = setInterval(async () => {
     if (isRunning) {
@@ -58,5 +73,9 @@ export function stopCron() {
   if (cronInterval) {
     clearInterval(cronInterval);
     cronInterval = null;
+  }
+  if (alertInterval) {
+    clearInterval(alertInterval);
+    alertInterval = null;
   }
 }

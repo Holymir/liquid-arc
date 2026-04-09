@@ -106,6 +106,7 @@ export const config = {
     "/api/portfolio/:path*",
     "/api/prices/:path*",
     "/api/alerts/:path*",
+    "/api/telegram/:path*",
     "/api/export/:path*",
     "/api/auth/login",
     "/api/auth/register",
