@@ -11,8 +11,14 @@
  *   await sendTelegramMessage(chatId, "Hello from LiquidArc!");
  */
 
-const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const API_BASE = `https://api.telegram.org/bot${BOT_TOKEN}`;
+// App base URL — use env var so it works across staging/production/preview deployments
+const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? "https://liquid-arc.vercel.app").replace(/\/$/, "");
+
+// Read BOT_TOKEN lazily so test environments can set it after module load
+function getApiBase(): string {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  return `https://api.telegram.org/bot${token}`;
+}
 
 export interface TelegramResult {
   ok: boolean;
@@ -28,13 +34,14 @@ export async function sendTelegramMessage(
   text: string,
   parseMode: "Markdown" | "HTML" | "MarkdownV2" | undefined = "HTML"
 ): Promise<TelegramResult> {
-  if (!BOT_TOKEN) {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  if (!token) {
     console.log(`[telegram] (dev) chatId=${chatId} | ${text}`);
     return { ok: true };
   }
 
   try {
-    const res = await fetch(`${API_BASE}/sendMessage`, {
+    const res = await fetch(`${getApiBase()}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -89,7 +96,7 @@ export function buildOutOfRangeMessage(opts: {
     `Current tick: <code>${opts.currentTick}</code>\n` +
     `Range: <code>${opts.tickLower}</code> → <code>${opts.tickUpper}</code>\n\n` +
     `Your position is <b>not earning fees</b>. Consider rebalancing.\n\n` +
-    `<a href="https://liquid-arc.vercel.app/dashboard">View Dashboard →</a>`
+    `<a href="${APP_URL}/dashboard">View Dashboard →</a>`
   );
 }
 
@@ -107,7 +114,7 @@ export function buildILThresholdMessage(opts: {
     `Position #${opts.nftTokenId}\n\n` +
     `IL: <b>${opts.ilPercent.toFixed(2)}%</b> (threshold: ${opts.thresholdPercent}%)\n\n` +
     `Your position has exceeded your impermanent loss threshold.\n\n` +
-    `<a href="https://liquid-arc.vercel.app/dashboard">View Dashboard →</a>`
+    `<a href="${APP_URL}/dashboard">View Dashboard →</a>`
   );
 }
 
@@ -123,7 +130,7 @@ export function buildFeesMilestoneMessage(opts: {
     `Position #${opts.nftTokenId}\n\n` +
     `You've earned <b>$${opts.feesEarnedUsd.toFixed(2)}</b> in fees\n` +
     `(milestone: $${opts.milestoneUsd})\n\n` +
-    `<a href="https://liquid-arc.vercel.app/dashboard">View Dashboard →</a>`
+    `<a href="${APP_URL}/dashboard">View Dashboard →</a>`
   );
 }
 
@@ -141,6 +148,6 @@ export function buildPriceChangeMessage(opts: {
     `Wallet: <code>${opts.walletAddress.slice(0, 8)}…${opts.walletAddress.slice(-4)}</code>\n\n` +
     `Change: <b>${sign}${opts.changePercent.toFixed(2)}%</b> (threshold: ${opts.thresholdPercent}%)\n` +
     `Current value: <b>$${opts.currentValueUsd.toFixed(2)}</b>\n\n` +
-    `<a href="https://liquid-arc.vercel.app/dashboard">View Dashboard →</a>`
+    `<a href="${APP_URL}/dashboard">View Dashboard →</a>`
   );
 }

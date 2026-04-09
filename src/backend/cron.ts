@@ -9,6 +9,7 @@ import { runAlertChecks } from "@/lib/alerts/checker";
 let cronInterval: ReturnType<typeof setInterval> | null = null;
 let alertInterval: ReturnType<typeof setInterval> | null = null;
 let isRunning = false;
+let isAlertRunning = false;
 
 // Default: every 3 hours
 const CRON_INTERVAL_MS = parseInt(process.env.INGEST_INTERVAL_MS || String(3 * 60 * 60 * 1000), 10);
@@ -24,10 +25,21 @@ export function scheduleCron() {
   // Schedule alert checks
   console.log(`[cron] Scheduling alert checks every ${(ALERT_INTERVAL_MS / 60000).toFixed(0)}m`);
   alertInterval = setInterval(async () => {
+    if (isAlertRunning) {
+      console.log("[cron] Previous alert check still running, skipping...");
+      return;
+    }
+    isAlertRunning = true;
     try {
-      await runAlertChecks();
+      const result = await runAlertChecks();
+      console.log(
+        `[cron] Alert check complete: ${result.checked} checked, ${result.fired} fired` +
+        (result.errors > 0 ? `, ${result.errors} errors` : "")
+      );
     } catch (err) {
       console.error("[cron] Alert check failed:", err);
+    } finally {
+      isAlertRunning = false;
     }
   }, ALERT_INTERVAL_MS);
 
@@ -78,4 +90,6 @@ export function stopCron() {
     clearInterval(alertInterval);
     alertInterval = null;
   }
+  isRunning = false;
+  isAlertRunning = false;
 }

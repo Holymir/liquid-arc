@@ -55,15 +55,15 @@ async function checkOutOfRange(
   alertId: string,
   config: Record<string, unknown>,
   lastFiredAt: Date | null
-): Promise<void> {
+): Promise<boolean> {
   const { chatId, walletAddress, nftTokenId } = config as {
     chatId: string;
     walletAddress: string;
     nftTokenId: string;
   };
 
-  if (!chatId || !walletAddress || !nftTokenId) return;
-  if (!shouldFire(lastFiredAt)) return;
+  if (!chatId || !walletAddress || !nftTokenId) return false;
+  if (!shouldFire(lastFiredAt)) return false;
 
   const isSolana = !walletAddress.startsWith("0x");
   const chainId = isSolana ? "solana" : "base";
@@ -72,14 +72,14 @@ async function checkOutOfRange(
   try {
     portfolio = await getPortfolio(walletAddress, chainId);
   } catch {
-    return;
+    return false;
   }
 
   const pos = portfolio.lpPositions.find((p) => p.nftTokenId === nftTokenId);
-  if (!pos || pos.currentTick == null || pos.tickLower == null || pos.tickUpper == null) return;
+  if (!pos || pos.currentTick == null || pos.tickLower == null || pos.tickUpper == null) return false;
 
   const inRange = pos.currentTick >= pos.tickLower && pos.currentTick <= pos.tickUpper;
-  if (inRange) return;
+  if (inRange) return false;
 
   const pair = `${pos.token0Symbol}/${pos.token1Symbol}`;
   const message = buildOutOfRangeMessage({
@@ -101,14 +101,16 @@ async function checkOutOfRange(
       tickLower: pos.tickLower,
       tickUpper: pos.tickUpper,
     });
+    return true;
   }
+  return false;
 }
 
 async function checkILThreshold(
   alertId: string,
   config: Record<string, unknown>,
   lastFiredAt: Date | null
-): Promise<void> {
+): Promise<boolean> {
   const { chatId, walletAddress, nftTokenId, thresholdPercent } = config as {
     chatId: string;
     walletAddress: string;
@@ -116,8 +118,8 @@ async function checkILThreshold(
     thresholdPercent: number;
   };
 
-  if (!chatId || !walletAddress || !nftTokenId || thresholdPercent == null) return;
-  if (!shouldFire(lastFiredAt)) return;
+  if (!chatId || !walletAddress || !nftTokenId || thresholdPercent == null) return false;
+  if (!shouldFire(lastFiredAt)) return false;
 
   // Get the entry snapshot for cost basis
   const normalized = walletAddress.startsWith("0x") ? walletAddress.toLowerCase() : walletAddress;
@@ -127,27 +129,27 @@ async function checkILThreshold(
     where: { address: normalized, chainId },
     select: { id: true },
   });
-  if (!wallet) return;
+  if (!wallet) return false;
 
   const entrySnap = await prisma.positionSnapshot.findFirst({
     where: { walletId: wallet.id, nftTokenId, isEntry: true },
     orderBy: { snapshotAt: "asc" },
   });
-  if (!entrySnap || !entrySnap.positionUsd) return;
+  if (!entrySnap || !entrySnap.positionUsd) return false;
 
   let portfolio;
   try {
     portfolio = await getPortfolio(walletAddress, chainId);
   } catch {
-    return;
+    return false;
   }
 
   const pos = portfolio.lpPositions.find((p) => p.nftTokenId === nftTokenId);
-  if (!pos || !pos.usdValue) return;
+  if (!pos || !pos.usdValue) return false;
 
   // Simple IL: value drop from entry (doesn't account for fees, which is conservative)
   const ilPercent = ((entrySnap.positionUsd - pos.usdValue) / entrySnap.positionUsd) * 100;
-  if (ilPercent <= thresholdPercent) return;
+  if (ilPercent <= thresholdPercent) return false;
 
   const pair = `${pos.token0Symbol}/${pos.token1Symbol}`;
   const message = buildILThresholdMessage({
@@ -161,14 +163,16 @@ async function checkILThreshold(
   const result = await sendTelegramMessage(chatId, message, "HTML");
   if (result.ok) {
     await recordFire(alertId, { type: "il_threshold", pair, nftTokenId, ilPercent, thresholdPercent });
+    return true;
   }
+  return false;
 }
 
 async function checkFeesEarned(
   alertId: string,
   config: Record<string, unknown>,
   lastFiredAt: Date | null
-): Promise<void> {
+): Promise<boolean> {
   const { chatId, walletAddress, nftTokenId, milestoneUsd } = config as {
     chatId: string;
     walletAddress: string;
@@ -176,7 +180,7 @@ async function checkFeesEarned(
     milestoneUsd: number;
   };
 
-  if (!chatId || !walletAddress || !nftTokenId || milestoneUsd == null) return;
+  if (!chatId || !walletAddress || !nftTokenId || milestoneUsd == null) return false;
 
   const isSolana = !walletAddress.startsWith("0x");
   const chainId = isSolana ? "solana" : "base";
@@ -185,14 +189,14 @@ async function checkFeesEarned(
   try {
     portfolio = await getPortfolio(walletAddress, chainId);
   } catch {
-    return;
+    return false;
   }
 
   const pos = portfolio.lpPositions.find((p) => p.nftTokenId === nftTokenId);
-  if (!pos) return;
+  if (!pos) return false;
 
   const feesEarnedUsd = (pos.feesEarnedUsd ?? 0) + (pos.emissionsEarnedUsd ?? 0);
-  if (feesEarnedUsd < milestoneUsd) return;
+  if (feesEarnedUsd < milestoneUsd) return false;
 
   // Only fire once per milestone crossing (use lastFiredAt to track)
   // If it was already fired and fees haven't reset (still above milestone), don't re-fire
@@ -200,7 +204,7 @@ async function checkFeesEarned(
     // Check if we fired after the fees were last reset — if last fire < milestone crossing, fire again
     // Simple heuristic: only re-fire if it's been >7 days (user may have claimed and re-earned)
     const daysSinceFire = (Date.now() - lastFiredAt.getTime()) / (1000 * 60 * 60 * 24);
-    if (daysSinceFire < 7) return;
+    if (daysSinceFire < 7) return false;
   }
 
   const pair = `${pos.token0Symbol}/${pos.token1Symbol}`;
@@ -209,22 +213,24 @@ async function checkFeesEarned(
   const result = await sendTelegramMessage(chatId, message, "HTML");
   if (result.ok) {
     await recordFire(alertId, { type: "fees_earned", pair, nftTokenId, feesEarnedUsd, milestoneUsd });
+    return true;
   }
+  return false;
 }
 
 async function checkPriceChange(
   alertId: string,
   config: Record<string, unknown>,
   lastFiredAt: Date | null
-): Promise<void> {
+): Promise<boolean> {
   const { chatId, walletAddress, thresholdPercent } = config as {
     chatId: string;
     walletAddress: string;
     thresholdPercent: number;
   };
 
-  if (!chatId || !walletAddress || thresholdPercent == null) return;
-  if (!shouldFire(lastFiredAt)) return;
+  if (!chatId || !walletAddress || thresholdPercent == null) return false;
+  if (!shouldFire(lastFiredAt)) return false;
 
   const normalized = walletAddress.startsWith("0x") ? walletAddress.toLowerCase() : walletAddress;
   const chainId = walletAddress.startsWith("0x") ? "base" : "solana";
@@ -234,7 +240,7 @@ async function checkPriceChange(
     where: { address: normalized, chainId },
     select: { id: true },
   });
-  if (!wallet) return;
+  if (!wallet) return false;
 
   const baselineSnap = await prisma.portfolioSnapshot.findFirst({
     where: {
@@ -244,13 +250,16 @@ async function checkPriceChange(
     orderBy: { snapshotAt: "desc" },
     select: { totalUsdValue: true },
   });
-  if (!baselineSnap || !baselineSnap.totalUsdValue) return;
+  if (!baselineSnap || !baselineSnap.totalUsdValue) {
+    console.debug(`[alerts] price_change: no baseline snapshot >4h old for wallet ${normalized}, skipping`);
+    return false;
+  }
 
   let portfolio;
   try {
     portfolio = await getPortfolio(walletAddress, chainId);
   } catch {
-    return;
+    return false;
   }
 
   const changePercent =
@@ -277,7 +286,9 @@ async function checkPriceChange(
       thresholdPercent,
       currentValueUsd: portfolio.totalUsdValue,
     });
+    return true;
   }
+  return false;
 }
 
 // ── Main runner ───────────────────────────────────────────────────────────────
@@ -307,22 +318,24 @@ export async function runAlertChecks(): Promise<{ checked: number; fired: number
     const config = alert.config as Record<string, unknown>;
 
     try {
+      let didFire = false;
       switch (alert.type) {
         case "out_of_range":
-          await checkOutOfRange(alert.id, config, alert.lastFiredAt);
+          didFire = await checkOutOfRange(alert.id, config, alert.lastFiredAt);
           break;
         case "il_threshold":
-          await checkILThreshold(alert.id, config, alert.lastFiredAt);
+          didFire = await checkILThreshold(alert.id, config, alert.lastFiredAt);
           break;
         case "fees_earned":
-          await checkFeesEarned(alert.id, config, alert.lastFiredAt);
+          didFire = await checkFeesEarned(alert.id, config, alert.lastFiredAt);
           break;
         case "price_change":
-          await checkPriceChange(alert.id, config, alert.lastFiredAt);
+          didFire = await checkPriceChange(alert.id, config, alert.lastFiredAt);
           break;
         default:
           console.warn(`[alerts] Unknown alert type: ${alert.type}`);
       }
+      if (didFire) fired++;
     } catch (err) {
       errors++;
       console.error(`[alerts] Error checking alert ${alert.id}:`, err);
