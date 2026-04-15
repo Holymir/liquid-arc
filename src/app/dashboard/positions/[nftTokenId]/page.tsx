@@ -226,7 +226,7 @@ export default function PositionPage() {
                     Position Value
                   </p>
                   <p className="text-slate-100 font-bold text-2xl tabular-nums">
-                    {formatUsd(pnl.currentPositionUsd)}
+                    {formatUsd(pnl.currentPositionUsd + pnl.feesEarnedUsd + pnl.emissionsEarnedUsd)}
                   </p>
                   <p className="text-slate-600 text-[11px] mt-1">
                     Entry {formatUsd(pnl.entryValueUsd)}

@@ -51,7 +51,9 @@ function PositionCard({
     pos.currentTick < pos.tickUpper;
 
   const isStaked = pos.protocol.includes("staked");
-  const totalClaimable = (pos.feesEarnedUsd ?? 0) + (pos.emissionsEarnedUsd ?? 0);
+  const totalClaimable = isStaked
+    ? (pos.emissionsEarnedUsd ?? 0)
+    : (pos.feesEarnedUsd ?? 0) + (pos.emissionsEarnedUsd ?? 0);
   const pnl = pos.pnlSummary;
 
   return (
@@ -185,7 +187,7 @@ function PositionCard({
                 <span className="text-emerald-400 font-semibold tabular-nums">
                   +{formatUsd(totalClaimable)}
                 </span>
-                {(pos.feesEarnedUsd ?? 0) > 0 && (pos.emissionsEarnedUsd ?? 0) > 0 && (
+                {!isStaked && (pos.feesEarnedUsd ?? 0) > 0 && (pos.emissionsEarnedUsd ?? 0) > 0 && (
                   <span className="text-slate-600 text-[10px]">
                     (fees {formatUsd(pos.feesEarnedUsd!)} + emissions {formatUsd(pos.emissionsEarnedUsd!)})
                   </span>
@@ -217,10 +219,12 @@ export function LPPositions({ address, chainId, positions, isLoading }: LPPositi
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
   const totalLpValue = positions.reduce((sum, p) => sum + (p.usdValue ?? 0), 0);
-  const totalClaimable = positions.reduce(
-    (sum, p) => sum + (p.feesEarnedUsd ?? 0) + (p.emissionsEarnedUsd ?? 0),
-    0
-  );
+  const totalClaimable = positions.reduce((sum, p) => {
+    const staked = p.protocol.includes("staked");
+    return sum + (staked
+      ? (p.emissionsEarnedUsd ?? 0)
+      : (p.feesEarnedUsd ?? 0) + (p.emissionsEarnedUsd ?? 0));
+  }, 0);
 
   if (isLoading) {
     return (
