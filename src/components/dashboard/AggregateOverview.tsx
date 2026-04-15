@@ -99,7 +99,9 @@ function PositionCard({
     pos.currentTick < pos.tickUpper;
 
   const isStaked = pos.protocol.includes("staked");
-  const totalClaimable = (pos.feesEarnedUsd ?? 0) + (pos.emissionsEarnedUsd ?? 0);
+  const totalClaimable = isStaked
+    ? (pos.emissionsEarnedUsd ?? 0)
+    : (pos.feesEarnedUsd ?? 0) + (pos.emissionsEarnedUsd ?? 0);
   const pnl = pos.pnlSummary;
 
   return (
@@ -206,7 +208,7 @@ function PositionCard({
                 <Gift className="w-3 h-3 text-emerald-400/60" />
                 <span className="text-slate-500">Claimable</span>
                 <span className="text-emerald-400 font-semibold tabular-nums">+{formatUsd(totalClaimable)}</span>
-                {(pos.feesEarnedUsd ?? 0) > 0 && (pos.emissionsEarnedUsd ?? 0) > 0 && (
+                {!isStaked && (pos.feesEarnedUsd ?? 0) > 0 && (pos.emissionsEarnedUsd ?? 0) > 0 && (
                   <span className="text-slate-600 text-[10px]">
                     (fees {formatUsd(pos.feesEarnedUsd!)} + emissions {formatUsd(pos.emissionsEarnedUsd!)})
                   </span>

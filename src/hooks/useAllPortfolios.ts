@@ -176,7 +176,10 @@ export function useAllPortfolios(wallets: TrackedWallet[]): UseAllPortfoliosResu
       agg.totalLast24hEarn += wp.data.last24hEarn ?? 0;
 
       for (const pos of wp.data.lpPositions) {
-        const claimable = (pos.feesEarnedUsd ?? 0) + (pos.emissionsEarnedUsd ?? 0);
+        const isStaked = pos.protocol.includes("staked");
+        const claimable = isStaked
+          ? (pos.emissionsEarnedUsd ?? 0)
+          : (pos.feesEarnedUsd ?? 0) + (pos.emissionsEarnedUsd ?? 0);
         agg.totalClaimable += claimable;
         agg.allPositions.push({
           ...pos,
