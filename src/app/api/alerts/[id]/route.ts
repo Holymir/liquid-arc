@@ -1,5 +1,5 @@
 /**
- * PATCH  /api/alerts/[id]  — toggle isActive
+ * PATCH  /api/alerts/[id]  — toggle active/inactive
  * DELETE /api/alerts/[id]  — delete alert
  */
 
@@ -7,10 +7,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { requireAuth } from "@/lib/auth/session";
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+type Params = Promise<{ id: string }>;
+
+export async function PATCH(request: NextRequest, { params }: { params: Params }) {
   let session;
   try {
     session = await requireAuth();
@@ -19,31 +18,32 @@ export async function PATCH(
   }
 
   const { id } = await params;
-  const body = await req.json().catch(() => ({}));
+  const body = await request.json().catch(() => ({})) as Record<string, unknown>;
+
+  // Only allow toggling isActive
+  const isActive = typeof body.isActive === "boolean" ? body.isActive : undefined;
+  if (isActive === undefined) {
+    return NextResponse.json({ error: "isActive (boolean) is required" }, { status: 400 });
+  }
 
   const alert = await prisma.alert.findFirst({
     where: { id, userId: session.userId },
+    select: { id: true },
   });
-
   if (!alert) {
     return NextResponse.json({ error: "Alert not found" }, { status: 404 });
   }
 
   const updated = await prisma.alert.update({
     where: { id },
-    data: {
-      ...(typeof body.isActive === "boolean" ? { isActive: body.isActive } : {}),
-    },
-    select: { id: true, type: true, channel: true, isActive: true },
+    data: { isActive },
+    select: { id: true, isActive: true },
   });
 
   return NextResponse.json({ alert: updated });
 }
 
-export async function DELETE(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function DELETE(_request: NextRequest, { params }: { params: Params }) {
   let session;
   try {
     session = await requireAuth();
@@ -55,13 +55,12 @@ export async function DELETE(
 
   const alert = await prisma.alert.findFirst({
     where: { id, userId: session.userId },
+    select: { id: true },
   });
-
   if (!alert) {
     return NextResponse.json({ error: "Alert not found" }, { status: 404 });
   }
 
   await prisma.alert.delete({ where: { id } });
-
-  return NextResponse.json({ message: "Alert deleted" });
+  return NextResponse.json({ ok: true });
 }

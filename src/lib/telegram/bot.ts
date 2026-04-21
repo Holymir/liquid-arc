@@ -1,66 +1,153 @@
 /**
- * Telegram notification client.
+ * Telegram Bot notification service.
  *
- * Uses the Bot API sendMessage endpoint directly (no polling/webhook needed —
- * we only ever send messages, never receive them).
+ * Requires:
+ *   TELEGRAM_BOT_TOKEN  — from BotFather
  *
- * Required env var:
- *   TELEGRAM_BOT_TOKEN  — obtain from @BotFather
+ * Users provide their own chat ID (obtained by messaging the bot and checking
+ * /api/telegram/chat-id, or using @userinfobot). This is stored in the Alert.config JSON.
  *
- * Falls back to console logging when the token is not set (dev / test).
+ * Usage:
+ *   await sendTelegramMessage(chatId, "Hello from LiquidArc!");
  */
 
-const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+// App base URL — use env var so it works across staging/production/preview deployments
+const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? "https://liquid-arc.vercel.app").replace(/\/$/, "");
 
-export interface TelegramSendResult {
+// Read BOT_TOKEN lazily so test environments can set it after module load
+function getApiBase(): string {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  return `https://api.telegram.org/bot${token}`;
+}
+
+export interface TelegramResult {
   ok: boolean;
   error?: string;
 }
 
 /**
- * Send a plain-text or Markdown message to a Telegram chat.
- * @param chatId  Telegram chat ID (string or numeric)
- * @param text    Message text (MarkdownV2 by default)
+ * Send a message to a Telegram chat.
+ * Supports Markdown V2 parse mode for rich formatting.
  */
 export async function sendTelegramMessage(
-  chatId: string | number,
-  text: string
-): Promise<TelegramSendResult> {
-  if (!BOT_TOKEN) {
-    console.log(`[telegram] (dev) chatId=${chatId}\n${text}\n`);
+  chatId: string,
+  text: string,
+  parseMode: "Markdown" | "HTML" | "MarkdownV2" | undefined = "HTML"
+): Promise<TelegramResult> {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  if (!token) {
+    console.log(`[telegram] (dev) chatId=${chatId} | ${text}`);
     return { ok: true };
   }
 
   try {
-    const res = await fetch(
-      `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          chat_id: chatId,
-          text,
-          parse_mode: "MarkdownV2",
-          disable_web_page_preview: true,
-        }),
-      }
-    );
+    const res = await fetch(`${getApiBase()}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text,
+        parse_mode: parseMode,
+        disable_web_page_preview: true,
+      }),
+    });
 
-    if (!res.ok) {
-      const body = await res.text();
-      console.error(`[telegram] sendMessage failed (${res.status}): ${body}`);
-      return { ok: false, error: body };
+    const json = (await res.json()) as { ok: boolean; description?: string };
+    if (!json.ok) {
+      console.error("[telegram] sendMessage error:", json.description);
+      return { ok: false, error: json.description };
     }
-
     return { ok: true };
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error("[telegram] sendMessage error:", msg);
-    return { ok: false, error: msg };
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("[telegram] sendMessage failed:", message);
+    return { ok: false, error: message };
   }
 }
 
-/** Escape special characters for MarkdownV2 */
-export function escapeMarkdown(text: string): string {
-  return text.replace(/[_*[\]()~`>#+\-=|{}.!\\]/g, (c) => `\\${c}`);
+/**
+ * Verify a chat ID is reachable by sending a silent test message.
+ * Returns true if the message was delivered successfully.
+ */
+export async function verifyTelegramChatId(chatId: string): Promise<boolean> {
+  const result = await sendTelegramMessage(
+    chatId,
+    "✅ <b>LiquidArc alerts connected!</b>\n\nYou'll receive notifications here when your LP positions need attention.",
+    "HTML"
+  );
+  return result.ok;
+}
+
+// ── Alert message builders ────────────────────────────────────────────────────
+
+export function buildOutOfRangeMessage(opts: {
+  pair: string;
+  nftTokenId: string;
+  currentTick: number;
+  tickLower: number;
+  tickUpper: number;
+  usdValue?: number;
+}): string {
+  const usdStr = opts.usdValue ? ` ($${opts.usdValue.toFixed(0)})` : "";
+  return (
+    `⚠️ <b>LP Position Out of Range</b>\n\n` +
+    `Pair: <b>${opts.pair}</b>${usdStr}\n` +
+    `Position #${opts.nftTokenId}\n\n` +
+    `Current tick: <code>${opts.currentTick}</code>\n` +
+    `Range: <code>${opts.tickLower}</code> → <code>${opts.tickUpper}</code>\n\n` +
+    `Your position is <b>not earning fees</b>. Consider rebalancing.\n\n` +
+    `<a href="${APP_URL}/dashboard">View Dashboard →</a>`
+  );
+}
+
+export function buildILThresholdMessage(opts: {
+  pair: string;
+  nftTokenId: string;
+  ilPercent: number;
+  thresholdPercent: number;
+  usdValue?: number;
+}): string {
+  const usdStr = opts.usdValue ? ` ($${opts.usdValue.toFixed(0)})` : "";
+  return (
+    `📉 <b>Impermanent Loss Alert</b>\n\n` +
+    `Pair: <b>${opts.pair}</b>${usdStr}\n` +
+    `Position #${opts.nftTokenId}\n\n` +
+    `IL: <b>${opts.ilPercent.toFixed(2)}%</b> (threshold: ${opts.thresholdPercent}%)\n\n` +
+    `Your position has exceeded your impermanent loss threshold.\n\n` +
+    `<a href="${APP_URL}/dashboard">View Dashboard →</a>`
+  );
+}
+
+export function buildFeesMilestoneMessage(opts: {
+  pair: string;
+  nftTokenId: string;
+  feesEarnedUsd: number;
+  milestoneUsd: number;
+}): string {
+  return (
+    `💰 <b>Fees Milestone Reached!</b>\n\n` +
+    `Pair: <b>${opts.pair}</b>\n` +
+    `Position #${opts.nftTokenId}\n\n` +
+    `You've earned <b>$${opts.feesEarnedUsd.toFixed(2)}</b> in fees\n` +
+    `(milestone: $${opts.milestoneUsd})\n\n` +
+    `<a href="${APP_URL}/dashboard">View Dashboard →</a>`
+  );
+}
+
+export function buildPriceChangeMessage(opts: {
+  walletAddress: string;
+  changePercent: number;
+  thresholdPercent: number;
+  currentValueUsd: number;
+  direction: "up" | "down";
+}): string {
+  const emoji = opts.direction === "up" ? "📈" : "📉";
+  const sign = opts.direction === "up" ? "+" : "";
+  return (
+    `${emoji} <b>Portfolio Value Change</b>\n\n` +
+    `Wallet: <code>${opts.walletAddress.slice(0, 8)}…${opts.walletAddress.slice(-4)}</code>\n\n` +
+    `Change: <b>${sign}${opts.changePercent.toFixed(2)}%</b> (threshold: ${opts.thresholdPercent}%)\n` +
+    `Current value: <b>$${opts.currentValueUsd.toFixed(2)}</b>\n\n` +
+    `<a href="${APP_URL}/dashboard">View Dashboard →</a>`
+  );
 }
