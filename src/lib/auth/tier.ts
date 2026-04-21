@@ -30,6 +30,7 @@ export const TIER_LIMITS = {
 export type Tier = keyof typeof TIER_LIMITS;
 
 export function getTierLimits(tier: string) {
+  if (process.env.ENABLE_TIERS !== 'true') return TIER_LIMITS.pro;
   return TIER_LIMITS[tier as Tier] ?? TIER_LIMITS.free;
 }
 
@@ -44,6 +45,7 @@ export function checkFeatureAccess(
   userTier: string,
   feature: keyof Omit<typeof TIER_LIMITS.free, "maxWallets" | "maxAlerts" | "cacheSeconds" | "historyDays">
 ): TierGuardResult {
+  if (process.env.ENABLE_TIERS !== 'true') return { allowed: true };
   const limits = getTierLimits(userTier);
   const allowed = Boolean(limits[feature]);
   if (allowed) return { allowed: true };
@@ -63,6 +65,7 @@ export function checkFeatureAccess(
 }
 
 export function checkHistoryAccess(userTier: string, requestedDays: number): TierGuardResult {
+  if (process.env.ENABLE_TIERS !== 'true') return { allowed: true };
   const limits = getTierLimits(userTier);
   const maxDays = limits.historyDays;
   if (maxDays === 0 || requestedDays <= maxDays) return { allowed: true };
@@ -78,6 +81,7 @@ export function checkHistoryAccess(userTier: string, requestedDays: number): Tie
 }
 
 export function checkAlertLimit(userTier: string, currentAlertCount: number): TierGuardResult {
+  if (process.env.ENABLE_TIERS !== 'true') return { allowed: true };
   const limits = getTierLimits(userTier);
   if (limits.maxAlerts === 0) {
     return {

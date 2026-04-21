@@ -24,5 +24,12 @@ export async function GET() {
     return NextResponse.json({ user: null }, { status: 401 });
   }
 
-  return NextResponse.json({ user });
+  // When tiers are not enforced, expose "pro" as the effective tier so all
+  // client-side tier checks (export page, connect button, etc.) behave correctly.
+  const effectiveUser =
+    process.env.ENABLE_TIERS !== 'true'
+      ? { ...user, tier: 'pro' }
+      : user;
+
+  return NextResponse.json({ user: effectiveUser });
 }
