@@ -173,6 +173,12 @@ export function PortfolioChart({ address, chainId = "base" }: PortfolioChartProp
             <h2 className="text-slate-400 font-semibold text-xs uppercase tracking-widest">
               Portfolio History
             </h2>
+            <span
+              className="text-slate-600 text-[10px] tracking-wide"
+              title="Each point is total value at snapshot time: LP principal + unclaimed fees + unclaimed emissions + wallet tokens."
+            >
+              total value (incl. fees &amp; emissions)
+            </span>
             {data.length >= 2 && !isLoading && (
               <div className={`flex items-center gap-1 text-xs font-semibold ${isUp ? "text-emerald-400" : "text-red-400"}`}>
                 {isUp ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}

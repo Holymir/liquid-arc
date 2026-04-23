@@ -1,8 +1,15 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { useMemo } from "react";
 import { usePortfolio } from "@/hooks/usePortfolio";
 import { PortfolioHeader } from "./PortfolioHeader";
+import {
+  aggregateClaimableUsd,
+  aggregateLpPrincipalUsd,
+  aggregateLpTotalUsd,
+  aggregateTokenUsd,
+} from "@/lib/portfolio/value";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 
 const LPPositions = dynamic(() => import("./LPPositions").then((m) => m.LPPositions), {
@@ -46,6 +53,22 @@ interface DashboardProps {
 export function Dashboard({ address, chainId = "base" }: DashboardProps) {
   const { data, isLoading, error, refresh } = usePortfolio(address, chainId);
 
+  const totals = useMemo(() => {
+    const positions = data?.lpPositions ?? [];
+    const tokens = data?.tokenBalances ?? [];
+    const lpValue = aggregateLpTotalUsd(positions);
+    const lpPrincipal = aggregateLpPrincipalUsd(positions);
+    const claimable = aggregateClaimableUsd(positions);
+    const tokenValue = aggregateTokenUsd(tokens);
+    return {
+      lpValue,
+      lpPrincipal,
+      claimable,
+      tokenValue,
+      totalUsdValue: lpValue + tokenValue,
+    };
+  }, [data]);
+
   if (error) {
     return (
       <div className="bg-red-900/10 border border-red-800/30 rounded-2xl p-6 animate-fade-in-up">
@@ -88,9 +111,11 @@ export function Dashboard({ address, chainId = "base" }: DashboardProps) {
       )}
 
       <PortfolioHeader
-        totalUsdValue={data?.totalUsdValue ?? 0}
-        lpValue={data?.lpPositions.reduce((sum, lp) => sum + (lp.usdValue ?? 0), 0) ?? 0}
-        tokenValue={data?.tokenBalances.reduce((sum, t) => sum + (t.usdValue ?? 0), 0) ?? 0}
+        totalUsdValue={totals.totalUsdValue}
+        lpValue={totals.lpValue}
+        lpPrincipal={totals.lpPrincipal}
+        claimable={totals.claimable}
+        tokenValue={totals.tokenValue}
         pnl={data?.pnl}
         avgDailyEarn={data?.avgDailyEarn}
         last24hEarn={data?.last24hEarn}

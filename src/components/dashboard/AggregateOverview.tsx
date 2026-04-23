@@ -6,9 +6,15 @@ import type { WalletPortfolio, AggregatePortfolio } from "@/hooks/useAllPortfoli
 import type { TrackedWallet } from "@/hooks/useTrackedWallets";
 import type { LPPositionJSON } from "@/types";
 import {
+  aggregateLpTotalUsd,
+  lpClaimableUsd,
+  lpPrincipalUsd,
+  lpTotalValueUsd,
+} from "@/lib/portfolio/value";
+import { PositionValueBreakdown } from "./PositionValueBreakdown";
+import {
   RefreshCw,
   ChevronDown,
-  Gift,
   ExternalLink,
   Layers,
   AlertTriangle,
@@ -99,9 +105,9 @@ function PositionCard({
     pos.currentTick < pos.tickUpper;
 
   const isStaked = pos.protocol.includes("staked");
-  const totalClaimable = isStaked
-    ? (pos.emissionsEarnedUsd ?? 0)
-    : (pos.feesEarnedUsd ?? 0) + (pos.emissionsEarnedUsd ?? 0);
+  const claimable = lpClaimableUsd(pos);
+  const principal = lpPrincipalUsd(pos);
+  const total = lpTotalValueUsd(pos);
   const pnl = pos.pnlSummary;
 
   return (
@@ -138,9 +144,16 @@ function PositionCard({
               {pnl.totalPnlPercent >= 0 ? "+" : ""}{pnl.totalPnlPercent.toFixed(1)}%
             </span>
           )}
-          <span className="text-slate-200 text-sm font-semibold tabular-nums">
-            {pos.usdValue != null ? formatUsd(pos.usdValue) : "-"}
-          </span>
+          <div className="flex flex-col items-end">
+            <span className="text-slate-200 text-sm font-semibold tabular-nums">
+              {formatUsd(total)}
+            </span>
+            {claimable > 0 && (
+              <span className="text-emerald-400/70 text-[10px] tabular-nums leading-none mt-0.5">
+                +{formatUsd(claimable)} claimable
+              </span>
+            )}
+          </div>
           <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
         </div>
       </button>
@@ -149,44 +162,20 @@ function PositionCard({
       <div className={`grid transition-all duration-200 ease-out ${isExpanded ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
         <div className="overflow-hidden">
           <div className="px-4 pb-4 space-y-3">
-            <div className="flex flex-wrap gap-x-5 gap-y-1.5 text-xs">
-              {pnl && (
-                <div>
-                  <span className="text-slate-500">P&L </span>
-                  <span className={`font-semibold tabular-nums ${pnl.totalPnl >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                    {pnl.totalPnl >= 0 ? "+" : ""}{formatUsd(pnl.totalPnl)}
-                  </span>
-                </div>
-              )}
-              {pnl && pnl.apr > 0 && (
-                <div>
-                  <span className="text-slate-500">APR </span>
-                  <span className="text-arc-400 font-semibold tabular-nums">{pnl.apr.toFixed(1)}%</span>
-                </div>
-              )}
-              <div>
-                <span className="text-slate-500">Range </span>
-                <span className={inRange ? "text-emerald-400" : "text-amber-400"}>
-                  {inRange ? "Active" : "Inactive"}
-                </span>
-              </div>
-              {pnl?.last24hEarn != null && pnl.last24hEarn > 0 && (
-                <div>
-                  <span className="text-slate-500">24h </span>
-                  <span className="text-emerald-400 font-semibold tabular-nums">
-                    +{formatUsd(pnl.last24hEarn)}
-                  </span>
-                </div>
-              )}
-              {pnl?.avgDailyEarn != null && pnl.avgDailyEarn > 0 && (
-                <div>
-                  <span className="text-slate-500">Avg </span>
-                  <span className="text-emerald-400/60 font-semibold tabular-nums">
-                    ~{formatUsd(pnl.avgDailyEarn)}/d
-                  </span>
-                </div>
-              )}
-            </div>
+            <PositionValueBreakdown
+              principal={principal}
+              fees={pos.feesEarnedUsd ?? 0}
+              emissions={pos.emissionsEarnedUsd ?? 0}
+              total={total}
+              entryValue={pnl?.entryValueUsd}
+              pnl={pnl ? { absolute: pnl.totalPnl, percent: pnl.totalPnlPercent } : undefined}
+              apr={pnl?.apr}
+              avgDailyEarn={pnl?.avgDailyEarn}
+              last24hEarn={pnl?.last24hEarn}
+              inRange={inRange}
+              isStaked={isStaked}
+              size="compact"
+            />
 
             <div className="flex gap-4 text-xs">
               {pos.token0Amount !== undefined && (
@@ -202,19 +191,6 @@ function PositionCard({
                 </div>
               )}
             </div>
-
-            {totalClaimable > 0 && (
-              <div className="flex items-center gap-2 text-xs">
-                <Gift className="w-3 h-3 text-emerald-400/60" />
-                <span className="text-slate-500">Claimable</span>
-                <span className="text-emerald-400 font-semibold tabular-nums">+{formatUsd(totalClaimable)}</span>
-                {!isStaked && (pos.feesEarnedUsd ?? 0) > 0 && (pos.emissionsEarnedUsd ?? 0) > 0 && (
-                  <span className="text-slate-600 text-[10px]">
-                    (fees {formatUsd(pos.feesEarnedUsd!)} + emissions {formatUsd(pos.emissionsEarnedUsd!)})
-                  </span>
-                )}
-              </div>
-            )}
 
             <div className="pt-1">
               <Link
@@ -254,7 +230,14 @@ export function AggregateOverview({
 }: AggregateOverviewProps) {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
-  const { totalUsdValue, totalLpValue, totalTokenValue, totalClaimable, allPositions } = aggregate;
+  const {
+    totalUsdValue,
+    totalLpValue,
+    totalLpPrincipal,
+    totalTokenValue,
+    totalClaimable,
+    allPositions,
+  } = aggregate;
   const total = totalLpValue + totalTokenValue;
   const lpPct = total > 0 ? ((totalLpValue / total) * 100).toFixed(1) : "0";
   const tokenPct = total > 0 ? ((totalTokenValue / total) * 100).toFixed(1) : "0";
@@ -349,6 +332,11 @@ export function AggregateOverview({
                       {formatUsd(totalLpValue)}
                       <span className="text-slate-500 text-[10px] font-normal ml-1.5">{lpPct}%</span>
                     </p>
+                    {totalClaimable > 0 && (
+                      <p className="text-slate-600 text-[10px] mt-0.5 tabular-nums">
+                        LP {formatUsd(totalLpPrincipal)} + claimable {formatUsd(totalClaimable)}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-2.5">
@@ -363,7 +351,7 @@ export function AggregateOverview({
                 </div>
               </div>
               <div className="hidden sm:block">
-                <DonutChart lpValue={totalLpValue} tokenValue={totalTokenValue} />
+                <DonutChart lpValue={totalLpPrincipal} tokenValue={totalTokenValue} />
               </div>
             </div>
           </div>
@@ -393,8 +381,11 @@ export function AggregateOverview({
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {walletPortfolios.map((wp) => {
-              const lpVal = wp.data?.lpPositions.reduce((s, p) => s + (p.usdValue ?? 0), 0) ?? 0;
-              const posCount = wp.data?.lpPositions.length ?? 0;
+              const positions = wp.data?.lpPositions ?? [];
+              const lpTotalVal = aggregateLpTotalUsd(positions);
+              const tokenVal = wp.data?.tokenBalances.reduce((s, t) => s + (t.usdValue ?? 0), 0) ?? 0;
+              const walletTotal = lpTotalVal + tokenVal;
+              const posCount = positions.length;
               return (
                 <button
                   key={wp.wallet.address + wp.wallet.chainId}
@@ -415,10 +406,10 @@ export function AggregateOverview({
                   ) : (
                     <div className="flex items-baseline gap-3">
                       <span className="text-slate-100 font-semibold text-lg tabular-nums">
-                        {formatUsd(wp.data?.totalUsdValue ?? 0)}
+                        {formatUsd(walletTotal)}
                       </span>
                       <span className="text-slate-600 text-[10px]">
-                        {posCount} LP{posCount !== 1 ? "s" : ""} · {formatUsd(lpVal)}
+                        {posCount} LP{posCount !== 1 ? "s" : ""} · {formatUsd(lpTotalVal)}
                       </span>
                     </div>
                   )}
@@ -447,13 +438,12 @@ export function AggregateOverview({
               <div className="text-right">
                 <span className="text-slate-500">Total</span>
                 <span className="ml-1.5 text-slate-200 font-semibold tabular-nums">{formatUsd(totalLpValue)}</span>
+                {totalClaimable > 0 && (
+                  <span className="block text-[10px] text-slate-600 tabular-nums mt-0.5">
+                    LP {formatUsd(totalLpPrincipal)} + claimable {formatUsd(totalClaimable)}
+                  </span>
+                )}
               </div>
-              {totalClaimable > 0 && (
-                <div className="text-right">
-                  <span className="text-slate-500">Claimable</span>
-                  <span className="ml-1.5 text-emerald-400 font-semibold tabular-nums">+{formatUsd(totalClaimable)}</span>
-                </div>
-              )}
             </div>
           )}
         </div>

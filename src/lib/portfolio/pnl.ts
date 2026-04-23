@@ -18,6 +18,7 @@ export async function calculatePnL(
     prisma.portfolioSnapshot.findFirst({
       where: { walletId },
       orderBy: { snapshotAt: "desc" },
+      select: { totalUsdValue: true, totalValueUsd: true },
     }),
     // Find the most recent snapshot BEFORE the period start as the baseline.
     // Using { lte: since } + desc ordering gives us the snapshot closest to
@@ -27,11 +28,13 @@ export async function calculatePnL(
     prisma.portfolioSnapshot.findFirst({
       where: { walletId, snapshotAt: { lte: since } },
       orderBy: { snapshotAt: "desc" },
+      select: { totalUsdValue: true, totalValueUsd: true },
     }),
   ]);
 
-  const currentValue = latest?.totalUsdValue ?? 0;
-  const previousValue = oldest?.totalUsdValue ?? currentValue;
+  // Prefer total-with-rewards so the PnL pill matches the live header's total.
+  const currentValue = latest?.totalValueUsd ?? latest?.totalUsdValue ?? 0;
+  const previousValue = oldest?.totalValueUsd ?? oldest?.totalUsdValue ?? currentValue;
 
   const absoluteChange = currentValue - previousValue;
   const percentChange =

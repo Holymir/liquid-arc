@@ -8,6 +8,7 @@ import { useTrackedWallets } from "@/hooks/useTrackedWallets";
 import { usePositionDetail } from "@/hooks/usePositionDetail";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PriceRangeChart } from "@/components/dashboard/PriceRangeChart";
+import { PositionValueBreakdown } from "@/components/dashboard/PositionValueBreakdown";
 import { ArrowLeft, RefreshCw, ExternalLink, TrendingUp, TrendingDown, ArrowRight } from "lucide-react";
 
 function formatUsd(value: number): string {
@@ -217,96 +218,87 @@ export default function PositionPage() {
               </button>
             </div>
 
-            {/* Hero KPIs — 4 column grid */}
-            <div className="glass-card rounded-2xl p-6">
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-5">
-                {/* Position Value */}
-                <div>
-                  <p className="text-slate-500 text-[10px] uppercase tracking-widest font-medium mb-1.5">
-                    Position Value
-                  </p>
-                  <p className="text-slate-100 font-bold text-2xl tabular-nums">
-                    {formatUsd(pnl.currentPositionUsd + pnl.feesEarnedUsd + pnl.emissionsEarnedUsd)}
-                  </p>
-                  <p className="text-slate-600 text-[11px] mt-1">
-                    Entry {formatUsd(pnl.entryValueUsd)}
-                  </p>
-                </div>
+            {/* Hero — unified full-picture breakdown */}
+            <PositionValueBreakdown
+              principal={pnl.currentPositionUsd}
+              fees={pnl.feesEarnedUsd}
+              emissions={pnl.emissionsEarnedUsd}
+              total={pnl.currentPositionUsd + pnl.feesEarnedUsd + pnl.emissionsEarnedUsd}
+              entryValue={pnl.entryValueUsd}
+              pnl={{ absolute: pnl.totalPnl, percent: pnl.totalPnlPercent }}
+              apr={pnl.apr}
+              avgDailyEarn={pnl.avgDailyEarn}
+              isStaked={pnl.protocol.includes("staked")}
+              size="hero"
+            />
 
-                {/* Total P&L */}
-                <div>
-                  <p className="text-slate-500 text-[10px] uppercase tracking-widest font-medium mb-1.5">
-                    Total P&L
-                  </p>
-                  <PnlBadge value={pnl.totalPnl} percent={pnl.totalPnlPercent} size="md" />
-                  <p className="text-slate-600 text-[11px] mt-1">
-                    Since {new Date(pnl.entryDate).toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                    })}
-                  </p>
+            {/* APR & Projected Earnings strip */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              {/* APR Breakdown */}
+              <div className="glass-card rounded-2xl p-6">
+                <p className="text-slate-500 text-[10px] uppercase tracking-widest font-medium mb-1.5">
+                  APR Breakdown
+                </p>
+                <p className="text-arc-400 font-bold text-2xl tabular-nums">
+                  {pnl.apr.toFixed(1)}%
+                </p>
+                <div className="flex flex-wrap gap-x-2 text-[11px] mt-1">
+                  <span className="text-arc-400">Fees {pnl.feeApr.toFixed(1)}%</span>
+                  {pnl.emissionsApr > 0 && (
+                    <span className="text-arc-400/60">Emissions {pnl.emissionsApr.toFixed(1)}%</span>
+                  )}
                 </div>
+                {(pnl.poolFeeApr24h != null || pnl.poolEmissionsApr != null) && (
+                  <p className="text-slate-600 text-[10px] mt-1">
+                    Pool 24h:{" "}
+                    {pnl.poolFeeApr24h != null && <span>{pnl.poolFeeApr24h.toFixed(1)}% fee</span>}
+                    {pnl.poolFeeApr24h != null && pnl.poolEmissionsApr != null && pnl.poolEmissionsApr > 0 && " + "}
+                    {pnl.poolEmissionsApr != null && pnl.poolEmissionsApr > 0 && <span>{pnl.poolEmissionsApr.toFixed(1)}% em</span>}
+                  </p>
+                )}
+                <p className="text-slate-600 text-[11px] mt-2">
+                  Since {new Date(pnl.entryDate).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                  })}
+                </p>
+              </div>
 
-                {/* APR Breakdown */}
-                <div>
-                  <p className="text-slate-500 text-[10px] uppercase tracking-widest font-medium mb-1.5">
-                    APR Breakdown
-                  </p>
-                  <p className="text-arc-400 font-bold text-2xl tabular-nums">
-                    {pnl.apr.toFixed(1)}%
-                  </p>
-                  <div className="flex flex-wrap gap-x-2 text-[11px] mt-1">
-                    <span className="text-arc-400">Fees {pnl.feeApr.toFixed(1)}%</span>
-                    {pnl.emissionsApr > 0 && (
-                      <span className="text-arc-400/60">Emissions {pnl.emissionsApr.toFixed(1)}%</span>
-                    )}
+              {/* Projected Earnings */}
+              <div className="glass-card rounded-2xl p-6">
+                <p className="text-slate-500 text-[10px] uppercase tracking-widest font-medium mb-1.5">
+                  Projected Earnings
+                </p>
+                {pnl.avgDailyEarn > 0 ? (
+                  <div className="space-y-0.5">
+                    <div className="flex items-baseline justify-between">
+                      <span className="text-slate-500 text-[11px]">Daily</span>
+                      <span className="text-emerald-400 font-bold text-lg tabular-nums">
+                        {formatUsd(pnl.projectedDaily)}
+                      </span>
+                    </div>
+                    <div className="flex items-baseline justify-between">
+                      <span className="text-slate-500 text-[11px]">7d</span>
+                      <span className="text-slate-300 font-medium text-sm tabular-nums">
+                        {formatUsd(pnl.projectedWeekly)}
+                      </span>
+                    </div>
+                    <div className="flex items-baseline justify-between">
+                      <span className="text-slate-500 text-[11px]">30d</span>
+                      <span className="text-slate-300 font-medium text-sm tabular-nums">
+                        {formatUsd(pnl.projectedMonthly)}
+                      </span>
+                    </div>
+                    <p className="text-slate-600 text-[10px] mt-0.5">avg daily rate</p>
                   </div>
-                  {(pnl.poolFeeApr24h != null || pnl.poolEmissionsApr != null) && (
-                    <p className="text-slate-600 text-[10px] mt-1">
-                      Pool 24h:{" "}
-                      {pnl.poolFeeApr24h != null && <span>{pnl.poolFeeApr24h.toFixed(1)}% fee</span>}
-                      {pnl.poolFeeApr24h != null && pnl.poolEmissionsApr != null && pnl.poolEmissionsApr > 0 && " + "}
-                      {pnl.poolEmissionsApr != null && pnl.poolEmissionsApr > 0 && <span>{pnl.poolEmissionsApr.toFixed(1)}% em</span>}
+                ) : (
+                  <div>
+                    <p className="text-slate-500 text-sm mt-1">Insufficient data</p>
+                    <p className="text-slate-600 text-[10px] mt-0.5">
+                      Available after 24h
                     </p>
-                  )}
-                </div>
-
-                {/* Projected Earnings */}
-                <div>
-                  <p className="text-slate-500 text-[10px] uppercase tracking-widest font-medium mb-1.5">
-                    Projected Earnings
-                  </p>
-                  {pnl.avgDailyEarn > 0 ? (
-                    <div className="space-y-0.5">
-                      <div className="flex items-baseline justify-between">
-                        <span className="text-slate-500 text-[11px]">Daily</span>
-                        <span className="text-emerald-400 font-bold text-lg tabular-nums">
-                          {formatUsd(pnl.projectedDaily)}
-                        </span>
-                      </div>
-                      <div className="flex items-baseline justify-between">
-                        <span className="text-slate-500 text-[11px]">7d</span>
-                        <span className="text-slate-300 font-medium text-sm tabular-nums">
-                          {formatUsd(pnl.projectedWeekly)}
-                        </span>
-                      </div>
-                      <div className="flex items-baseline justify-between">
-                        <span className="text-slate-500 text-[11px]">30d</span>
-                        <span className="text-slate-300 font-medium text-sm tabular-nums">
-                          {formatUsd(pnl.projectedMonthly)}
-                        </span>
-                      </div>
-                      <p className="text-slate-600 text-[10px] mt-0.5">avg daily rate</p>
-                    </div>
-                  ) : (
-                    <div>
-                      <p className="text-slate-500 text-sm mt-1">Insufficient data</p>
-                      <p className="text-slate-600 text-[10px] mt-0.5">
-                        Available after 24h
-                      </p>
-                    </div>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             </div>
 
