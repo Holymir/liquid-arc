@@ -219,8 +219,8 @@ export default function PositionPage() {
             </div>
 
             {/* Hero — unified full-picture breakdown. Fees always count
-                toward Total Value; for staked positions fees are dormant
-                on-NFT, recovered when you unstake. */}
+                toward Total Value; for staked positions fees are locked on
+                the NFT and paid out on unstake. */}
             <PositionValueBreakdown
               principal={pnl.currentPositionUsd}
               fees={pnl.feesEarnedUsd}
@@ -433,7 +433,12 @@ export default function PositionPage() {
                   {/* Totals */}
                   <tfoot>
                     <tr className="border-t border-slate-700/30">
-                      <td className="py-3 text-slate-400 text-xs font-medium">Total</td>
+                      <td className="py-3 text-slate-400 text-xs font-medium">
+                        LP Principal
+                        <span className="ml-1.5 text-[10px] text-slate-600 font-normal normal-case tracking-normal">
+                          (excludes fees &amp; emissions)
+                        </span>
+                      </td>
                       <td className="py-3" />
                       <td className="py-3" />
                       <td className="py-3 text-right">
