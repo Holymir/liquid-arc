@@ -149,13 +149,21 @@ export function PositionDetail({ address, position, onClose }: PositionDetailPro
                     sub="Includes impermanent loss"
                   />
                   <StatRow
-                    label="Trading Fees Earned"
+                    label={
+                      pnl.protocol.includes("staked")
+                        ? "Trading Fees (locked)"
+                        : "Trading Fees Earned"
+                    }
                     value={
                       <span className="text-emerald-400 tabular-nums">
                         +{formatUsd(pnl.feesEarnedUsd)}
                       </span>
                     }
-                    sub="Unclaimed swap fees"
+                    sub={
+                      pnl.protocol.includes("staked")
+                        ? "Accrue on NFT — collectable only on unstake (via gauge withdraw)"
+                        : "Unclaimed swap fees"
+                    }
                   />
                   <StatRow
                     label="AERO Emissions"

@@ -218,7 +218,9 @@ export default function PositionPage() {
               </button>
             </div>
 
-            {/* Hero — unified full-picture breakdown */}
+            {/* Hero — unified full-picture breakdown. Fees always count
+                toward Total Value; for staked positions fees are dormant
+                on-NFT, recovered when you unstake. */}
             <PositionValueBreakdown
               principal={pnl.currentPositionUsd}
               fees={pnl.feesEarnedUsd}
@@ -494,7 +496,17 @@ export default function PositionPage() {
                     </span>
                   </div>
                   <div className="flex items-center justify-between py-2 text-sm">
-                    <span className="text-slate-400">Trading Fees</span>
+                    <span className="text-slate-400">
+                      Trading Fees
+                      {pnl.protocol.includes("staked") && (
+                        <span
+                          className="ml-1.5 text-[10px] text-slate-500 uppercase tracking-wider"
+                          title="Fees accrue on the NFT while staked but require unstake (gauge withdraw) to collect. Emissions are claimable anytime via the gauge."
+                        >
+                          · locked
+                        </span>
+                      )}
+                    </span>
                     <span className="text-arc-400 tabular-nums font-medium">
                       +{formatUsd(pnl.feesEarnedUsd)}
                     </span>

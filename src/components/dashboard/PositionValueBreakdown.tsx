@@ -45,8 +45,12 @@ export function PositionValueBreakdown({
   const labelSize = isHero ? "text-[11px]" : "text-[10px]";
 
   const positive = (pnl?.absolute ?? 0) >= 0;
-  // Staked positions auto-compound fees; show but label differently.
-  const feesLabel = isStaked ? "Fees (auto-compounded)" : "Unclaimed fees";
+  // Staked Aerodrome positions: fees accrue normally on the NFT but the gauge
+  // custodies it — to collect fees the user must unstake (withdraw).
+  // Emissions remain claimable anytime via the gauge's getReward().
+  const feesTooltip = isStaked
+    ? "Fees accrue on the NFT while it's in the gauge. To collect them you must unstake (withdraw) — emissions are claimable anytime via the gauge."
+    : "Unclaimed trading fees";
 
   return (
     <div
@@ -107,17 +111,18 @@ export function PositionValueBreakdown({
             {formatUsd(principal)}
           </p>
         </div>
-        <div className="bg-slate-800/30 border border-slate-700/20 rounded-lg py-2 px-2">
+        <div
+          className="bg-slate-800/30 border border-slate-700/20 rounded-lg py-2 px-2"
+          title={feesTooltip}
+        >
           <p className={`text-slate-500 ${labelSize} uppercase tracking-wider font-medium`}>
-            Fees
+            {isStaked ? "Fees · locked" : "Fees"}
           </p>
           <p
             className={`font-semibold text-sm tabular-nums mt-0.5 ${
               fees > 0 ? "text-emerald-400" : "text-slate-500"
             }`}
-            title={feesLabel}
           >
-            {fees > 0 ? "+" : ""}
             {formatUsd(fees)}
           </p>
         </div>

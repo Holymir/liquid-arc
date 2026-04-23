@@ -41,7 +41,10 @@ export async function calculatePositionPnL(
   // Principal P&L: how much the position value itself changed (includes IL effect)
   const principalPnl = currentPositionUsd - entryValueUsd;
 
-  // Total P&L: principal + earned fees + earned emissions
+  // Total P&L: principal + earned fees + earned emissions.
+  // Staked Aerodrome positions don't accrue NEW fees, but whatever is shown
+  // in feesEarnedUsd was earned before staking and is recovered on unstake —
+  // so it's real LP wealth and counts toward P&L.
   const totalPnl = principalPnl + feesEarnedUsd + emissionsEarnedUsd;
   const totalPnlPercent = entryValueUsd > 0 ? (totalPnl / entryValueUsd) * 100 : 0;
 
