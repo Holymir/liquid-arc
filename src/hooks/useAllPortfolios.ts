@@ -4,6 +4,13 @@ import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import type { PortfolioResponse, LPPositionJSON, TokenBalanceJSON } from "@/types";
 import type { TrackedWallet } from "@/hooks/useTrackedWallets";
 import { usePortfolioCache } from "@/components/providers/PortfolioCacheProvider";
+import {
+  aggregateClaimableUsd,
+  aggregateLpPrincipalUsd,
+  aggregateLpTotalUsd,
+  aggregateTokenUsd,
+  lpTotalValueUsd,
+} from "@/lib/portfolio/value";
 
 export interface WalletPortfolio {
   wallet: TrackedWallet;
@@ -13,8 +20,12 @@ export interface WalletPortfolio {
 }
 
 export interface AggregatePortfolio {
+  /** Total including LP principal + fees + emissions + tokens. */
   totalUsdValue: number;
+  /** LP principal + unclaimed fees + unclaimed emissions (excludes wallet tokens). */
   totalLpValue: number;
+  /** LP principal only (for breakdown display). */
+  totalLpPrincipal: number;
   totalTokenValue: number;
   totalClaimable: number;
   totalAvgDailyEarn: number;
@@ -154,6 +165,7 @@ export function useAllPortfolios(wallets: TrackedWallet[]): UseAllPortfoliosResu
     const agg: AggregatePortfolio = {
       totalUsdValue: 0,
       totalLpValue: 0,
+      totalLpPrincipal: 0,
       totalTokenValue: 0,
       totalClaimable: 0,
       totalAvgDailyEarn: 0,
@@ -167,20 +179,20 @@ export function useAllPortfolios(wallets: TrackedWallet[]): UseAllPortfoliosResu
     for (const wp of walletPortfolios) {
       if (!wp.data) continue;
       agg.walletCount++;
-      agg.totalUsdValue += wp.data.totalUsdValue;
-      const lpVal = wp.data.lpPositions.reduce((s, p) => s + (p.usdValue ?? 0), 0);
-      const tokenVal = wp.data.tokenBalances.reduce((s, t) => s + (t.usdValue ?? 0), 0);
-      agg.totalLpValue += lpVal;
+      const lpTotal = aggregateLpTotalUsd(wp.data.lpPositions);
+      const lpPrincipal = aggregateLpPrincipalUsd(wp.data.lpPositions);
+      const claimable = aggregateClaimableUsd(wp.data.lpPositions);
+      const tokenVal = aggregateTokenUsd(wp.data.tokenBalances);
+
+      agg.totalLpValue += lpTotal;
+      agg.totalLpPrincipal += lpPrincipal;
       agg.totalTokenValue += tokenVal;
+      agg.totalClaimable += claimable;
+      agg.totalUsdValue += lpTotal + tokenVal;
       agg.totalAvgDailyEarn += wp.data.avgDailyEarn ?? 0;
       agg.totalLast24hEarn += wp.data.last24hEarn ?? 0;
 
       for (const pos of wp.data.lpPositions) {
-        const isStaked = pos.protocol.includes("staked");
-        const claimable = isStaked
-          ? (pos.emissionsEarnedUsd ?? 0)
-          : (pos.feesEarnedUsd ?? 0) + (pos.emissionsEarnedUsd ?? 0);
-        agg.totalClaimable += claimable;
         agg.allPositions.push({
           ...pos,
           walletAddress: wp.wallet.address,
@@ -198,7 +210,7 @@ export function useAllPortfolios(wallets: TrackedWallet[]): UseAllPortfoliosResu
       }
     }
     agg.positionCount = agg.allPositions.length;
-    agg.allPositions.sort((a, b) => (b.usdValue ?? 0) - (a.usdValue ?? 0));
+    agg.allPositions.sort((a, b) => lpTotalValueUsd(b) - lpTotalValueUsd(a));
     return agg;
   }, [walletPortfolios]);
 

@@ -85,14 +85,21 @@ export async function GET(
 
   const pnlPeriod = isAll ? "30d" : period;
 
-  const [snapshots, pnl] = await Promise.all([
+  const [rawSnapshots, pnl] = await Promise.all([
     prisma.portfolioSnapshot.findMany({
       where: { walletId: wallet.id, ...(since ? { snapshotAt: { gte: since } } : {}) },
       orderBy: { snapshotAt: "asc" },
-      select: { totalUsdValue: true, snapshotAt: true },
+      select: { totalUsdValue: true, totalValueUsd: true, snapshotAt: true },
     }),
     calculatePnL(wallet.id, pnlPeriod as "24h" | "7d" | "30d"),
   ]);
+
+  // Prefer the total-with-rewards column; fall back to legacy principal-only for
+  // old rows that predate the column. The chart consumer sees one series.
+  const snapshots = rawSnapshots.map((s) => ({
+    totalUsdValue: s.totalValueUsd ?? s.totalUsdValue,
+    snapshotAt: s.snapshotAt,
+  }));
 
   return NextResponse.json({ snapshots, pnl, period });
 }

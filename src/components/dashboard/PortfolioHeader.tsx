@@ -9,8 +9,14 @@ interface PnLData {
 }
 
 interface PortfolioHeaderProps {
+  /** Principal + fees + emissions + tokens — canonical "Total Value". */
   totalUsdValue: number;
+  /** LP principal + unclaimed fees + unclaimed emissions (no tokens). */
   lpValue: number;
+  /** LP principal only (for donut + principal/claimable split annotation). */
+  lpPrincipal?: number;
+  /** Unclaimed fees + unclaimed emissions across all positions. */
+  claimable?: number;
   tokenValue: number;
   pnl?: PnLData | null;
   avgDailyEarn?: number | null;
@@ -92,6 +98,8 @@ function DonutChart({ lpValue, tokenValue }: { lpValue: number; tokenValue: numb
 export function PortfolioHeader({
   totalUsdValue,
   lpValue,
+  lpPrincipal,
+  claimable,
   tokenValue,
   pnl,
   avgDailyEarn,
@@ -104,6 +112,9 @@ export function PortfolioHeader({
   const total = lpValue + tokenValue;
   const lpPct = total > 0 ? ((lpValue / total) * 100).toFixed(1) : "0";
   const tokenPct = total > 0 ? ((tokenValue / total) * 100).toFixed(1) : "0";
+  // Donut visualizes capital allocation — use principal if provided, else fall
+  // back to lpValue (backwards compatible when caller doesn't pass the split).
+  const donutLpValue = lpPrincipal ?? lpValue;
 
   return (
     <div className="glass-card rounded-2xl p-6 animate-fade-in-up">
@@ -218,6 +229,11 @@ export function PortfolioHeader({
                     {formatUsd(lpValue)}
                     <span className="text-slate-500 text-[10px] font-normal ml-1.5">{lpPct}%</span>
                   </p>
+                  {claimable != null && claimable > 0 && lpPrincipal != null && (
+                    <p className="text-slate-600 text-[10px] mt-0.5 tabular-nums">
+                      LP {formatUsd(lpPrincipal)} + claimable {formatUsd(claimable)}
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-2.5">
@@ -234,7 +250,7 @@ export function PortfolioHeader({
 
             {/* Donut chart */}
             <div className="hidden sm:block">
-              <DonutChart lpValue={lpValue} tokenValue={tokenValue} />
+              <DonutChart lpValue={donutLpValue} tokenValue={tokenValue} />
             </div>
           </div>
         </div>

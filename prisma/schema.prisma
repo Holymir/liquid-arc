@@ -233,6 +233,10 @@ model PortfolioSnapshot {
   id             String   @id @default(uuid())
   walletId       String   @map("wallet_id")
   totalUsdValue  Float    @map("total_usd_value")
+  // Includes LP principal + unclaimed fees + unclaimed emissions + tokens.
+  // Nullable for rows created before the column existed; backfilled from
+  // PositionSnapshot via scripts/backfill-snapshot-total-value.ts.
+  totalValueUsd  Float?   @map("total_value_usd")
   tokenBreakdown Json?    @map("token_breakdown")
   lpBreakdown    Json?    @map("lp_breakdown")
   snapshotAt     DateTime @default(now()) @map("snapshot_at")

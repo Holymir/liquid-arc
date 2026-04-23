@@ -7,6 +7,11 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS welcome_email_sent BOOLEAN NOT NULL D
 -- Missing column: pools.emissions_apr
 ALTER TABLE pools ADD COLUMN IF NOT EXISTS emissions_apr DOUBLE PRECISION;
 
+-- Missing column: portfolio_snapshots.total_value_usd
+-- Stores total value including unclaimed fees + emissions. Nullable so legacy
+-- rows coexist; backfilled via scripts/backfill-snapshot-total-value.ts.
+ALTER TABLE portfolio_snapshots ADD COLUMN IF NOT EXISTS total_value_usd DOUBLE PRECISION;
+
 -- Missing unique constraints on users
 CREATE UNIQUE INDEX IF NOT EXISTS users_verification_token_key ON users(verification_token);
 CREATE UNIQUE INDEX IF NOT EXISTS users_reset_token_key ON users(reset_token);

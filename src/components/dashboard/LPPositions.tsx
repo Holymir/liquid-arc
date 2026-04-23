@@ -4,8 +4,16 @@ import { useState } from "react";
 import Link from "next/link";
 import type { LPPositionJSON } from "@/types";
 import {
+  aggregateClaimableUsd,
+  aggregateLpPrincipalUsd,
+  aggregateLpTotalUsd,
+  lpClaimableUsd,
+  lpPrincipalUsd,
+  lpTotalValueUsd,
+} from "@/lib/portfolio/value";
+import { PositionValueBreakdown } from "./PositionValueBreakdown";
+import {
   Layers,
-  Gift,
   ChevronDown,
   ExternalLink,
 } from "lucide-react";
@@ -24,10 +32,6 @@ function formatUsd(value: number): string {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(value);
-}
-
-function formatToken(value: number, maxDecimals = 4): string {
-  return value.toLocaleString("en-US", { maximumFractionDigits: maxDecimals });
 }
 
 function PositionCard({
@@ -51,10 +55,10 @@ function PositionCard({
     pos.currentTick < pos.tickUpper;
 
   const isStaked = pos.protocol.includes("staked");
-  const totalClaimable = isStaked
-    ? (pos.emissionsEarnedUsd ?? 0)
-    : (pos.feesEarnedUsd ?? 0) + (pos.emissionsEarnedUsd ?? 0);
   const pnl = pos.pnlSummary;
+  const principal = lpPrincipalUsd(pos);
+  const claimable = lpClaimableUsd(pos);
+  const total = lpTotalValueUsd(pos);
 
   return (
     <div className="border border-slate-700/30 rounded-lg bg-slate-800/10 hover:bg-slate-800/20 transition-all overflow-hidden">
@@ -93,9 +97,16 @@ function PositionCard({
               {pnl.totalPnlPercent.toFixed(1)}%
             </span>
           )}
-          <span className="text-slate-200 text-sm font-semibold tabular-nums">
-            {pos.usdValue != null ? formatUsd(pos.usdValue) : "-"}
-          </span>
+          <div className="flex flex-col items-end">
+            <span className="text-slate-200 text-sm font-semibold tabular-nums">
+              {formatUsd(total)}
+            </span>
+            {claimable > 0 && (
+              <span className="text-emerald-400/70 text-[10px] tabular-nums leading-none mt-0.5">
+                +{formatUsd(claimable)} claimable
+              </span>
+            )}
+          </div>
           <ChevronDown
             className={`w-4 h-4 text-slate-500 transition-transform duration-200 ${
               isExpanded ? "rotate-180" : ""
@@ -112,88 +123,20 @@ function PositionCard({
       >
         <div className="overflow-hidden">
           <div className="px-4 pb-4 space-y-3">
-            {/* Stats row */}
-            <div className="flex flex-wrap gap-x-5 gap-y-1.5 text-xs">
-              {pnl && (
-                <div>
-                  <span className="text-slate-500">P&L </span>
-                  <span
-                    className={`font-semibold tabular-nums ${
-                      pnl.totalPnl >= 0 ? "text-emerald-400" : "text-red-400"
-                    }`}
-                  >
-                    {pnl.totalPnl >= 0 ? "+" : ""}
-                    {formatUsd(pnl.totalPnl)}
-                  </span>
-                </div>
-              )}
-              {pnl && pnl.apr > 0 && (
-                <div>
-                  <span className="text-slate-500">APR </span>
-                  <span className="text-arc-400 font-semibold tabular-nums">
-                    {pnl.apr.toFixed(1)}%
-                  </span>
-                </div>
-              )}
-              <div>
-                <span className="text-slate-500">Range </span>
-                <span className={inRange ? "text-emerald-400" : "text-amber-400"}>
-                  {inRange ? "Active" : "Inactive"}
-                </span>
-              </div>
-              {pnl?.last24hEarn != null && pnl.last24hEarn > 0 && (
-                <div>
-                  <span className="text-slate-500">24h </span>
-                  <span className="text-emerald-400 font-semibold tabular-nums">
-                    +{formatUsd(pnl.last24hEarn)}
-                  </span>
-                </div>
-              )}
-              {pnl?.avgDailyEarn != null && pnl.avgDailyEarn > 0 && (
-                <div>
-                  <span className="text-slate-500">Avg </span>
-                  <span className="text-emerald-400/60 font-semibold tabular-nums">
-                    ~{formatUsd(pnl.avgDailyEarn)}/d
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* Token composition — compact */}
-            <div className="flex gap-4 text-xs">
-              {pos.token0Amount !== undefined && (
-                <div className="flex items-center gap-1.5">
-                  <span className="text-slate-500">{pos.token0Symbol}</span>
-                  <span className="text-slate-300 font-mono tabular-nums">
-                    {formatToken(pos.token0Amount)}
-                  </span>
-                </div>
-              )}
-              {pos.token1Amount !== undefined && (
-                <div className="flex items-center gap-1.5">
-                  <span className="text-slate-500">{pos.token1Symbol}</span>
-                  <span className="text-slate-300 font-mono tabular-nums">
-                    {formatToken(pos.token1Amount)}
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* Claimable summary */}
-            {totalClaimable > 0 && (
-              <div className="flex items-center gap-2 text-xs">
-                <Gift className="w-3 h-3 text-emerald-400/60" />
-                <span className="text-slate-500">Claimable</span>
-                <span className="text-emerald-400 font-semibold tabular-nums">
-                  +{formatUsd(totalClaimable)}
-                </span>
-                {!isStaked && (pos.feesEarnedUsd ?? 0) > 0 && (pos.emissionsEarnedUsd ?? 0) > 0 && (
-                  <span className="text-slate-600 text-[10px]">
-                    (fees {formatUsd(pos.feesEarnedUsd!)} + emissions {formatUsd(pos.emissionsEarnedUsd!)})
-                  </span>
-                )}
-              </div>
-            )}
+            <PositionValueBreakdown
+              principal={principal}
+              fees={pos.feesEarnedUsd ?? 0}
+              emissions={pos.emissionsEarnedUsd ?? 0}
+              total={total}
+              entryValue={pnl?.entryValueUsd}
+              pnl={pnl ? { absolute: pnl.totalPnl, percent: pnl.totalPnlPercent } : undefined}
+              apr={pnl?.apr}
+              avgDailyEarn={pnl?.avgDailyEarn}
+              last24hEarn={pnl?.last24hEarn}
+              inRange={inRange}
+              isStaked={isStaked}
+              size="compact"
+            />
 
             {/* Action button */}
             {address && (
@@ -218,13 +161,9 @@ function PositionCard({
 export function LPPositions({ address, chainId, positions, isLoading }: LPPositionsProps) {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
-  const totalLpValue = positions.reduce((sum, p) => sum + (p.usdValue ?? 0), 0);
-  const totalClaimable = positions.reduce((sum, p) => {
-    const staked = p.protocol.includes("staked");
-    return sum + (staked
-      ? (p.emissionsEarnedUsd ?? 0)
-      : (p.feesEarnedUsd ?? 0) + (p.emissionsEarnedUsd ?? 0));
-  }, 0);
+  const totalLpValue = aggregateLpTotalUsd(positions);
+  const totalLpPrincipal = aggregateLpPrincipalUsd(positions);
+  const totalClaimable = aggregateClaimableUsd(positions);
 
   if (isLoading) {
     return (
@@ -267,13 +206,12 @@ export function LPPositions({ address, chainId, positions, isLoading }: LPPositi
             <div className="text-right">
               <span className="text-slate-500">Total</span>
               <span className="ml-1.5 text-slate-200 font-semibold tabular-nums">{formatUsd(totalLpValue)}</span>
+              {totalClaimable > 0 && (
+                <span className="block text-[10px] text-slate-600 tabular-nums mt-0.5">
+                  LP {formatUsd(totalLpPrincipal)} + claimable {formatUsd(totalClaimable)}
+                </span>
+              )}
             </div>
-            {totalClaimable > 0 && (
-              <div className="text-right">
-                <span className="text-slate-500">Claimable</span>
-                <span className="ml-1.5 text-emerald-400 font-semibold tabular-nums">+{formatUsd(totalClaimable)}</span>
-              </div>
-            )}
           </div>
         )}
       </div>

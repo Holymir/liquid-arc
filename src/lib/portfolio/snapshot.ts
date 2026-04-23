@@ -1,6 +1,20 @@
 import { prisma } from "@/lib/db/prisma";
 import type { PortfolioResponse } from "@/types";
+import { portfolioTotalUsd } from "./value";
 import { getPortfolio } from "./service";
+
+/**
+ * total_usd_value = principal only (historical semantics, kept for continuity)
+ * total_value_usd = principal + unclaimed fees + unclaimed emissions (new canonical)
+ */
+function computeTotals(portfolio: PortfolioResponse) {
+  const totalUsdValue = portfolio.totalUsdValue; // principal-only from backend
+  const totalValueUsd = portfolioTotalUsd(
+    portfolio.lpPositions,
+    portfolio.tokenBalances
+  );
+  return { totalUsdValue, totalValueUsd };
+}
 
 /** Save a snapshot from already-fetched portfolio data (no extra RPC calls). */
 export async function saveSnapshotData(
@@ -14,21 +28,22 @@ export async function saveSnapshotData(
   });
   if (recent) return;
 
-  // Sanity check: if the new value dropped >80% vs the last snapshot,
+  const { totalUsdValue, totalValueUsd } = computeTotals(portfolio);
+
+  // Sanity check: if the new total value dropped >80% vs the last snapshot,
   // it's likely a data glitch (pricing API down, LP fetch failed, etc.) — skip saving.
-  if (portfolio.totalUsdValue > 0) {
+  // Compare on totalValueUsd (the user-visible value) falling back to totalUsdValue
+  // for rows predating the new column.
+  if (totalValueUsd > 0) {
     const lastSnapshot = await prisma.portfolioSnapshot.findFirst({
       where: { walletId },
       orderBy: { snapshotAt: "desc" },
-      select: { totalUsdValue: true },
+      select: { totalUsdValue: true, totalValueUsd: true },
     });
-    if (
-      lastSnapshot &&
-      lastSnapshot.totalUsdValue > 100 &&
-      portfolio.totalUsdValue < lastSnapshot.totalUsdValue * 0.2
-    ) {
+    const prev = lastSnapshot?.totalValueUsd ?? lastSnapshot?.totalUsdValue;
+    if (prev && prev > 100 && totalValueUsd < prev * 0.2) {
       console.warn(
-        `[snapshot] Skipping suspicious snapshot: $${portfolio.totalUsdValue.toFixed(2)} vs previous $${lastSnapshot.totalUsdValue.toFixed(2)} (>80% drop)`
+        `[snapshot] Skipping suspicious snapshot: $${totalValueUsd.toFixed(2)} vs previous $${prev.toFixed(2)} (>80% drop)`
       );
       return;
     }
@@ -45,7 +60,7 @@ export async function saveSnapshotData(
   }
 
   await prisma.portfolioSnapshot.create({
-    data: { walletId, totalUsdValue: portfolio.totalUsdValue, tokenBreakdown, lpBreakdown },
+    data: { walletId, totalUsdValue, totalValueUsd, tokenBreakdown, lpBreakdown },
   });
 }
 
@@ -60,6 +75,8 @@ export async function createSnapshot(
   });
 
   if (!wallet) return;
+
+  const { totalUsdValue, totalValueUsd } = computeTotals(portfolio);
 
   const tokenBreakdown: Record<string, number> = {};
   for (const t of portfolio.tokenBalances) {
@@ -77,7 +94,8 @@ export async function createSnapshot(
   await prisma.portfolioSnapshot.create({
     data: {
       walletId: wallet.id,
-      totalUsdValue: portfolio.totalUsdValue,
+      totalUsdValue,
+      totalValueUsd,
       tokenBreakdown,
       lpBreakdown,
     },
