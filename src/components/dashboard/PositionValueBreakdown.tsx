@@ -123,7 +123,6 @@ export function PositionValueBreakdown({
               fees > 0 ? "text-emerald-400" : "text-slate-500"
             }`}
           >
-            {fees > 0 ? "+" : ""}
             {formatUsd(fees)}
           </p>
         </div>
