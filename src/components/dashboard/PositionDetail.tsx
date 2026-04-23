@@ -151,7 +151,7 @@ export function PositionDetail({ address, position, onClose }: PositionDetailPro
                   <StatRow
                     label={
                       pnl.protocol.includes("staked")
-                        ? "Trading Fees (dormant)"
+                        ? "Trading Fees (locked)"
                         : "Trading Fees Earned"
                     }
                     value={
@@ -161,7 +161,7 @@ export function PositionDetail({ address, position, onClose }: PositionDetailPro
                     }
                     sub={
                       pnl.protocol.includes("staked")
-                        ? "Earned pre-stake — recovered on unstake (no new fees while staked)"
+                        ? "Accrue on NFT — collectable only on unstake (via gauge withdraw)"
                         : "Unclaimed swap fees"
                     }
                   />

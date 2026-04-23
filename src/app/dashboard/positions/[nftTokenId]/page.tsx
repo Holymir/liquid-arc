@@ -501,9 +501,9 @@ export default function PositionPage() {
                       {pnl.protocol.includes("staked") && (
                         <span
                           className="ml-1.5 text-[10px] text-slate-500 uppercase tracking-wider"
-                          title="Staked positions don't accrue new fees (new fees go to voters), but these fees were earned pre-stake and are recovered on unstake."
+                          title="Fees accrue on the NFT while staked but require unstake (gauge withdraw) to collect. Emissions are claimable anytime via the gauge."
                         >
-                          · dormant
+                          · locked
                         </span>
                       )}
                     </span>

@@ -45,11 +45,11 @@ export function PositionValueBreakdown({
   const labelSize = isHero ? "text-[11px]" : "text-[10px]";
 
   const positive = (pnl?.absolute ?? 0) >= 0;
-  // Staked Aerodrome positions: no NEW fees accrue while staked, but fees
-  // earned pre-stake remain on the NFT and are recovered on unstake, so they
-  // still count toward Total Value.
+  // Staked Aerodrome positions: fees accrue normally on the NFT but the gauge
+  // custodies it — to collect fees the user must unstake (withdraw).
+  // Emissions remain claimable anytime via the gauge's getReward().
   const feesTooltip = isStaked
-    ? "Dormant — earned pre-stake and recovered on unstake. No new fees while staked."
+    ? "Fees accrue on the NFT while it's in the gauge. To collect them you must unstake (withdraw) — emissions are claimable anytime via the gauge."
     : "Unclaimed trading fees";
 
   return (
@@ -116,7 +116,7 @@ export function PositionValueBreakdown({
           title={feesTooltip}
         >
           <p className={`text-slate-500 ${labelSize} uppercase tracking-wider font-medium`}>
-            {isStaked ? "Fees · dormant" : "Fees"}
+            {isStaked ? "Fees · locked" : "Fees"}
           </p>
           <p
             className={`font-semibold text-sm tabular-nums mt-0.5 ${
