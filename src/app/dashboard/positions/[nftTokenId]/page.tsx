@@ -218,19 +218,28 @@ export default function PositionPage() {
               </button>
             </div>
 
-            {/* Hero — unified full-picture breakdown */}
-            <PositionValueBreakdown
-              principal={pnl.currentPositionUsd}
-              fees={pnl.feesEarnedUsd}
-              emissions={pnl.emissionsEarnedUsd}
-              total={pnl.currentPositionUsd + pnl.feesEarnedUsd + pnl.emissionsEarnedUsd}
-              entryValue={pnl.entryValueUsd}
-              pnl={{ absolute: pnl.totalPnl, percent: pnl.totalPnlPercent }}
-              apr={pnl.apr}
-              avgDailyEarn={pnl.avgDailyEarn}
-              isStaked={pnl.protocol.includes("staked")}
-              size="hero"
-            />
+            {/* Hero — unified full-picture breakdown.
+                Staked positions: fees are harvested by the gauge and not
+                claimable, so they don't contribute to Total Value. */}
+            {(() => {
+              const staked = pnl.protocol.includes("staked");
+              const claimableFees = staked ? 0 : pnl.feesEarnedUsd;
+              const total = pnl.currentPositionUsd + claimableFees + pnl.emissionsEarnedUsd;
+              return (
+                <PositionValueBreakdown
+                  principal={pnl.currentPositionUsd}
+                  fees={pnl.feesEarnedUsd}
+                  emissions={pnl.emissionsEarnedUsd}
+                  total={total}
+                  entryValue={pnl.entryValueUsd}
+                  pnl={{ absolute: pnl.totalPnl, percent: pnl.totalPnlPercent }}
+                  apr={pnl.apr}
+                  avgDailyEarn={pnl.avgDailyEarn}
+                  isStaked={staked}
+                  size="hero"
+                />
+              );
+            })()}
 
             {/* APR & Projected Earnings strip */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -461,9 +470,12 @@ export default function PositionPage() {
                   <div className="flex items-center gap-3 mb-4">
                     <div className="flex-1 h-2 bg-slate-800/40 rounded-full overflow-hidden">
                       {(() => {
-                        const total = Math.abs(pnl.principalPnl) + pnl.feesEarnedUsd + pnl.emissionsEarnedUsd;
+                        // Exclude harvested fees for staked positions — they
+                        // don't represent LP earnings.
+                        const claimableFees = pnl.protocol.includes("staked") ? 0 : pnl.feesEarnedUsd;
+                        const total = Math.abs(pnl.principalPnl) + claimableFees + pnl.emissionsEarnedUsd;
                         if (total === 0) return null;
-                        const feesPct = (pnl.feesEarnedUsd / total) * 100;
+                        const feesPct = (claimableFees / total) * 100;
                         const emissionsPct = (pnl.emissionsEarnedUsd / total) * 100;
                         const principalPct = (Math.abs(pnl.principalPnl) / total) * 100;
                         return (
@@ -494,8 +506,22 @@ export default function PositionPage() {
                     </span>
                   </div>
                   <div className="flex items-center justify-between py-2 text-sm">
-                    <span className="text-slate-400">Trading Fees</span>
-                    <span className="text-arc-400 tabular-nums font-medium">
+                    <span className="text-slate-400">
+                      Trading Fees
+                      {pnl.protocol.includes("staked") && (
+                        <span
+                          className="ml-1.5 text-[10px] text-slate-500 uppercase tracking-wider"
+                          title="Harvested by the gauge for voters — not claimable by the LP."
+                        >
+                          · harvested
+                        </span>
+                      )}
+                    </span>
+                    <span
+                      className={`tabular-nums font-medium ${
+                        pnl.protocol.includes("staked") ? "text-slate-500 line-through" : "text-arc-400"
+                      }`}
+                    >
                       +{formatUsd(pnl.feesEarnedUsd)}
                     </span>
                   </div>
@@ -536,10 +562,16 @@ export default function PositionPage() {
                     <span className="text-slate-400 font-medium">
                       IL + Rewards
                     </span>
-                    <span className={`tabular-nums font-medium ${(pnl.ilAbsolute + pnl.feesEarnedUsd + pnl.emissionsEarnedUsd) >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                      {(pnl.ilAbsolute + pnl.feesEarnedUsd + pnl.emissionsEarnedUsd) >= 0 ? "+" : ""}
-                      {formatUsd(pnl.ilAbsolute + pnl.feesEarnedUsd + pnl.emissionsEarnedUsd)}
-                    </span>
+                    {(() => {
+                      const claimableFees = pnl.protocol.includes("staked") ? 0 : pnl.feesEarnedUsd;
+                      const value = pnl.ilAbsolute + claimableFees + pnl.emissionsEarnedUsd;
+                      return (
+                        <span className={`tabular-nums font-medium ${value >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                          {value >= 0 ? "+" : ""}
+                          {formatUsd(value)}
+                        </span>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>
@@ -576,7 +608,11 @@ export default function PositionPage() {
                 />
                 <StrategyRow
                   label="LP Position (actual)"
-                  value={pnl.currentPositionUsd + pnl.feesEarnedUsd + pnl.emissionsEarnedUsd}
+                  value={
+                    pnl.currentPositionUsd +
+                    (pnl.protocol.includes("staked") ? 0 : pnl.feesEarnedUsd) +
+                    pnl.emissionsEarnedUsd
+                  }
                   entry={pnl.entryValueUsd}
                   highlight
                 />

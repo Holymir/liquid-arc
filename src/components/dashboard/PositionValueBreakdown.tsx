@@ -45,8 +45,12 @@ export function PositionValueBreakdown({
   const labelSize = isHero ? "text-[11px]" : "text-[10px]";
 
   const positive = (pnl?.absolute ?? 0) >= 0;
-  // Staked positions auto-compound fees; show but label differently.
-  const feesLabel = isStaked ? "Fees (auto-compounded)" : "Unclaimed fees";
+  // Staked Aerodrome positions: trading fees are harvested by the gauge for
+  // voters and are not claimable by the LP, so they don't contribute to Total.
+  const feesHarvested = isStaked;
+  const feesTooltip = feesHarvested
+    ? "Harvested by the gauge for voters — not claimable by the LP, does not count toward total value."
+    : "Unclaimed trading fees";
 
   return (
     <div
@@ -107,17 +111,23 @@ export function PositionValueBreakdown({
             {formatUsd(principal)}
           </p>
         </div>
-        <div className="bg-slate-800/30 border border-slate-700/20 rounded-lg py-2 px-2">
+        <div
+          className="bg-slate-800/30 border border-slate-700/20 rounded-lg py-2 px-2"
+          title={feesTooltip}
+        >
           <p className={`text-slate-500 ${labelSize} uppercase tracking-wider font-medium`}>
-            Fees
+            {feesHarvested ? "Fees · harvested" : "Fees"}
           </p>
           <p
             className={`font-semibold text-sm tabular-nums mt-0.5 ${
-              fees > 0 ? "text-emerald-400" : "text-slate-500"
+              feesHarvested
+                ? "text-slate-500 line-through"
+                : fees > 0
+                  ? "text-emerald-400"
+                  : "text-slate-500"
             }`}
-            title={feesLabel}
           >
-            {fees > 0 ? "+" : ""}
+            {!feesHarvested && fees > 0 ? "+" : ""}
             {formatUsd(fees)}
           </p>
         </div>

@@ -34,6 +34,13 @@ export async function calculatePositionPnL(
   const feesEarnedUsd = position.feesEarnedUsd ?? 0;
   const emissionsEarnedUsd = position.emissionsEarnedUsd ?? 0;
 
+  // On Aerodrome staked positions, trading fees (unstaked_earned0/1) are
+  // harvested by the gauge for voters — the LP cannot claim them. So fees
+  // must not contribute to the LP's Total Value, P&L, or APR.
+  const isStaked = position.protocol.includes("staked");
+  const claimableFees = isStaked ? 0 : feesEarnedUsd;
+  const claimableUsd = claimableFees + emissionsEarnedUsd;
+
   // Recompute from stored per-token data so entry amounts × prices = entry value
   const entryValueUsd = entry.token0Amount * entry.token0Price + entry.token1Amount * entry.token1Price;
 
@@ -41,8 +48,8 @@ export async function calculatePositionPnL(
   // Principal P&L: how much the position value itself changed (includes IL effect)
   const principalPnl = currentPositionUsd - entryValueUsd;
 
-  // Total P&L: principal + earned fees + earned emissions
-  const totalPnl = principalPnl + feesEarnedUsd + emissionsEarnedUsd;
+  // Total P&L: principal + claimable earnings (excludes gauge-harvested fees)
+  const totalPnl = principalPnl + claimableUsd;
   const totalPnlPercent = entryValueUsd > 0 ? (totalPnl / entryValueUsd) * 100 : 0;
 
   // ─── Impermanent Loss ──────────────────────────────────────────────
@@ -112,12 +119,14 @@ export async function calculatePositionPnL(
     hold5050Value,
 
     ...(() => {
-      const earnings = feesEarnedUsd + emissionsEarnedUsd;
+      // Only claimable earnings count toward APR / projections — staked
+      // positions' fees go to gauge voters, not the LP.
+      const earnings = claimableUsd;
       const msElapsed = Date.now() - entry.snapshotAt.getTime();
       const daysElapsed = msElapsed / (1000 * 60 * 60 * 24);
 
       const feeApr = daysElapsed > 0 && entryValueUsd > 0
-        ? (feesEarnedUsd / entryValueUsd) * (365 / daysElapsed) * 100
+        ? (claimableFees / entryValueUsd) * (365 / daysElapsed) * 100
         : 0;
       const emissionsAprVal = daysElapsed > 0 && entryValueUsd > 0
         ? (emissionsEarnedUsd / entryValueUsd) * (365 / daysElapsed) * 100
