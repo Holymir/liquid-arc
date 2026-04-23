@@ -7,23 +7,38 @@ type LPLike = Pick<
 
 type TokenLike = Pick<TokenBalanceJSON, "usdValue">;
 
-// Staked positions auto-compound fees into the LP, so only emissions are claimable.
+// A staked Aerodrome CL position does not accrue new fees (new fees go to
+// voters). But fees accumulated before staking remain on the NFT and are
+// recoverable on unstake, so they still count as LP wealth. Staked positions
+// differ only in what can be *claimed right now without unstaking* — that's
+// emissions only.
 function isStaked(protocol: string): boolean {
   return protocol.includes("staked");
 }
 
+/** Rewards the LP can claim immediately without unstaking. */
 export function lpClaimableUsd(pos: LPLike): number {
   const fees = pos.feesEarnedUsd ?? 0;
   const emissions = pos.emissionsEarnedUsd ?? 0;
   return isStaked(pos.protocol) ? emissions : fees + emissions;
 }
 
+/** LP principal (position token value at current prices), no rewards. */
 export function lpPrincipalUsd(pos: LPLike): number {
   return pos.usdValue ?? 0;
 }
 
+/**
+ * Total LP wealth: principal + all recoverable fees + all emissions.
+ * Staked positions still count their pre-stake fees because those fees live
+ * on the NFT and are recovered on unstake.
+ */
 export function lpTotalValueUsd(pos: LPLike): number {
-  return lpPrincipalUsd(pos) + lpClaimableUsd(pos);
+  return (
+    lpPrincipalUsd(pos) +
+    (pos.feesEarnedUsd ?? 0) +
+    (pos.emissionsEarnedUsd ?? 0)
+  );
 }
 
 export function aggregateLpPrincipalUsd(positions: LPLike[]): number {

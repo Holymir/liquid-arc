@@ -133,12 +133,7 @@ export function PositionDetail({ address, position, onClose }: PositionDetailPro
                   </span>
                 </div>
                 <p className="text-slate-600 text-xs mt-1.5">
-                  Entry: {formatUsd(pnl.entryValueUsd)} &rarr; Now:{" "}
-                  {formatUsd(
-                    pnl.currentPositionUsd +
-                      (pnl.protocol.includes("staked") ? 0 : pnl.feesEarnedUsd) +
-                      pnl.emissionsEarnedUsd
-                  )}
+                  Entry: {formatUsd(pnl.entryValueUsd)} &rarr; Now: {formatUsd(pnl.currentPositionUsd + pnl.feesEarnedUsd + pnl.emissionsEarnedUsd)}
                 </p>
               </div>
 
@@ -156,23 +151,17 @@ export function PositionDetail({ address, position, onClose }: PositionDetailPro
                   <StatRow
                     label={
                       pnl.protocol.includes("staked")
-                        ? "Trading Fees (harvested)"
+                        ? "Trading Fees (dormant)"
                         : "Trading Fees Earned"
                     }
                     value={
-                      <span
-                        className={`tabular-nums ${
-                          pnl.protocol.includes("staked")
-                            ? "text-slate-500 line-through"
-                            : "text-emerald-400"
-                        }`}
-                      >
+                      <span className="text-emerald-400 tabular-nums">
                         +{formatUsd(pnl.feesEarnedUsd)}
                       </span>
                     }
                     sub={
                       pnl.protocol.includes("staked")
-                        ? "Harvested by gauge for voters — not claimable"
+                        ? "Earned pre-stake — recovered on unstake (no new fees while staked)"
                         : "Unclaimed swap fees"
                     }
                   />
@@ -229,16 +218,9 @@ export function PositionDetail({ address, position, onClose }: PositionDetailPro
                   </div>
                   <div className="flex justify-between pt-1.5 border-t border-slate-700/30">
                     <span className="text-slate-400 font-medium">
-                      {pnl.protocol.includes("staked") ? "IL + Emissions" : "IL + Fees + Emissions"}
+                      IL + Fees + Emissions
                     </span>
-                    <PnlValue
-                      value={
-                        pnl.ilAbsolute +
-                        (pnl.protocol.includes("staked") ? 0 : pnl.feesEarnedUsd) +
-                        pnl.emissionsEarnedUsd
-                      }
-                      className="font-medium"
-                    />
+                    <PnlValue value={pnl.ilAbsolute + pnl.feesEarnedUsd + pnl.emissionsEarnedUsd} className="font-medium" />
                   </div>
                 </div>
               </div>
@@ -274,11 +256,7 @@ export function PositionDetail({ address, position, onClose }: PositionDetailPro
                   />
                   <StrategyRow
                     label="LP Position (actual)"
-                    value={
-                      pnl.currentPositionUsd +
-                      (pnl.protocol.includes("staked") ? 0 : pnl.feesEarnedUsd) +
-                      pnl.emissionsEarnedUsd
-                    }
+                    value={pnl.currentPositionUsd + pnl.feesEarnedUsd + pnl.emissionsEarnedUsd}
                     entry={pnl.entryValueUsd}
                     highlight
                   />

@@ -45,11 +45,11 @@ export function PositionValueBreakdown({
   const labelSize = isHero ? "text-[11px]" : "text-[10px]";
 
   const positive = (pnl?.absolute ?? 0) >= 0;
-  // Staked Aerodrome positions: trading fees are harvested by the gauge for
-  // voters and are not claimable by the LP, so they don't contribute to Total.
-  const feesHarvested = isStaked;
-  const feesTooltip = feesHarvested
-    ? "Harvested by the gauge for voters — not claimable by the LP, does not count toward total value."
+  // Staked Aerodrome positions: no NEW fees accrue while staked, but fees
+  // earned pre-stake remain on the NFT and are recovered on unstake, so they
+  // still count toward Total Value.
+  const feesTooltip = isStaked
+    ? "Dormant — earned pre-stake and recovered on unstake. No new fees while staked."
     : "Unclaimed trading fees";
 
   return (
@@ -116,18 +116,14 @@ export function PositionValueBreakdown({
           title={feesTooltip}
         >
           <p className={`text-slate-500 ${labelSize} uppercase tracking-wider font-medium`}>
-            {feesHarvested ? "Fees · harvested" : "Fees"}
+            {isStaked ? "Fees · dormant" : "Fees"}
           </p>
           <p
             className={`font-semibold text-sm tabular-nums mt-0.5 ${
-              feesHarvested
-                ? "text-slate-500 line-through"
-                : fees > 0
-                  ? "text-emerald-400"
-                  : "text-slate-500"
+              fees > 0 ? "text-emerald-400" : "text-slate-500"
             }`}
           >
-            {!feesHarvested && fees > 0 ? "+" : ""}
+            {fees > 0 ? "+" : ""}
             {formatUsd(fees)}
           </p>
         </div>

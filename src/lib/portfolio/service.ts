@@ -332,11 +332,7 @@ export async function getPortfolio(
         const lp = enrichedLPs.find((l) => l.nftTokenId === entry.nftTokenId);
         if (!lp || !entry.positionUsd) continue;
 
-        // Staked positions' fees are harvested by the gauge for voters — not
-        // claimable by the LP. Exclude from earnings/P&L/APR.
-        const lpStaked = lp.protocol.includes("staked");
-        const claimableFees = lpStaked ? 0 : (lp.feesEarnedUsd ?? 0);
-        const earnings = claimableFees + (lp.emissionsEarnedUsd ?? 0);
+        const earnings = (lp.feesEarnedUsd ?? 0) + (lp.emissionsEarnedUsd ?? 0);
         const currentTotal = (lp.usdValue ?? 0) + earnings;
         const totalPnl = currentTotal - entry.positionUsd;
         const totalPnlPercent = entry.positionUsd > 0 ? (totalPnl / entry.positionUsd) * 100 : 0;
@@ -413,11 +409,8 @@ export async function getPortfolio(
         for (const lp of enrichedLPs) {
           const old = oldestByPosition.get(lp.nftTokenId);
           if (!old) continue;
-          // Exclude gauge-harvested fees for staked positions from both sides.
-          const lpStaked = lp.protocol.includes("staked");
-          const currentEarnings =
-            (lpStaked ? 0 : (lp.feesEarnedUsd ?? 0)) + (lp.emissionsEarnedUsd ?? 0);
-          const oldEarnings = (lpStaked ? 0 : old.feesUsd) + old.emissionsUsd;
+          const currentEarnings = (lp.feesEarnedUsd ?? 0) + (lp.emissionsEarnedUsd ?? 0);
+          const oldEarnings = old.feesUsd + old.emissionsUsd;
           const delta = currentEarnings - oldEarnings;
           // Clamp to 0 — negative means user claimed rewards in between
           if (delta > 0) {
