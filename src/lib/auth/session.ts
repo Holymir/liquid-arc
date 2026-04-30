@@ -10,8 +10,43 @@ const defaultSession: SessionData = {
   isLoggedIn: false,
 };
 
+/**
+ * Validate SESSION_SECRET at module load time. iron-session requires a
+ * 32+ character secret; a missing or placeholder value lets attackers forge
+ * cookies (CODE_REVIEW.md §1.2). We throw eagerly so misconfigured deploys
+ * fail loudly instead of silently accepting forged sessions.
+ *
+ * Skipped during `npm run build` so prerendering doesn't require the secret.
+ */
+export function validateSessionSecret(
+  secret: string | undefined,
+  phase: string | undefined = process.env.NEXT_PHASE
+): string {
+  if (phase === "phase-production-build") {
+    return secret ?? "build-time-placeholder-do-not-deploy-with-this-value";
+  }
+  if (!secret) {
+    throw new Error(
+      "SESSION_SECRET is not set. Generate one with `openssl rand -base64 32`."
+    );
+  }
+  if (secret.length < 32) {
+    throw new Error(
+      "SESSION_SECRET must be at least 32 characters long."
+    );
+  }
+  if (secret.toLowerCase().startsWith("placeholder")) {
+    throw new Error(
+      "SESSION_SECRET is a placeholder. Generate a real secret with `openssl rand -base64 32`."
+    );
+  }
+  return secret;
+}
+
+const sessionSecret = validateSessionSecret(process.env.SESSION_SECRET);
+
 export const sessionOptions: SessionOptions = {
-  password: process.env.SESSION_SECRET!,
+  password: sessionSecret,
   cookieName: "liquidark_session",
   cookieOptions: {
     secure: process.env.NODE_ENV === "production",

@@ -21,33 +21,7 @@ export async function saveSnapshotData(
   walletId: string,
   portfolio: PortfolioResponse
 ): Promise<void> {
-  // Throttle: skip if a snapshot was saved within the last 15 minutes
-  const recent = await prisma.portfolioSnapshot.findFirst({
-    where: { walletId, snapshotAt: { gte: new Date(Date.now() - 15 * 60_000) } },
-    select: { id: true },
-  });
-  if (recent) return;
-
   const { totalUsdValue, totalValueUsd } = computeTotals(portfolio);
-
-  // Sanity check: if the new total value dropped >80% vs the last snapshot,
-  // it's likely a data glitch (pricing API down, LP fetch failed, etc.) — skip saving.
-  // Compare on totalValueUsd (the user-visible value) falling back to totalUsdValue
-  // for rows predating the new column.
-  if (totalValueUsd > 0) {
-    const lastSnapshot = await prisma.portfolioSnapshot.findFirst({
-      where: { walletId },
-      orderBy: { snapshotAt: "desc" },
-      select: { totalUsdValue: true, totalValueUsd: true },
-    });
-    const prev = lastSnapshot?.totalValueUsd ?? lastSnapshot?.totalUsdValue;
-    if (prev && prev > 100 && totalValueUsd < prev * 0.2) {
-      console.warn(
-        `[snapshot] Skipping suspicious snapshot: $${totalValueUsd.toFixed(2)} vs previous $${prev.toFixed(2)} (>80% drop)`
-      );
-      return;
-    }
-  }
 
   const tokenBreakdown: Record<string, number> = {};
   for (const t of portfolio.tokenBalances) {
@@ -59,8 +33,43 @@ export async function saveSnapshotData(
     lpBreakdown[key] = (lpBreakdown[key] ?? 0) + (lp.usdValue ?? 0);
   }
 
-  await prisma.portfolioSnapshot.create({
-    data: { walletId, totalUsdValue, totalValueUsd, tokenBreakdown, lpBreakdown },
+  // Serialize concurrent writers for the same wallet via a transaction-scoped
+  // advisory lock keyed on walletId. Closes the TOCTOU race in the previous
+  // check-then-create throttle (CODE_REVIEW.md §3.7) without requiring a
+  // schema change. Different wallets do not block each other.
+  await prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${walletId}))`;
+
+    // Throttle: skip if a snapshot was saved within the last 15 minutes.
+    const recent = await tx.portfolioSnapshot.findFirst({
+      where: {
+        walletId,
+        snapshotAt: { gte: new Date(Date.now() - 15 * 60_000) },
+      },
+      select: { id: true },
+    });
+    if (recent) return;
+
+    // Sanity check: if the new total value dropped >80% vs the last snapshot,
+    // it's likely a data glitch (pricing API down, LP fetch failed, etc.) — skip.
+    if (totalValueUsd > 0) {
+      const lastSnapshot = await tx.portfolioSnapshot.findFirst({
+        where: { walletId },
+        orderBy: { snapshotAt: "desc" },
+        select: { totalUsdValue: true, totalValueUsd: true },
+      });
+      const prev = lastSnapshot?.totalValueUsd ?? lastSnapshot?.totalUsdValue;
+      if (prev && prev > 100 && totalValueUsd < prev * 0.2) {
+        console.warn(
+          `[snapshot] Skipping suspicious snapshot: $${totalValueUsd.toFixed(2)} vs previous $${prev.toFixed(2)} (>80% drop)`
+        );
+        return;
+      }
+    }
+
+    await tx.portfolioSnapshot.create({
+      data: { walletId, totalUsdValue, totalValueUsd, tokenBreakdown, lpBreakdown },
+    });
   });
 }
 

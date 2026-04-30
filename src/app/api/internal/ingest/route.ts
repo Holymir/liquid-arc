@@ -1,7 +1,9 @@
-// POST/GET /api/internal/ingest
+// POST /api/internal/ingest
 //
 // Lightweight Vercel endpoint — triggers the Railway backend to run ingestion.
 // No longer runs ingestion directly (moved to backend to avoid 60s timeout).
+// POST-only: monitoring tools, prefetch, and link previews must not be able
+// to fire ingestion via GET (CODE_REVIEW.md §3.8).
 
 import { NextRequest, NextResponse } from "next/server";
 
@@ -53,6 +55,3 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET(request: NextRequest) {
-  return POST(request);
-}
