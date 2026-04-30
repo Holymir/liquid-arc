@@ -17,20 +17,10 @@ export async function GET() {
     orderBy: { createdAt: "asc" },
   });
 
-  // Deduplicate by address
-  const byAddress = new Map<string, (typeof wallets)[0]>();
-  for (const w of wallets) {
-    const key = w.chainType === "svm" ? w.address : w.address.toLowerCase();
-    const existing = byAddress.get(key);
-    if (!existing || w.chainId === "base") {
-      byAddress.set(key, {
-        ...w,
-        label: w.label || existing?.label || null,
-      });
-    }
-  }
-
-  return NextResponse.json({ wallets: [...byAddress.values()] });
+  // Return one row per (address, chainId). The previous implementation
+  // collapsed duplicates and hardcoded a Base preference, silently hiding
+  // wallets on other EVM chains for the same address (CODE_REVIEW.md §3.4).
+  return NextResponse.json({ wallets });
 }
 
 export async function POST(request: NextRequest) {
