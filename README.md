@@ -53,6 +53,10 @@ Visit [http://localhost:3000](http://localhost:3000)
 | `make db-studio` | Open Prisma Studio (database GUI) |
 | `make db-reset` | Drop and recreate database schema |
 | `make stop` | Stop Docker services |
+| `npm run typecheck` | Type-check the project (`tsc --noEmit`) |
+| `npm run test` | Run unit tests with Vitest |
+| `npm run test:watch` | Run Vitest in watch mode |
+| `npm run test:coverage` | Run tests with coverage (text + lcov) |
 
 ## Architecture
 
