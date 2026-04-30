@@ -45,11 +45,13 @@ export function PositionValueBreakdown({
   const labelSize = isHero ? "text-[11px]" : "text-[10px]";
 
   const positive = (pnl?.absolute ?? 0) >= 0;
-  // Staked Aerodrome positions: fees accrue normally on the NFT but the gauge
-  // custodies it — to collect fees the user must unstake (withdraw).
-  // Emissions remain claimable anytime via the gauge's getReward().
+  // Staked Aerodrome positions auto-compound trading fees into the underlying
+  // liquidity. Sugar's `unstaked_earned0/1` is informational; the actual fees
+  // are already inside LP Principal and shouldn't be added again to Total.
+  // Verified empirically: unstaking returns principal-with-compounded-fees +
+  // AERO emissions on top.
   const feesTooltip = isStaked
-    ? "Fees accrue on the NFT while it's in the gauge. To collect them you must unstake (withdraw) — emissions are claimable anytime via the gauge."
+    ? "Auto-compounded into the LP position by the gauge. Already inside the LP Principal value — not added separately to Total."
     : "Unclaimed trading fees";
 
   return (
@@ -116,11 +118,11 @@ export function PositionValueBreakdown({
           title={feesTooltip}
         >
           <p className={`text-slate-500 ${labelSize} uppercase tracking-wider font-medium`}>
-            {isStaked ? "Fees · locked" : "Fees"}
+            {isStaked ? "Fees · in LP" : "Fees"}
           </p>
           <p
             className={`font-semibold text-sm tabular-nums mt-0.5 ${
-              fees > 0 ? "text-emerald-400" : "text-slate-500"
+              isStaked ? "text-slate-500" : fees > 0 ? "text-emerald-400" : "text-slate-500"
             }`}
           >
             {formatUsd(fees)}
