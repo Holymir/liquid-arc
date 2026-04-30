@@ -34,18 +34,25 @@ export async function calculatePositionPnL(
   const feesEarnedUsd = position.feesEarnedUsd ?? 0;
   const emissionsEarnedUsd = position.emissionsEarnedUsd ?? 0;
 
+  // Staked Aerodrome positions: fees are auto-compounded into the liquidity
+  // by the gauge, so the "fees" field is informational — adding it on top of
+  // currentPositionUsd would double-count. The fee-driven growth is already
+  // captured in principalPnl (currentPositionUsd vs entryValueUsd).
+  const isStaked = position.protocol.includes("staked");
+  const claimableFees = isStaked ? 0 : feesEarnedUsd;
+  const claimableUsd = claimableFees + emissionsEarnedUsd;
+
   // Recompute from stored per-token data so entry amounts × prices = entry value
   const entryValueUsd = entry.token0Amount * entry.token0Price + entry.token1Amount * entry.token1Price;
 
   // ─── P&L Breakdown ─────────────────────────────────────────────────
-  // Principal P&L: how much the position value itself changed (includes IL effect)
+  // Principal P&L: position value change (includes IL + auto-compounded fees
+  // for staked positions).
   const principalPnl = currentPositionUsd - entryValueUsd;
 
-  // Total P&L: principal + earned fees + earned emissions.
-  // Staked Aerodrome positions don't accrue NEW fees, but whatever is shown
-  // in feesEarnedUsd was earned before staking and is recovered on unstake —
-  // so it's real LP wealth and counts toward P&L.
-  const totalPnl = principalPnl + feesEarnedUsd + emissionsEarnedUsd;
+  // Total P&L: principal change + claimable rewards (excludes staked fees
+  // since those are already in principalPnl via auto-compounding).
+  const totalPnl = principalPnl + claimableUsd;
   const totalPnlPercent = entryValueUsd > 0 ? (totalPnl / entryValueUsd) * 100 : 0;
 
   // ─── Impermanent Loss ──────────────────────────────────────────────
@@ -115,12 +122,15 @@ export async function calculatePositionPnL(
     hold5050Value,
 
     ...(() => {
-      const earnings = feesEarnedUsd + emissionsEarnedUsd;
+      // For staked positions fees are auto-compounded so the explicit
+      // feesEarnedUsd no longer represents an "extra" return — it's already
+      // in principalPnl. Use only claimable earnings for APR / projections.
+      const earnings = claimableUsd;
       const msElapsed = Date.now() - entry.snapshotAt.getTime();
       const daysElapsed = msElapsed / (1000 * 60 * 60 * 24);
 
       const feeApr = daysElapsed > 0 && entryValueUsd > 0
-        ? (feesEarnedUsd / entryValueUsd) * (365 / daysElapsed) * 100
+        ? (claimableFees / entryValueUsd) * (365 / daysElapsed) * 100
         : 0;
       const emissionsAprVal = daysElapsed > 0 && entryValueUsd > 0
         ? (emissionsEarnedUsd / entryValueUsd) * (365 / daysElapsed) * 100
